@@ -1,0 +1,157 @@
+// ---------------------------------------------------------------------------
+// Esquema de datos - Portal de accidentes de trafico en Lanzarote
+// Generar cliente:  npx prisma generate
+//
+// Compatible con PostgreSQL y con SQLite. Los enums de Prisma no existen en
+// SQLite, asi que los cuatro campos se guardan como String y los valores validos
+// estan definidos y comprobados en src/lib/types.ts. En PostgreSQL se pueden
+// migrar a enum nativo sin tocar el codigo de la aplicacion: solo el esquema.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // provider = env("DATABASE_PROVIDER")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Estado editorial de la noticia.
+/// PENDING_REVIEW nunca es visible publicamente, es la unica forma de llegar a la web.
+enum AccidentStatus {
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+/// Procedencia del contenido.
+/// AI obliga a PENDING_REVIEW: hay una comprobacion en la capa de datos.
+enum Origin {
+  MANUAL
+  AI
+}
+
+enum VehicleType {
+  COCHE
+  MOTO
+  CAMION
+  BICICLETA
+  PEATON
+  OTROS
+}
+
+enum AccidentSeverity {
+  LEVE
+  MODERADO
+  GRAVE
+}
+
+/// Municipios de la isla de Lanzarote
+model Municipality {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String     @unique
+  island    String     @default("Lanzarote")
+  /// Coordenadas del casco urbano, usadas para el mapa SVG
+  lat       Float
+  lon       Float
+  accidents Accident[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([name])
+}
+
+model Accident {
+  id    String @id @default(cuid())
+  /// URL amigable: /accidentes/titulo-del-accidente
+  slug  String @unique
+  title String
+  summary String
+  body   String
+  imageUrl String?
+  imageAlt String?
+
+  /// Momento del accidente (hora local de Canarias, guardado en UTC)
+  occurredAt DateTime
+
+  municipalityId String
+  municipality   Municipality @relation(fields: [municipalityId], references: [id], onDelete: Restrict)
+
+  /// VehicleType: COCHE | MOTO | CAMION | BICICLETA | PEATON | OTROS
+  vehicleType String
+  /// AccidentSeverity: LEVE | MODERADO | GRAVE
+  severity    String      @default("MODERADO")
+
+  /// AccidentStatus: PENDING_REVIEW | PUBLISHED | REJECTED | ARCHIVED
+  status String @default("PENDING_REVIEW")
+  /// Origin: MANUAL | AI
+  origin String         @default("MANUAL")
+
+  fatalities Int @default(0)
+  injuries   Int @default(0)
+
+  /// Solo un accidente pode estar destacado a la vez
+  isFeatured Boolean @default(false)
+
+  /// Ubicacion aproximada (nunca exacta). Sirve para el mapa.
+  approxLat Float?
+  approxLon Float?
+  /// Descripcion del lugar en lenguaje natural, p.ej. "carretera insular, km 12"
+  locationDescription String?
+
+  // ---- Revision editorial ----
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  reviewNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources   Source[]
+  revisions Revision[]
+
+  @@index([status, occurredAt])
+  @@index([municipalityId, status])
+  @@index([vehicleType, status])
+  @@index([occurredAt])
+  @@index([isFeatured])
+  @@index([origin, status])
+}
+
+/// Fuentes consultadas. Se guardan siempre, incluso en borrador,
+/// para que la persona que revise pueda verificar el origen.
+model Source {
+  id         String   @id @default(cuid())
+  accidentId String
+  accident   Accident @relation(fields: [accidentId], references: [id], onDelete: Cascade)
+
+  /// Medio: "Lanzarote Digital", "Cabildo de Lanzarote", "CEC", ...
+  outlet String
+  url    String
+  publishedAt DateTime?
+  retrievedAt DateTime @default(now())
+  excerpt String?
+
+  @@index([accidentId])
+  @@index([outlet])
+}
+
+/// Historial de cambios, para auditoría editorial.
+/// La instantanea se guarda como texto JSON: SQLite no tiene tipo Json nativo.
+model Revision {
+  id         String   @id @default(cuid())
+  accidentId String
+  accident   Accident @relation(fields: [accidentId], references: [id], onDelete: Cascade)
+
+  editor  String
+  note    String?
+  /// Instantanea del registro en el momento de la edicion, en JSON
+  snapshot String
+  createdAt DateTime @default(now())
+
+  @@index([accidentId, createdAt])
+}

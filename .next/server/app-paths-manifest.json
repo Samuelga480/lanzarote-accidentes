@@ -1,0 +1,21 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/api/accidents/[slug]/route": "app/api/accidents/[slug]/route.js",
+  "/api/ai/drafts/route": "app/api/ai/drafts/route.js",
+  "/api/accidents/route": "app/api/accidents/route.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/accidentes/[slug]/page": "app/accidentes/[slug]/page.js",
+  "/accidentes/page": "app/accidentes/page.js",
+  "/admin/nuevo/page": "app/admin/nuevo/page.js",
+  "/mapa/page": "app/mapa/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/[id]/page": "app/admin/[id]/page.js",
+  "/municipios/page": "app/municipios/page.js",
+  "/municipios/[slug]/page": "app/municipios/[slug]/page.js",
+  "/buscar/page": "app/buscar/page.js",
+  "/privacidad/page": "app/privacidad/page.js",
+  "/vehiculos/[slug]/page": "app/vehiculos/[slug]/page.js",
+  "/page": "app/page.js"
+}

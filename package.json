@@ -1,0 +1,47 @@
+{
+  "name": "lanzarote-accidentes",
+  "version": "1.0.0",
+  "description": "Web de accidentes de tráfico en Lanzarote con panel de administración, mapa, API REST y pipeline de IA que nunca publica automáticamente.",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "setup": "prisma db push && prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "axios": "^1.20.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "next": "^15.5.26",
+    "pg": "^8.23.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "xml2js": "^0.6.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4.1.12",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.2"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.2": true
+  }
+}

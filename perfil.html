@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil — Accidentes Lanzarote</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="perfil.css">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <h1>Accidentes Lanzarote</h1>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Inicio</a>
+                <a href="login.html" class="nav-link nav-admin" id="nav-login">Acceder</a>
+                <a href="#" class="nav-link" id="nav-logout" style="display: none;" onclick="cerrarSesion(event)">Cerrar sesión</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="perfil-main">
+        <div class="perfil-container" id="perfil-container">
+            <!-- Contenido dinámico -->
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Accidentes Lanzarote. Información publicada con fines informativos. En caso de emergencia, llama al 112.</p>
+    </footer>
+
+    <script src="perfil.js"></script>
+</body>
+</html>

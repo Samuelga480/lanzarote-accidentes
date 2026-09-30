@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cargarNoticias();
     cargarStats();
+    cargarUsuarios();
 
     // Event listeners
     document.getElementById('btn-recopilar').addEventListener('click', recopilarNoticias);
@@ -28,6 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('admin-filtro-estado').addEventListener('change', filtrarNoticias);
     document.getElementById('admin-filtro-zona').addEventListener('change', filtrarNoticias);
     document.getElementById('admin-filtro-tipo').addEventListener('change', filtrarNoticias);
+
+    // Pestañas
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.dataset.tab;
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        });
+    });
 
     // Modal de edición
     document.getElementById('modal-close').addEventListener('click', cerrarModalEditar);
@@ -83,6 +95,43 @@ async function cargarNoticias() {
     }
 }
 
+// ===== CARGAR USUARIOS REGISTRADOS =====
+async function cargarUsuarios() {
+    try {
+        const response = await fetch('/api/usuarios', {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            renderUsuarios(data.data);
+        }
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+    }
+}
+
+function renderUsuarios(usuarios) {
+    const container = document.getElementById('admin-users-list');
+
+    if (usuarios.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 40px;">No hay usuarios registrados.</p>';
+        return;
+    }
+
+    container.innerHTML = usuarios.map(usuario => `
+        <div class="admin-user-item">
+            <div class="admin-user-avatar">${usuario.nombre.charAt(0).toUpperCase()}</div>
+            <div class="admin-user-info">
+                <div class="admin-user-name">${escapeHTML(usuario.nombre)}</div>
+                <div class="admin-user-email">${escapeHTML(usuario.email)}</div>
+                <div class="admin-user-role">${usuario.role}</div>
+            </div>
+            <div class="admin-user-date">${formatFecha(usuario.fechaRegistro)}</div>
+        </div>
+    `).join('');
+}
+
 // ===== CARGAR ESTADÍSTICAS =====
 async function cargarStats() {
     try {
@@ -95,7 +144,6 @@ async function cargarStats() {
             document.getElementById('stat-total').textContent = data.data.total;
             document.getElementById('stat-pendientes').textContent = data.data.pendientes;
             document.getElementById('stat-aprobadas').textContent = data.data.aprobadas;
-            document.getElementById('stat-rechazadas').textContent = data.data.rechazadas;
         }
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
@@ -127,7 +175,6 @@ function renderNoticias(data) {
                 <button class="btn btn-secondary btn-small" onclick="verNoticia(${noticia.id})">Ver</button>
                 <button class="btn btn-primary btn-small" onclick="editarNoticia(${noticia.id})">Editar</button>
                 ${noticia.estado !== 'aprobada' ? `<button class="btn btn-success btn-small" onclick="aprobarNoticia(${noticia.id})">Aprobar</button>` : ''}
-                ${noticia.estado !== 'rechazada' ? `<button class="btn btn-danger btn-small" onclick="rechazarNoticia(${noticia.id})">Rechazar</button>` : ''}
                 <button class="btn btn-danger btn-small" onclick="eliminarNoticia(${noticia.id})">Eliminar</button>
             </div>
         </div>
@@ -325,6 +372,11 @@ async function aprobarNoticia(id) {
         const data = await response.json();
 
         if (data.success) {
+            // Enviar correo a todos los usuarios registrados
+            const noticia = noticias.find(n => n.id === id);
+            if (noticia) {
+                await enviarCorreoNoticia(noticia);
+            }
             cargarNoticias();
             cargarStats();
         } else {
@@ -335,22 +387,23 @@ async function aprobarNoticia(id) {
     }
 }
 
-// ===== RECHAZAR NOTICIA =====
-async function rechazarNoticia(id) {
-    if (!confirm('¿Estás seguro de rechazar esta noticia?')) return;
-
+// ===== ENVIAR CORREO A USUARIOS =====
+async function enviarCorreoNoticia(noticia) {
     try {
-        const response = await fetch(`/api/noticias/${id}/rechazar`, { method: 'POST' });
+        const response = await fetch('/api/enviar-correos', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                asunto: `Nueva noticia: ${noticia.titulo}`,
+                mensaje: `Se ha publicado una nueva noticia: ${noticia.titulo}\n\n${noticia.descripcion.substring(0, 200)}...`
+            })
+        });
         const data = await response.json();
-
         if (data.success) {
-            cargarNoticias();
-            cargarStats();
-        } else {
-            alert('Error al rechazar: ' + data.error);
+            console.log(`Correo enviado a ${data.destinatarios.length} usuarios`);
         }
     } catch (error) {
-        alert('Error de conexión: ' + error.message);
+        console.error('Error enviando correos:', error);
     }
 }
 

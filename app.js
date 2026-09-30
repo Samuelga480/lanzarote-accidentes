@@ -5,34 +5,102 @@ let noticias = [];
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', async () => {
+    initTheme();
     initMap();
     await cargarNoticias();
     setupEventListeners();
     actualizarNav();
+    setupProfileDropdown();
 });
+
+// ===== MODO OSCURO/CLARO =====
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
 
 // ===== ACTUALIZAR NAV SEGÚN AUTENTICACIÓN =====
 function actualizarNav() {
     const navAuth = document.getElementById('nav-auth');
+    const navProfileContainer = document.getElementById('nav-profile-container');
+    const navProfileName = document.getElementById('nav-profile-name');
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    const profileAvatar = document.getElementById('profile-avatar');
     const authToken = localStorage.getItem('auth_token');
     const userEmail = localStorage.getItem('auth_email');
 
     if (authToken && userEmail) {
-        // Usuario autenticado - mostrar perfil
+        // Usuario autenticado - mostrar menú de perfil
         const nombreUsuario = userEmail.split('@')[0];
-        navAuth.textContent = nombreUsuario;
-        navAuth.classList.remove('nav-admin');
-        
-        // Añadir evento click para redirigir al perfil
-        navAuth.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.location.href = 'perfil.html';
-        });
+        const userRole = localStorage.getItem('auth_role');
+        navAuth.style.display = 'none';
+        navProfileContainer.style.display = 'block';
+        navProfileName.textContent = nombreUsuario;
+        profileName.textContent = nombreUsuario;
+        profileEmail.textContent = userEmail;
+        profileAvatar.textContent = nombreUsuario.charAt(0).toUpperCase();
+
+        // Mostrar "Peticiones de noticias" y "Usuarios registrados" solo a admin
+        const peticionesLink = document.getElementById('profile-peticiones');
+        const usuariosLink = document.getElementById('profile-usuarios');
+        const verPerfilLink = document.getElementById('profile-ver-perfil');
+        if (userRole === 'admin') {
+            peticionesLink.style.display = 'flex';
+            usuariosLink.style.display = 'flex';
+            verPerfilLink.style.display = 'flex';
+        } else {
+            peticionesLink.style.display = 'none';
+            usuariosLink.style.display = 'none';
+            verPerfilLink.style.display = 'flex';
+        }
     } else {
         // No autenticado - mostrar Acceder
+        navAuth.style.display = 'block';
+        navProfileContainer.style.display = 'none';
         navAuth.textContent = 'Acceder';
         navAuth.href = 'login.html';
         navAuth.classList.add('nav-admin');
+    }
+}
+
+// ===== MENÚ DESPLEGABLE DE PERFIL =====
+function setupProfileDropdown() {
+    const profileBtn = document.getElementById('nav-profile-btn');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    const profileLogout = document.getElementById('profile-logout');
+
+    if (profileBtn && profileDropdown) {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!profileDropdown.contains(e.target)) {
+                profileDropdown.classList.remove('active');
+            }
+        });
+    }
+
+    if (profileLogout) {
+        profileLogout.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_role');
+            localStorage.removeItem('auth_email');
+            window.location.href = 'index.html';
+        });
     }
 }
 

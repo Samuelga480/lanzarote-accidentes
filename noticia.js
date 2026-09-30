@@ -70,12 +70,7 @@ function renderNoticia(noticia) {
             </div>
             <h1 class="noticia-titulo">${escapeHTML(noticia.titulo)}</h1>
             <p class="noticia-descripcion">${escapeHTML(noticia.descripcion).replace(/\n\n/g, '</p><p>')}</p>
-            ${noticia.resumen_ia ? `
-            <div class="noticia-resumen-ia">
-                <h3>Resumen generado por IA</h3>
-                <p>${escapeHTML(noticia.resumen_ia)}</p>
-            </div>
-            ` : ''}
+
             <div class="noticia-fuente">
                 <strong>Fuente:</strong> ${noticia.fuente}
             </div>

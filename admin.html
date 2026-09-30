@@ -21,73 +21,77 @@
             </div>
             <nav class="admin-nav">
                 <a href="index.html" class="admin-nav-link">Ver Web</a>
-                <button id="btn-recopilar" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
-                        <path d="M21 3v5h-5"/>
-                    </svg>
-                    Recopilar Noticias
-                </button>
             </nav>
         </div>
     </header>
 
     <main class="admin-main">
-        <!-- Estadísticas -->
-        <section class="admin-stats">
-            <div class="admin-stat-card">
-                <div class="admin-stat-number" id="stat-total">0</div>
-                <div class="admin-stat-label">Total</div>
-            </div>
-            <div class="admin-stat-card pendiente">
-                <div class="admin-stat-number" id="stat-pendientes">0</div>
-                <div class="admin-stat-label">Pendientes</div>
-            </div>
-            <div class="admin-stat-card aprobada">
-                <div class="admin-stat-number" id="stat-aprobadas">0</div>
-                <div class="admin-stat-label">Aprobadas</div>
-            </div>
-            <div class="admin-stat-card rechazada">
-                <div class="admin-stat-number" id="stat-rechazadas">0</div>
-                <div class="admin-stat-label">Rechazadas</div>
-            </div>
-        </section>
+        <!-- Pestañas de navegación -->
+        <div class="admin-nav-tabs">
+            <a href="admin.html" class="admin-nav-tab active">Noticias</a>
+            <a href="usuarios.html" class="admin-nav-tab">Usuarios registrados</a>
+        </div>
 
-        <!-- Filtros -->
-        <section class="admin-filters">
-            <div class="admin-filters-inner">
-                <input type="text" id="admin-buscador" placeholder="Buscar noticias..." class="admin-input">
-                <select id="admin-filtro-estado" class="admin-select">
-                    <option value="">Todos los estados</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="aprobada">Aprobada</option>
-                    <option value="rechazada">Rechazada</option>
-                </select>
-                <select id="admin-filtro-zona" class="admin-select">
-                    <option value="">Todas las zonas</option>
-                    <option value="Arrecife">Arrecife</option>
-                    <option value="Teguise">Teguise</option>
-                    <option value="San Bartolomé">San Bartolomé</option>
-                    <option value="Tías">Tías</option>
-                    <option value="Yaiza">Yaiza</option>
-                    <option value="Tinajo">Tinajo</option>
-                    <option value="Haría">Haría</option>
-                </select>
-                <select id="admin-filtro-tipo" class="admin-select">
-                    <option value="">Todos los tipos</option>
-                    <option value="Colisión">Colisión</option>
-                    <option value="Atropello">Atropello</option>
-                    <option value="Salida de vía">Salida de vía</option>
-                    <option value="Vuelco">Vuelco</option>
-                    <option value="Moto">Moto</option>
-                </select>
-            </div>
-        </section>
+        <!-- Sección de Noticias -->
+        <div class="admin-tab-content active" id="tab-noticias">
+            <!-- Estadísticas -->
+            <section class="admin-stats">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-number" id="stat-total">0</div>
+                    <div class="admin-stat-label">Total</div>
+                </div>
+                <div class="admin-stat-card pendiente">
+                    <div class="admin-stat-number" id="stat-pendientes">0</div>
+                    <div class="admin-stat-label">Pendientes</div>
+                </div>
+                <div class="admin-stat-card aprobada">
+                    <div class="admin-stat-number" id="stat-aprobadas">0</div>
+                    <div class="admin-stat-label">Aprobadas</div>
+                </div>
+            </section>
 
-        <!-- Lista de noticias -->
-        <section class="admin-news-list" id="admin-news-list">
-            <!-- Las noticias se cargan dinámicamente -->
-        </section>
+            <!-- Filtros -->
+            <section class="admin-filters">
+                <div class="admin-filters-inner">
+                    <input type="text" id="admin-buscador" placeholder="Buscar noticias..." class="admin-input">
+                    <select id="admin-filtro-estado" class="admin-select">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aprobada">Aprobada</option>
+                    </select>
+                    <select id="admin-filtro-zona" class="admin-select">
+                        <option value="">Todas las zonas</option>
+                        <option value="Arrecife">Arrecife</option>
+                        <option value="Teguise">Teguise</option>
+                        <option value="San Bartolomé">San Bartolomé</option>
+                        <option value="Tías">Tías</option>
+                        <option value="Yaiza">Yaiza</option>
+                        <option value="Tinajo">Tinajo</option>
+                        <option value="Haría">Haría</option>
+                    </select>
+                    <select id="admin-filtro-tipo" class="admin-select">
+                        <option value="">Todos los tipos</option>
+                        <option value="Colisión">Colisión</option>
+                        <option value="Atropello">Atropello</option>
+                        <option value="Salida de vía">Salida de vía</option>
+                        <option value="Vuelco">Vuelco</option>
+                        <option value="Moto">Moto</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Lista de noticias -->
+            <section class="admin-news-list" id="admin-news-list">
+                <!-- Las noticias se cargan dinámicamente -->
+            </section>
+        </div>
+
+        <!-- Sección de Usuarios -->
+        <div class="admin-tab-content" id="tab-usuarios">
+            <section class="admin-users-list" id="admin-users-list">
+                <!-- Los usuarios se cargan dinámicamente -->
+            </section>
+        </div>
     </main>
 
     <!-- Modal para editar -->
@@ -176,6 +180,7 @@
         </div>
     </div>
 
+    <script src="theme.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen Semanal — Accidentes Lanzarote</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="resumen.css">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <h1>Resumen Semanal</h1>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Inicio</a>
+                <a href="resumen.html" class="nav-link active">Resumen Semanal</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="resumen-main">
+        <div class="resumen-container">
+            <div class="resumen-header">
+                <h2>Resumen de accidentes semanal</h2>
+                <p>Consulta el resumen de accidentes de tráfico en Lanzarote por semana</p>
+            </div>
+
+            <!-- Filtro de semanas -->
+            <div class="resumen-filters">
+                <select id="resumen-semana" class="resumen-select">
+                    <option value="">Selecciona una semana</option>
+                </select>
+            </div>
+
+            <!-- Estadísticas de la semana -->
+            <section class="resumen-stats" id="resumen-stats">
+                <!-- Se cargan dinámicamente -->
+            </section>
+
+            <!-- Gráfico de tipos -->
+            <section class="resumen-chart">
+                <h3>Accidentes por tipo</h3>
+                <div class="chart-container" id="chart-tipos">
+                    <!-- Se cargan dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Gráfico de zonas -->
+            <section class="resumen-chart">
+                <h3>Accidentes por zona</h3>
+                <div class="chart-container" id="chart-zonas">
+                    <!-- Se cargan dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Lista de accidentes de la semana -->
+            <section class="resumen-accidentes">
+                <h3>Accidentes de la semana</h3>
+                <div id="resumen-accidentes-list">
+                    <!-- Se cargan dinámicamente -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Accidentes Lanzarote. Información publicada con fines informativos. En caso de emergencia, llama al 112.</p>
+    </footer>
+
+    <script src="theme.js"></script>
+    <script src="resumen.js"></script>
+</body>
+</html>

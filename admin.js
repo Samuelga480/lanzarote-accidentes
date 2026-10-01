@@ -81,7 +81,7 @@ function getAuthHeaders() {
 // ===== CARGAR NOTICIAS =====
 async function cargarNoticias() {
     try {
-        const response = await fetch('/api/noticias', {
+        const response = await fetch('/api/pendientes', {
             headers: getAuthHeaders()
         });
         const data = await response.json();

@@ -282,6 +282,18 @@ app.get('/api/noticias/:id', (req, res) => {
     });
 });
 
+app.delete('/api/noticias/:id', (req, res) => {
+    const id = req.params.id;
+    const index = NOTICIAS.findIndex(n => n.id === id);
+
+    if (index === -1) {
+        return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+    }
+
+    NOTICIAS.splice(index, 1);
+    res.json({ success: true, message: 'Noticia eliminada' });
+});
+
 app.get('/api/pendientes', (req, res) => {
     res.json({
         success: true,

@@ -75,7 +75,7 @@ services:
       - key: OPENROUTER_EMBEDDING_MODEL
         value: openai/text-embedding-3-small
       - key: OPENROUTER_APP_TITLE
-        value: Trafico Lanzarote
+        value: Accidentes Lanzarote
 
       # --- Migraciones ---
       # El contenedor ejecuta `prisma migrate deploy` antes de arrancar el

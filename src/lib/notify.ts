@@ -195,7 +195,7 @@ async function sendEmail(payload: NotifyPayload): Promise<DeliveryResult> {
     });
 
     await transport.sendMail({
-      from: `"Tráfico Lanzarote" <${from}>`,
+      from: `"Accidentes Lanzarote" <${from}>`,
       to,
       subject: `[Revisión] ${payload.title}`.slice(0, 150),
       text: buildPlainText(payload),
@@ -315,7 +315,7 @@ async function sendDiscord(payload: NotifyPayload): Promise<DeliveryResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "Tráfico Lanzarote",
+        username: "Accidentes Lanzarote",
         embeds: [
           {
             title: payload.title,

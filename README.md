@@ -1,4 +1,4 @@
-# Tráfico Lanzarote
+# Accidentes Lanzarote
 
 Portal de noticias de accidentes, emergencias y actuaciones de los servicios de
 emergencia en Lanzarote.

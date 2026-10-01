@@ -79,13 +79,20 @@ export const ORIGIN_LABEL: Record<Origin, string> = {
 /* -------------------------------------------------------------------------- */
 
 export const SITE = {
-  name: "Tráfico Lanzarote",
-  tagline: "Accidentes y sucesos de tráfico en la isla",
+  /**
+   * El nombre debe coincidir con el dominio (accidenteslanzarote.com).
+   *
+   * Antes decia "Tráfico Lanzarote", que era el nombre del proyecto antiguo y
+   * no el del sitio. Con el dominio ya cambiado, mantener el nombre viejo
+   * desconcertaba: la direccion decia una cosa y la pagina otra.
+   */
+  name: "Accidentes Lanzarote",
+  tagline: "Accidentes, emergencias y rescates en la isla",
   description:
-    "Portal de noticias sobre accidentes de coches, motos y otros vehículos en Lanzarote. Información por municipio, fecha y tipo de vehículo.",
-  organization: "Tráfico Lanzarote",
+    "Noticias de accidentes de coches, motos y otros vehículos, emergencias y rescates en Lanzarote. Información por municipio, carretera, fecha y tipo de vehículo.",
+  organization: "Accidentes Lanzarote",
   locale: "es_ES",
-  twitter: "@trafico_lanzarote",
+  twitter: "@accidentesLZ",
 };
 
 /** Rango de fechas aceptado por los filtros (dias hacia atras). */

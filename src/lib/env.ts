@@ -88,7 +88,7 @@ export const aiConfig = {
     return siteUrl();
   },
   appTitle(): string {
-    return optional("OPENROUTER_APP_TITLE") ?? "Tráfico Lanzarote";
+    return optional("OPENROUTER_APP_TITLE") ?? "Accidentes Lanzarote";
   },
   /** Modelo de redaccion. Uno barato y rapido basta: se trata de resumir. */
   model(): string {

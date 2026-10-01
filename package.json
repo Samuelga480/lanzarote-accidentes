@@ -1,7 +1,7 @@
 {
   "name": "lanzarote-accidentes",
   "version": "2.0.0",
-  "description": "Plataforma de noticias de accidentes, emergencias y actuaciones de los servicios de emergencia en Lanzarote. Deteccion automatica 24/7, verificacion, reescritura con IA, panel de aprobacion manual. Nunca publica de forma automatica.",
+  "description": "Plataforma de noticias de accidentes, emergencias y actuaciones de los servicios de emergencia en Lanzarote. Deteccion automatica 24/7, verificacion, reescritura con IA y panel de aprobacion manual. Nunca publica de forma automatica.",
   "private": true,
   "engines": {
     "node": ">=20.11"
@@ -24,7 +24,7 @@
     "test:endpoints": "tsx tests/endpoints.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -34,6 +34,7 @@
     "fast-xml-parser": "^5.11.2",
     "next": "^15.5.26",
     "nodemailer": "^10.0.13",
+    "prisma": "^6.19.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.35.5",
@@ -45,7 +46,6 @@
     "@types/nodemailer": "^7.0.9",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "prisma": "^6.19.3",
     "tailwindcss": "^4.1.12",
     "tsx": "^4.23.15",
     "typescript": "^5.8.2"
@@ -55,6 +55,6 @@
     "@prisma/engines@6.19.3": true,
     "esbuild@0.28.2": true,
     "prisma@6.19.3": true,
-    "sharp@0.35.5": true
+    "sharp": true
   }
 }

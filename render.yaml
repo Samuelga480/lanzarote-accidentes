@@ -77,6 +77,14 @@ services:
       - key: OPENROUTER_APP_TITLE
         value: Trafico Lanzarote
 
+      # --- Migraciones ---
+      # El contenedor ejecuta `prisma migrate deploy` antes de arrancar el
+      # servidor (ver docker-entrypoint.sh). Con esto en true, ademas carga los
+      # nueve municipios en el primer arranque. Es idempotente: repetirlo no
+      # duplica nada.
+      - key: RUN_SEED_ON_START
+        value: "true"
+
       # --- Monitorizacion ---
       - key: CRON_SECRET
         generateValue: true
@@ -135,9 +143,11 @@ services:
         value: info
 
     buildArgs:
-      # Next.js incrusta esta variable en el HTML durante el build. Si aqui no
-      # coincide con la de envVars, el canonical y el Open Graph saldran con la
-      # URL de compilacion.
+      # CRITICO: esta variable queda FIJADA dentro del bundle de JavaScript
+      # durante el build. Si no se pasa aqui, el canonical, el sitemap y las
+      # tarjetas sociales saldran apuntando a una URL de ejemplo y el SEO se
+      # pierde entero. Debe coincidir exactamente con la variable de entorno
+      # NEXT_PUBLIC_SITE_URL de arriba, sin https:// ni barra final.
       NEXT_PUBLIC_SITE_URL: https://TU-DOMINIO.example
 
   # -------------------------------------------------------------------------

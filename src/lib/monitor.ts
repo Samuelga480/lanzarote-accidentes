@@ -40,8 +40,24 @@ export type CycleResult = {
   locked: boolean;
 };
 
-/** Un ciclo no debe pasar de este tiempo: se solapa con el siguiente minuto. */
-const CYCLE_BUDGET_MS = 55_000;
+/**
+ * Presupuesto de tiempo de un ciclo.
+ *
+ * En un servidor normal (Docker, Render, VPS) un ciclo puede durarse casi un
+ * minuto entero. En Vercel las funciones serverless tienen un limite de
+ * ejecucion que depende del plan: 10 segundos en Hobby y hasta 300 en Pro.
+ * Si el ciclo se pasa de ese limite, la plataforma lo mata a mitad y devuelve
+ * un error sin haber guardado nada.
+ *
+ * Por eso el presupuesto baja a 8 segundos en Vercel: es lo que deja margen
+ * para el resto de la funcion y completar la respuesta HTTP.
+ */
+function cycleBudgetMs(): number {
+  if (process.env.VERCEL) return 8_000;
+  return 55_000;
+}
+
+const CYCLE_BUDGET_MS = cycleBudgetMs();
 
 /* -------------------------------------------------------------------------- */
 /*  Lock                                                                      */

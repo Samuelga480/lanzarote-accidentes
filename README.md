@@ -11,21 +11,23 @@ noticia exige aprobación manual en `/admin`.
 
 ## ⚠ Estado actual: NO desplegado
 
-La plataforma está terminada y verificada en local, pero **no está en GitHub y no
-hay base de datos creada**. Antes de que la web funcione faltan estos pasos:
+El código está subido a GitHub y verificado, pero **no hay base de datos creada**.
+Antes de que la web funcione:
 
 | # | Paso | Estado |
 |---|---|---|
-| 1 | Instalar `git` en el equipo | ❌ No instalado |
-| 2 | Subir el código a GitHub | ❌ Sin commit |
-| 3 | Crear el PostgreSQL en Render | ❌ No creado |
-| 4 | Conectar el servicio web de Render | ❌ Sin configurar |
-| 5 | Definir las variables de entorno | ❌ Sin clave de OpenRouter |
-| 6 | Conectar un cron externo | ❌ Sin configurar |
+| 1 | Código en GitHub | ✅ Hecho |
+| 2 | Historial limpio de secretos | ✅ Hecho |
+| 3 | Crear el PostgreSQL | ❌ Pendiente |
+| 4 | Desplegar en Vercel | ❌ Pendiente |
+| 5 | Ejecutar la migración | ❌ Pendiente |
+| 6 | Variables de entorno | ❌ Pendiente |
+| 7 | Cron externo | ❌ Pendiente |
 
-Último commit existente: `57f2977` — "Eliminar todos los espacios publicitarios"
-(01/10/2026). Todo el trabajo descrito en este documento es **posterior** y está
-solo en el disco local, sin commitear.
+El historial de git fue reescrito para eliminar contraseñas que llevaban meses
+expuestas en un repositorio público. Eso significa que los hashes antiguos ya no
+existen: siRender tenía el repositorio conectado, tendrá que volver a
+sincronizar.
 
 ---
 
@@ -337,6 +339,77 @@ actual: el historial las conserva.
 
 ---
 
+## Despliegue en Vercel
+
+Vercel compila Next.js de forma nativa e **ignora el `Dockerfile`**. La
+configuración está en `vercel.json`.
+
+### Tres diferencias respecto a Render
+
+**1. Las migraciones hay que ejecutarlas a mano.**
+
+Vercel no las aplica en el despliegue, y añadirlas al `buildCommand` es un error:
+se ejecutarían antes de desplegar, de modo que un despliegue fallido dejaría la
+base de datos ya modificada. Se aplican una vez, desde tu máquina:
+
+```bash
+npx vercel env pull .env.local    # descarga las variables de Vercel
+npx prisma migrate deploy         # crea las tablas
+npx prisma db seed                # carga los nueve municipios
+```
+
+**2. El disco es de solo lectura.**
+
+Vercel no permite escribir en `public/`, así que el pipeline no puede guardar
+los WebP. El sistema lo detecta solo (`src/lib/fs-probe.ts`) y cambia a modo
+`external`: usa la URL del medio directamente.
+
+Consecuencia: si el medio borra la foto, la noticia se queda sin imagen. Es el
+compromiso de no pagar almacenamiento. Para evitarlo habría que migrar a Vercel
+Blob o a S3.
+
+**3. El cron de un minuto no es posible en el plan Hobby.**
+
+Vercel Hobby permite un cron **diario**, y un plan que lo rechaza hace fallar el
+despliegue. El `vercel.json` declara un cron diario como red de seguridad; el
+ciclo real lo lanza un cron externo:
+
+```
+GET https://TU-DOMINIO.vercel.app/api/cron/monitor
+Authorization: Bearer <CRON_SECRET>
+```
+
+Opciones gratuitas: cron-job.org, EasyCron, UptimeRobot, o un workflow
+programado de GitHub Actions.
+
+Con plan Pro puedes cambiar `"0 9 * * *"` por `"* * * * *"` en `vercel.json` y
+eliminar el cron externo.
+
+### Límite de ejecución
+
+Las funciones serverless tienen un límite según el plan: 10 s en Hobby. El ciclo
+de detección lo tiene en cuenta y baja su presupuesto a 8 segundos cuando
+detecta Vercel (`src/lib/monitor.ts`), para que le dé tiempo a devolver la
+respuesta. Si el cron se corta, no se ha guardado nada y el siguiente minuto lo
+reintenta.
+
+### Variables de entorno
+
+Se ponen en el panel: **Settings → Environment Variables**.
+
+| Variable | Obligatoria |
+|---|---|
+| `DATABASE_URL` | sí |
+| `ADMIN_PASSWORD` | sí |
+| `ADMIN_SESSION_SECRET` | sí, mínimo 32 caracteres |
+| `CRON_SECRET` | sí, mínimo 24 caracteres |
+| `NEXT_PUBLIC_SITE_URL` | sí, sin `https://` ni barra final |
+| `TZ` | recommended: `Atlantic/Canary` |
+| `OPENROUTER_API_KEY` | no, sin ella no hay reescritura |
+| `ADMIN_EMAIL` | no, para avisos por correo |
+
+---
+
 ## Despliegue en Render
 
 El `render.yaml` crea el Postgres, el servicio web y las variables. Opciones de
@@ -350,8 +423,9 @@ Dos detalles que importan:
   bundle. Si el `buildArg` no coincide con la variable de entorno, el canonical y
   las tarjetas sociales muestren la URL de compilación.
 
-Imagen: tres etapas en el `Dockerfile`. La final corre como usuario sin
-privilegios y comprueba su salud contra `/api/health`.
+Con Docker el sistema funciona mejor que en Vercel: las migraciones se aplican
+solas al arrancar (`docker-entrypoint.sh`), el pipeline de imágenes guarda los
+WebP en disco y el ciclo de detección puede usar los 55 segundos completos.
 
 ---
 

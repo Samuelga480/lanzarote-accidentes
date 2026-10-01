@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { isWritable } from "@/lib/fs-probe";
 
 /** Lee una variable demanded, con mensaje de error en castellano. */
 function required(name: string): string {
@@ -252,6 +253,26 @@ export const alertConfig = {
 export const imageConfig = {
   enabled(): boolean {
     return bool("IMAGE_PIPELINE_ENABLED", true);
+  },
+  /**
+   * Como se guardan las imagenes.
+   *
+   * "filesystem" -> se descargan, se convierten a WebP y se guardan en
+   *                 public/media. Necesita un disco escribible: vale para
+   *                 Docker, Render y cualquier servidor propio.
+   *
+   * "external"   -> no se guarda nada y se usa la URL del medio. Es lo unico
+   *                 que funciona en Vercel, donde el disco es de solo lectura,
+   *                 y tambien en los planes gratuitos de Render.
+   *
+   * Se detecta solo probando una escritura en el directorio de destino, con
+   * lo que el mismo codigo funciona en las dos plataformas sin configuracion.
+   * IMAGE_MODE fuerza uno de los dos valores si hace falta.
+   */
+  mode(): "filesystem" | "external" {
+    const forced = optional("IMAGE_MODE");
+    if (forced === "filesystem" || forced === "external") return forced;
+    return isWritable(imageConfig.dir()) ? "filesystem" : "external";
   },
   /** Directorio donde se escriben los ficheros. Relativo a la raiz del proyecto. */
   dir(): string {

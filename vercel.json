@@ -1,0 +1,102 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+
+  "//": [
+    "Configuracion para Vercel. El Dockerfile de este repositorio es para el",
+    "despliegue en Render o en un servidor propio: Vercel lo ignora y compila",
+    "Next.js de forma nativa.",
+    "",
+    "Lo que hace falta y NO se puede declarar aqui:",
+    "  1. Las migraciones hay que ejecutarlas a mano (ver README).",
+    "  2. ADMIN_PASSWORD, ADMIN_SESSION_SECRET, CRON_SECRET y",
+    "     OPENROUTER_API_KEY se ponen en el panel de Vercel, no en este fichero."
+  ],
+
+  "buildCommand": "prisma generate && next build",
+
+  "//buildCommand": [
+    "OJO: aqui NO hay `prisma migrate deploy`, y es deliberado.",
+    "",
+    "Poner las migraciones en el buildCommand es un error frecuente:",
+    "",
+    "  - Se ejecutan ANTES de desplegar. Si el despliegue falla despues, la",
+    "    base de datos ya quedo modificada y no hay vuelta atras.",
+    "  - Vercel puede lanzar varios builds en paralelo y competir por la misma",
+    "    migracion.",
+    "  - Exige que DATABASE_URL sea alcanzable desde la red de build, cosa que",
+    "    no ocurre con la URL interna de Postgres.",
+    "",
+    "La migracion se aplica una sola vez, a mano:",
+    "",
+    "    npx vercel env pull .env.local",
+    "    npx prisma migrate deploy",
+    "",
+    "El `postinstall` de package.json genera el cliente de Prisma en cada",
+    "instalacion, asi que el build no necesita ese paso explicito."
+  ],
+
+  "regions": ["fra1"],
+
+  "crons": [
+    {
+      "path": "/api/cron/monitor",
+      "schedule": "0 9 * * *"
+    }
+  ],
+
+  "//crons": [
+    "CRON EN VERCEL: por que esta diario y no cada minuto.",
+    "",
+    "El requisito del proyecto es un ciclo de deteccion cada 60 segundos.",
+    "Vercel NO lo permite en el plan Hobby: su cron mas frecuente es una vez",
+    "al dia, y un plan que lo rechaza hace fallar el despliegue.",
+    "",
+    "Este cron diario es solo una red de seguridad: comprueba que el sistema",
+    "sigue vivo aunque nadie llame al endpoint.",
+    "",
+    "El ciclo de verdad lo lanza un cron EXTERNO (cron-job.org, EasyCron,",
+    "UptimeRobot o un workflow programado de GitHub Actions), que si permite",
+    "llamar cada minuto:",
+    "",
+    "    GET https://TU-DOMINIO.vercel.app/api/cron/monitor",
+    "    Authorization: Bearer <CRON_SECRET>",
+    "",
+    "Si estas en plan Pro, puedes cambiar '0 9 * * *' por '* * * * *' y",
+    "eliminar el cron externo."
+  ],
+
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/admin(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/feed.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=1800" }
+      ]
+    }
+  ],
+
+  "functions": {
+    "src/app/api/cron/monitor/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/ingest/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/health/route.ts": {
+      "maxDuration": 10
+    }
+  }
+}

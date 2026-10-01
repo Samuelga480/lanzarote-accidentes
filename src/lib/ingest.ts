@@ -31,6 +31,7 @@ import { checkDuplicate, urlHashOf, mergeIntoCanonical } from "@/lib/dedupe";
 import { rewriteArticle, embedArticle } from "@/lib/ai/rewrite";
 import { aiConfig, monitorConfig, siteUrl } from "@/lib/env";
 import { processImage } from "@/lib/images";
+import { imageConfig } from "@/lib/env";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import { perturbCoordinate } from "@/lib/ai/pipeline";
@@ -426,6 +427,7 @@ export async function ingestArticle(params: {
   // --- Imagen ---
   const imageUrl = article.imageUrl ?? params.feedImageUrl;
   let finalImageUrl: string | null = null;
+  let processedLocally = false;
   if (imageUrl) {
     const processed = await processImage({
       accidentId: created.id,
@@ -435,6 +437,10 @@ export async function ingestArticle(params: {
     });
     if (processed.ok && processed.heroPath) {
       finalImageUrl = processed.heroPath;
+      // En modo "external" processImage devuelve la URL del medio y no hay
+      // ninguna escritura en disco. Hay que distinguirlo de una copia local
+      // para no generar rutas /media/... que no existen.
+      processedLocally = processed.variants !== null;
     } else {
       // Si el procesado falla, se guarda la URL original para no perder la foto.
       finalImageUrl = imageUrl;
@@ -451,6 +457,14 @@ export async function ingestArticle(params: {
         imageUrl: finalImageUrl,
         imageAlt: clean.title,
       },
+    });
+  }
+
+  // En modo "external" el heroPath ES la URL del medio, no una ruta local. Sin
+  // este aviso, el panel y el JSON-LD generarian rutas /media/... que no existen.
+  if (imageUrl && !processedLocally && imageConfig.mode() === "external") {
+    log.info("La imagen se sirve desde el medio; no hay copia local", {
+      accidentId: created.id,
     });
   }
 

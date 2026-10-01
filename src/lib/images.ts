@@ -91,6 +91,28 @@ export async function processImage(params: {
   if (!params.url) return failure("No hay URL de imagen.");
   if (!looksLikeImageUrl(params.url)) return failure("La URL no parece una imagen.");
 
+  // En Vercel y en los planes gratuitos de Render el disco es de solo lectura.
+  // En ese caso NO se intenta descargar ni convertir: se usa directamente la
+  // URL del medio. Descargar la imagen para luego no poder guardaria solo
+  // gastaria ancho de banda y CPU en cada pasada.
+  if (imageConfig.mode() === "external") {
+    log.info("Modo imagen: externa (el disco no admite escritura)", {
+      url: redact(params.url),
+    });
+    return {
+      ok: true,
+      // Se marca como externa para que el llamante sepa que no hay fichero
+      // local y no intente construir una ruta /media/... que no existe.
+      heroPath: params.url,
+      ogPath: params.url,
+      variants: null,
+      width: null,
+      height: null,
+      bytes: null,
+      dominantColor: null,
+    };
+  }
+
   // --- 1. Descarga ---
   const download = await safeFetchBinary(params.url, {
     timeoutMs: imageConfig.timeoutMs(),

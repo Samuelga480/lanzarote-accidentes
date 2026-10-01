@@ -262,9 +262,11 @@ const NOTICIAS_INICIALES = [
 let NOTICIAS = [];
 
 app.get('/api/noticias', (req, res) => {
+    // Solo mostrar noticias aprobadas en la página principal
+    const noticiasAprobadas = NOTICIAS.filter(n => n.estado === 'aprobada');
     res.json({
         success: true,
-        data: NOTICIAS
+        data: noticiasAprobadas
     });
 });
 

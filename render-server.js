@@ -259,7 +259,40 @@ const NOTICIAS_INICIALES = [
     }
 ];
 
-let NOTICIAS = [];
+let NOTICIAS = [
+    {
+        id: '101',
+        titulo: 'Colisión en la LZ-20 cerca de Playa Blanca: dos heridos leves',
+        descripcion: 'Un choque entre dos vehículos se produjo en la carretera LZ-20, a la altura de Playa Blanca. Los dos conductores implicados sufrieron heridas leves y fueron atendidos en el lugar por los servicios de emergencia. El tráfico permaneció cortado durante aproximadamente 30 minutos mientras se retiraban los vehículos siniestrados. La Policía Local ha abierto una investigación para determinar las causas exactas del accidente.',
+        zona: 'Yaiza',
+        tipo: 'Colisión',
+        fecha: '2026-10-03',
+        estado: 'pendiente',
+        hora: '10:15',
+        municipio: 'Yaiza',
+        fuente: 'La Voz de Lanzarote',
+        url_fuente: 'https://www.lavozdelanzarote.com',
+        lat: 28.9516,
+        lng: -13.7629,
+        resumen_ia: null
+    },
+    {
+        id: '102',
+        titulo: 'Atropello en la avenida de Arrecife: peatón herido leve',
+        descripcion: 'Un peatón resultó herido leve tras ser atropellado en la avenida de Arrecife. El accidente ocurrió cuando la víctima intentaba cruzar la vía fuera del paso de peatones habilitado. El conductor del vehículo se detuvo inmediatamente y llamó al 112. Los servicios sanitarios atendieron al herido en el lugar, sin necesidad de traslado al hospital.',
+        zona: 'Arrecife',
+        tipo: 'Atropello',
+        fecha: '2026-10-04',
+        estado: 'pendiente',
+        hora: '16:45',
+        municipio: 'Arrecife',
+        fuente: 'Lanzarote Ahora',
+        url_fuente: 'https://www.lanzaroteahora.com',
+        lat: 28.9633,
+        lng: -13.5475,
+        resumen_ia: null
+    }
+];
 
 app.get('/api/noticias', (req, res) => {
     // Solo mostrar noticias aprobadas en la página principal

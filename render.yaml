@@ -1,0 +1,163 @@
+# ---------------------------------------------------------------------------
+# Configuracion de despliegue en Render.
+#
+# Render lee este fichero si usas "Blueprint". Crea el Postgres, el servicio web
+# y el cron, y los conecta entre si.
+#
+# COMO USARLO:
+#   1. Sube el repositorio a GitHub.
+#   2. En Render: New > Blueprint > selecciona el repositorio.
+#   3. Rellena Sync: false en las claves secretas para introducirlas a mano.
+#
+# Los valores de abajo NO son secretos: son referencias. Las claves reales se
+# meten en el panel de Render, nunca en este fichero.
+# ---------------------------------------------------------------------------
+
+databases:
+  # Postgres gestionado. Es imprescindible y no es opcional: el disco de Render
+  # es efimero, y con SQLite cada redeploy borraria todas las noticias aprobadas
+  # y todo el historial de revision.
+  - name:TrafficLanaroteDB
+    databaseName: TrafficLanaroteDB
+    user: TrafficLanarote
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+    ipAllowList: [] # Solo accesible desde la red interna de Render.
+
+services:
+  # -------------------------------------------------------------------------
+  #  La web y el panel de administracion
+  # -------------------------------------------------------------------------
+  - type: web
+    name: TrafficLanarote
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    branch: main
+    healthCheckPath: /api/health
+
+    # `docker` no necesita buildCommand: el Dockerfile ya hace `next build`.
+    # Si se cambia a `node`, hay que poner:
+    #   buildCommand: npm ci && npx prisma generate && npm run build
+    #   startCommand: npm run start
+
+    envVars:
+      # --- Base de datos: la conecta Render con la base de datos de arriba ---
+      - key: DATABASE_URL
+        fromDatabase:
+          name: TrafficLanaroteDB
+          property: connectionString
+      - key: DATABASE_PROVIDER
+        value: postgresql
+
+      # --- Sitio ---
+      # Debe ser el dominio real, sin https:// ni barra final. Si se deja mal,
+      # TODOS los canonical, el sitemap y las tarjetas sociales apuntan al sitio
+      # equivocado y el SEO se pierde entero.
+      # Se pasa tambien como --build-arg en buildArgs.
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: TZ
+        value: Atlantic/Canary
+
+      # --- Panel de administracion ---
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true # Render genera un secreto aleatorio de 64 caracteres.
+
+      # --- IA ---
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: google/gemini-flash-1.5
+      - key: OPENROUTER_EMBEDDING_MODEL
+        value: openai/text-embedding-3-small
+      - key: OPENROUTER_APP_TITLE
+        value: Trafico Lanzarote
+
+      # --- Monitorizacion ---
+      - key: CRON_SECRET
+        generateValue: true
+      - key: MONITOR_INTERVAL_MS
+        value: "60000"
+      - key: MONITOR_LOOKBACK_HOURS
+        value: "48"
+      - key: MONITOR_MAX_AGE_DAYS
+        value: "30"
+      - key: FEED_FAILURE_THRESHOLD
+        value: "3"
+      # El cron externo llama a /api/cron/monitor. Por eso el scheduler
+      # embebido va apagado: con varias instancias duplicaria el scraping.
+      - key: ENABLE_EMBEDDED_SCHEDULER
+        value: "false"
+
+      # --- Notificaciones ---
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: NOTIFY_WEBHOOK_URL
+        sync: false
+      - key: NOTIFY_WEBHOOK_SECRET
+        sync: false
+
+      # --- Imagenes ---
+      # El disco de Render es efimero: las imagenes se regeneran en cada
+      # despliegue. Con la URL original guardada, la noticia nunca se queda sin
+      # foto aunque el fichero local desaparezca.
+      - key: IMAGE_STORAGE_DIR
+        value: public/media
+      - key: IMAGE_PIPELINE_ENABLED
+        value: "true"
+      - key: IMAGE_WEBP_QUALITY
+        value: "78"
+
+      # --- Seguridad ---
+      # Debe ser "false". En "true", el monitor podria leer
+      # http://169.254.169.254 (credenciales de la nube) o el puerto del Postgres.
+      - key: ALLOW_PRIVATE_FETCH
+        value: "false"
+      - key: LOG_LEVEL
+        value: info
+
+    buildArgs:
+      # Next.js incrusta esta variable en el HTML durante el build. Si aqui no
+      # coincide con la de envVars, el canonical y el Open Graph saldran con la
+      # URL de compilacion.
+      NEXT_PUBLIC_SITE_URL: https://TU-DOMINIO.example
+
+  # -------------------------------------------------------------------------
+  #  Ciclo de monitorizacion
+  # -------------------------------------------------------------------------
+  # Por que un cron externo y no `type: cron` de Render:
+  #
+  #   - `type: cron` solo existe en planes de pago.
+  #   - En plan free, la instancia se duerme tras 15 minutos sin trafico: una
+  #     instancia dormida no ejecuta el cron y el scraping se detiene sin aviso.
+  #   - El cron de Render reinicia el proceso en cada ejecucion, lo que corta
+  #     las peticiones en curso.
+  #
+  # La solucion elegida es un cron externo (cron-job.org, EasyCron o un workflow
+  # de GitHub Actions programado) que llama cada minuto a:
+  #
+  #   GET https://TU-DOMINIO/api/cron/monitor
+  #   Authorization: Bearer <CRON_SECRET>
+  #
+  # El valor de CRON_SECRET esta en el panel de Render, en Environment.
+  #
+  # Si en el futuro se pasa a un plan de pago, esta seccion puede sustituirse
+  # por un `type: cron` de Render, pero el endpoint no cambia.

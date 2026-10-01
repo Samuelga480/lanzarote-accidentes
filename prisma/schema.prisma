@@ -1,11 +1,12 @@
 // ---------------------------------------------------------------------------
-// Esquema de datos - Portal de accidentes de trafico en Lanzarote
-// Generar cliente:  npx prisma generate
+// Esquema de datos — Portal de accidentes y sucesos de Lanzarote
 //
-// Compatible con PostgreSQL y con SQLite. Los enums de Prisma no existen en
-// SQLite, asi que los cuatro campos se guardan como String y los valores validos
-// estan definidos y comprobados en src/lib/types.ts. En PostgreSQL se pueden
-// migrar a enum nativo sin tocar el codigo de la aplicacion: solo el esquema.
+// Generar cliente:  npx prisma generate
+// Aplicar migracion:  npx prisma migrate deploy   (NUNCA `db push` en produccion)
+//
+// PostgreSQL. Los enums son nativos: la base de datos los valida, no solo la
+// aplicacion. Si alguien inserta "PUBLICADO_A_MEDIAS" en `status`, Postgres
+// devuelve un error en lugar de dejar un valor que el panel no sabria leer.
 // ---------------------------------------------------------------------------
 
 generator client {
@@ -13,13 +14,17 @@ generator client {
 }
 
 datasource db {
-  // provider = env("DATABASE_PROVIDER")
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-/// Estado editorial de la noticia.
-/// PENDING_REVIEW nunca es visible publicamente, es la unica forma de llegar a la web.
+/* =========================================================================== */
+/*  Enums de dominio                                                          */
+/* =========================================================================== */
+
+/// Estado editorial. PENDING_REVIEW nunca es visible publicamente: es la unica
+/// forma de llegar a la web. No existe ninguna ruta de codigo que publique
+/// desde el pipeline automatico.
 enum AccidentStatus {
   PENDING_REVIEW
   PUBLISHED
@@ -27,8 +32,8 @@ enum AccidentStatus {
   ARCHIVED
 }
 
-/// Procedencia del contenido.
-/// AI obliga a PENDING_REVIEW: hay una comprobacion en la capa de datos.
+/// Procedencia del contenido. AI obliga a PENDING_REVIEW: hay comprobacion en
+/// la capa de datos (ver src/lib/ai/pipeline.ts).
 enum Origin {
   MANUAL
   AI
@@ -49,21 +54,73 @@ enum AccidentSeverity {
   GRAVE
 }
 
+/// El alcance del proyecto no es solo el trafico: tambien emergencias, rescates,
+/// incendios y actuaciones de los servicios de emergencia de la isla.
+enum IncidentCategory {
+  ACCIDENTE_TRAFICO
+  ATROPELLO
+  INCENDIO
+  RESCATE
+  EMERGENCIA_SANITARIA
+  ACTUACION_SERVICIOS
+  DESAPARICION
+  OTRO
+}
+
+/// Resultado de la verificacion automatica. Coincide con los estados pedidos en
+/// la especificacion: verified | pending_review | suspicious | rejected.
+enum VerificationStatus {
+  VERIFIED
+  PENDING_REVIEW
+  SUSPICIOUS
+  REJECTED
+}
+
+enum FeedStatus {
+  OK
+  DEGRADED
+  FAILING
+  DISABLED
+}
+
+enum RunTrigger {
+  CRON
+  MANUAL
+  API
+  STARTUP
+}
+
+enum SeenState {
+  PRESENT
+  MISSING
+  REMOVED
+}
+
+/* =========================================================================== */
+/*  Geografia                                                                 */
+/* =========================================================================== */
+
 /// Municipios de la isla de Lanzarote
 model Municipality {
-  id        String     @id @default(cuid())
-  slug      String     @unique
-  name      String     @unique
-  island    String     @default("Lanzarote")
+  id     String @id @default(cuid())
+  slug   String @unique
+  name   String @unique
+  island String  @default("Lanzarote")
   /// Coordenadas del casco urbano, usadas para el mapa SVG
-  lat       Float
-  lon       Float
+  lat    Float
+  lon    Float
+
   accidents Accident[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([name])
 }
+
+/* =========================================================================== */
+/*  La noticia                                                                */
+/* =========================================================================== */
 
 model Accident {
   id    String @id @default(cuid())
@@ -75,7 +132,14 @@ model Accident {
   imageUrl String?
   imageAlt String?
 
-  /// Momento del accidente (hora local de Canarias, guardado en UTC)
+  /// Metadatos SEO generados. `seoTitle` y `metaDescription` alimentan las
+  /// etiquetas <title> y <meta name="description">; `excerpt` es el resumen
+  /// corto para listados y redes sociales.
+  seoTitle       String?
+  metaDescription String?
+  excerpt        String?
+
+  /// Momento del accidente (guardado siempre en UTC, mostrado en Europe/Madrid)
   occurredAt DateTime
 
   municipalityId String
@@ -85,6 +149,8 @@ model Accident {
   vehicleType String
   /// AccidentSeverity: LEVE | MODERADO | GRAVE
   severity    String      @default("MODERADO")
+  /// IncidentCategory
+  category    IncidentCategory @default(ACCIDENTE_TRAFICO)
 
   /// AccidentStatus: PENDING_REVIEW | PUBLISHED | REJECTED | ARCHIVED
   status String @default("PENDING_REVIEW")
@@ -94,7 +160,10 @@ model Accident {
   fatalities Int @default(0)
   injuries   Int @default(0)
 
-  /// Solo un accidente pode estar destacado a la vez
+  /// Carretera afectada, si la fuente la menciona: "LZ-2", "LZ-702", ...
+  road String?
+
+  /// Solo una noticia puede estar destacada a la vez
   isFeatured Boolean @default(false)
 
   /// Ubicacion aproximada (nunca exacta). Sirve para el mapa.
@@ -103,45 +172,265 @@ model Accident {
   /// Descripcion del lugar en lenguaje natural, p.ej. "carretera insular, km 12"
   locationDescription String?
 
-  // ---- Revision editorial ----
+  // ---- Verificacion automatica -------------------------------------------
+  /// 0..1. Combina coherencia interna, fecha, municipio, carretera y cifras.
+  confidenceScore Float @default(0)
+  /// 0..1. Fiabilidad de las fuentes que respaldan la noticia.
+  sourceScore Float @default(0)
+  // Los enums de Prisma se referencian SIN comillas. Con comillas, el
+  // generador las trata como texto y falla con "Expected an enum value".
+  verificationStatus VerificationStatus @default(PENDING_REVIEW)
+  /// Explicacion legible de la verificacion, para el panel.
+  verificationNotes String?
+
+  // ---- Deduplicacion ------------------------------------------------------
+  /// SHA-256 del texto normalizado. Indice, no unico: dos articulos distintos
+  /// pueden compartir cuerpo con distinto titular.
+  contentHash String?
+  /// SimHash de 64 bits en hexadecimal, para similitud de nearby.
+  simHash String?
+  /// Vector de embedding como JSON (OpenRouter). Permite similitud semantica
+  /// real cuando el mismo suceso aparece con otro enfoque.
+  embedding String?
+  /// Si esta noticia se fusiono dentro de otra, apunta a la canonica.
+  duplicateOfId String?
+  duplicateOf   Accident?  @relation("DuplicateCluster", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates    Accident[] @relation("DuplicateCluster")
+
+  // ---- Trazabilidad del proceso automatico ---------------------------------
+  /// Titular y cuerpo originales, antes de reescribir. Se conservan para que el
+  /// editor pueda contrastar la reescritura con la fuente.
+  originalTitle   String?
+  originalSummary String?
+  originalBody    String?
+  originalUrl     String?
+  /// Modelo de IA que redacto la version actual.
+  aiModel String?
+  rewrittenAt DateTime?
+  detectedAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  // ---- Revision editorial -------------------------------------------------
   reviewedAt  DateTime?
   reviewedBy  String?
   reviewNotes String?
+  /// Fecha de publicacion efectiva, distinta de occurredAt (el suceso).
+  publishedAt DateTime?
+  /// Cuando se envio la notificacion al administrador. Evita el envio multiple.
+  notifiedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   sources   Source[]
   revisions Revision[]
+  images    ImageAsset[]
 
-  @@index([status, occurredAt])
+  // Solo hay UN indice para status+occurredAt, en orden descendente. El listado
+  // del sitio ordena siempre por fecha hacia atras, asi que el indice
+  // ascendente no aporta nada: dos indices sobre las mismas columnas solo
+  // ralentizan las escrituras.
+  @@index([status, occurredAt(sort: Desc)])
   @@index([municipalityId, status])
   @@index([vehicleType, status])
   @@index([occurredAt])
   @@index([isFeatured])
   @@index([origin, status])
+  @@index([category])
+  @@index([verificationStatus])
+  /// Busqueda del panel por titular sin barra la tabla entera.
+  @@index([status, title])
+  @@index([contentHash])
+  @@index([simHash])
+  @@index([duplicateOfId])
 }
 
-/// Fuentes consultadas. Se guardan siempre, incluso en borrador,
-/// para que la persona que revise pueda verificar el origen.
+/* =========================================================================== */
+/*  Fuentes                                                                    */
+/* =========================================================================== */
+
+/// Un medio consultado de forma periodica. `baseScore` es la fiabilidad que se
+/// supone al medio; `status` y los contadores alimentan las alertas del panel.
+model FeedSource {
+  id   String @id @default(cuid())
+  name String @unique
+  url  String @unique
+  /// "rss" | "atom" | "html"
+  kind String  @default("rss")
+  /// Ambito geografico: LANZAROTE | CANARIAS | NACIONAL
+  region String @default("LANZAROTE")
+
+  enabled Boolean @default(true)
+
+  /// Fiabilidad de partida, 0..1. Se combina con el historico real de aciertos.
+  baseScore Float @default(0.7)
+
+  // ---- Salud de la fuente ------------------------------------------------
+  status        FeedStatus @default(OK)
+  lastRunAt     DateTime?
+  lastOkAt      DateTime?
+  lastError     String?
+  consecutiveFailures Int @default(0)
+  failureCount  Int @default(0)
+  successCount  Int @default(0)
+  /// Media movil de articulos relevantes encontrados por pasada.
+  avgItemsFound Float @default(0)
+  latencyMs     Int     @default(0)
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  runs  ScrapeRun[]
+  seen  SeenEntry[]
+
+  @@index([enabled, status])
+}
+
+/// Una pasada del monitor, ya sea de una fuente concreta o del ciclo completo.
+/// Es el historico que permite responder "¿que se ha scrapingado? y ¿cuando?".
+model ScrapeRun {
+  id String @id @default(cuid())
+
+  /// Nulo en las pasadas globales (ciclo de un minuto).
+  feedSourceId String?
+  feedSource   FeedSource? @relation(fields: [feedSourceId], references: [id], onDelete: Cascade)
+
+  trigger RunTrigger @default(CRON)
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  durationMs Int       @default(0)
+
+  ok         Boolean @default(true)
+  error      String?
+  httpStatus Int?
+
+  itemsFound     Int @default(0)
+  itemsNew       Int @default(0)
+  itemsChanged   Int @default(0)
+  itemsRemoved   Int @default(0)
+  itemsDuplicate Int @default(0)
+  draftsCreated  Int @default(0)
+
+  @@index([startedAt(sort: Desc)])
+  @@index([feedSourceId, startedAt(sort: Desc)])
+  @@index([ok, startedAt(sort: Desc)])
+}
+
+/* =========================================================================== */
+/*  Control de URLs vistas (deteccion de nuevos, cambios y bajas)             */
+/* =========================================================================== */
+
+/// Una URL que el monitor ha visto alguna vez. Permite el ciclo de un minuto:
+/// lo que no aparece en `state = PRESENT` lleva varias pasadas sin verse y se
+/// marca como MISSING; si vuelve, se reactiva.
+model SeenEntry {
+  id String @id @default(cuid())
+
+  feedSourceId String?
+  feedSource   FeedSource? @relation(fields: [feedSourceId], references: [id], onDelete: Cascade)
+
+  url          String
+  canonicalUrl String
+  /// SHA-256 de la URL canonica. Es la clave de deduplicacion mas barata.
+  urlHash      String @unique
+
+  title       String
+  /// Hash del contenido: si cambia, la fuente ha actualizado la noticia.
+  contentHash String
+  simHash     String?
+
+  publishedAt DateTime?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  /// Cuantas pasadas consecutivas lleva sin aparecer. 0 = vista esta pasada.
+  missingCount Int @default(0)
+  state        SeenState @default(PRESENT)
+
+  /// Noticia ya creada a partir de esta entrada, si la hubo.
+  accidentId String?
+
+  @@index([state, lastSeenAt])
+  @@index([feedSourceId, state])
+  @@index([accidentId])
+  @@index([firstSeenAt(sort: Desc)])
+}
+
+/* =========================================================================== */
+/*  Fuentes de una noticia                                                     */
+/* =========================================================================== */
+
+/// Fuentes consultadas. Se guardan siempre, incluso en borrador, para que la
+/// persona que revise pueda verificar el origen. Varias filas por noticia son
+/// la norma: un mismo suceso con dos medios deja dos filas.
 model Source {
   id         String   @id @default(cuid())
   accidentId String
   accident   Accident @relation(fields: [accidentId], references: [id], onDelete: Cascade)
 
-  /// Medio: "Lanzarote Digital", "Cabildo de Lanzarote", "CEC", ...
+  /// Medio: "La Voz de Lanzarote", "Cabildo de Lanzarote", "CEC", ...
   outlet String
   url    String
   publishedAt DateTime?
   retrievedAt DateTime @default(now())
   excerpt String?
+  /// Si esta fila representa la fusion de una noticia duplicada.
+  mergedFromId String?
 
+  @@unique([accidentId, url])
   @@index([accidentId])
   @@index([outlet])
+  @@index([url])
 }
 
-/// Historial de cambios, para auditoría editorial.
-/// La instantanea se guarda como texto JSON: SQLite no tiene tipo Json nativo.
+/* =========================================================================== */
+/*  Imagenes                                                                   */
+/* =========================================================================== */
+
+/// Imagen descargada y procesada. Se guardan todas las variantes responsive
+/// porque el mapa real de anchuras se decide en el HTML, no en la base de datos.
+model ImageAsset {
+  id String @id @default(cuid())
+
+  accidentId String
+  accident   Accident @relation(fields: [accidentId], references: [id], onDelete: Cascade)
+
+  /// HERO | THUMB | OG
+  kind String @default("HERO")
+
+  originalUrl String
+  /// Ruta local servida por la app: /media/<accidentId>/<hash>-1600.webp
+  localPath   String?
+  /// URL usada por Open Graph / Twitter Cards.
+  ogPath      String?
+
+  width  Int?
+  height Int?
+  bytes  Int?
+  /// JSON con el mapa de variantes: {"480":"/media/...","960":"...",...}
+  variants String?
+
+  alt           String?
+  dominantColor String?
+
+  /// PENDING | PROCESSED | FAILED | SKIPPED
+  status String @default("PENDING")
+  error  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([accidentId, kind])
+  @@index([status])
+}
+
+/* =========================================================================== */
+/*  Historial y observabilidad                                                */
+/* =========================================================================== */
+
+/// Historial de cambios, para auditoria editorial.
+/// La instantanea se guarda como texto JSON.
 model Revision {
   id         String   @id @default(cuid())
   accidentId String
@@ -154,4 +443,48 @@ model Revision {
   createdAt DateTime @default(now())
 
   @@index([accidentId, createdAt])
+}
+
+/// Registro de todo lo que envio el sistema de notificaciones. Sin esto, un
+/// fallo de entrega seria invisible.
+model NotificationLog {
+  id String @id @default(cuid())
+
+  accidentId String?
+
+  /// EMAIL | TELEGRAM | DISCORD | WEBHOOK
+  channel String
+  /// Destino concreto (direccion, chat id, url), sin secretos.
+  target  String?
+  status  String @default("PENDING") // PENDING | SENT | FAILED | SKIPPED
+  error   String?
+  /// Extracto del mensaje enviado, para depurar sin guardar contenido sensible.
+  preview String?
+
+  createdAt DateTime @default(now())
+
+  @@index([accidentId])
+  @@index([channel, createdAt(sort: Desc)])
+  @@index([status])
+}
+
+/// Auditoria de acciones del panel y del sistema, independiente del historial
+/// por noticia: permite responder "quien borro esto" aunque la noticia ya no
+/// exista.
+model AuditLog {
+  id String @id @default(cuid())
+
+  /// USUARIO:<email> | SISTEMA | SCRAPER | IA
+  actor  String
+  /// APPROVE | REJECT | UPDATE | DELETE | LOGIN | LOGOUT | INGEST | ...
+  action String
+  entity String
+  entityId String?
+  detail String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
 }

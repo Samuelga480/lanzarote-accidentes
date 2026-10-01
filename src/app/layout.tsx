@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/constants";
+import { FEED_PATH, webSiteSchema, organizationSchema, graphSchema } from "@/lib/jsonld";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import "./globals.css";
@@ -38,7 +39,16 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  alternates: { canonical: "/" },
+  alternates: {
+  canonical: "/",
+    // Enlaza el feed desde el head de todas las paginas. Los lectores de RSS
+    // solo lo detectan si aparece aqui o en un <link> del HTML.
+    types: { "application/rss+xml": FEED_PATH },
+  },
+  other: {
+    "geo.region": "ES-CN",
+    "geo.placename": "Lanzarote",
+  },
 };
 
 export const viewport: Viewport = {
@@ -50,6 +60,24 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
+      <head>
+        {/*
+          JSON-LD de la organizacion y del sitio, en el layout para que esten en
+          todas las paginas. El <title> de la pagina anade el sufijo del sitio
+          mediante el `template` de metadata.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            // El "<" se escapa como \u003c: sin esto, un texto con "</script>"
+            // cerraria la etiqueta y ejecutaria lo que venga despues.
+            __html: JSON.stringify(graphSchema([organizationSchema(), webSiteSchema()])).replace(
+              /</g,
+              "\\u003c",
+            ),
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col">
         <a
           href="#contenido"

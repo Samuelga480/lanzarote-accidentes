@@ -7,12 +7,13 @@ import { SeverityBadge, VehicleBadge } from "@/components/Badges";
 import { getPublishedAccidentBySlug, getRelatedAccidents, listAccidents } from "@/lib/queries";
 import { formatDate, formatDateTime, formatRelative, formatTime } from "@/lib/format";
 import { SEVERITY_LABEL, SITE, VEHICLE_LABEL } from "@/lib/constants";
+import { newsArticleSchema, breadcrumbSchema, graphSchema, organizationSchema, webSiteSchema } from "@/lib/jsonld";
+import { siteUrl as getSiteUrl } from "@/lib/env";
+import { truncate } from "@/lib/text";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string }> };
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -23,27 +24,63 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Noticia no encontrada", robots: { index: false, follow: false } };
   }
 
-  const title = accident.title;
-  const desc = accident.summary.slice(0, 180);
+  // Los campos SEO generados por la IA tienen prioridad sobre el texto libre:
+  // estan escritos para el buscador, y el titulo se recorta al limite real de
+  // la etiqueta <title> (~60 caracteres) en lugar de al de un titulo visible.
+  const title = accident.seoTitle ?? accident.title;
+  const desc = accident.metaDescription ?? accident.excerpt ?? accident.summary;
+
+  const canonical = `/accidentes/${accident.slug}`;
 
   return {
     title,
     description: desc,
-    alternates: { canonical: `/accidentes/${accident.slug}` },
+    alternates: {
+      canonical,
+      // RSS y la version imprimible, para que los buscadores las graduen bien.
+      types: { "application/rss+xml": "/feed.xml" },
+    },
     openGraph: {
       type: "article",
       title,
       description: desc,
-      url: `/accidentes/${accident.slug}`,
-      publishedTime: accident.occurredAt.toISOString(),
+      url: canonical,
+      // publishedTime es la fecha del suceso; modifiedTime, la última vez que se
+      // toco el registro. Confundirlas hace que Google considere la noticia vieja.
+      publishedTime: (accident.publishedAt ?? accident.occurredAt).toISOString(),
       modifiedTime: accident.updatedAt.toISOString(),
-      section: accident.municipality.name,
-      images: accident.imageUrl ? [{ url: accident.imageUrl }] : undefined,
+      section: "Sucesos",
+      locale: SITE.locale,
+      authors: [SITE.organization],
+      images: accident.imageUrl
+        ? [
+            {
+              url: accident.imageUrl.startsWith("http")
+                ? accident.imageUrl
+                : `${getSiteUrl()}${accident.imageUrl}`,
+              width: 1200,
+              height: 630,
+              alt: accident.imageAlt ?? accident.title,
+            },
+          ]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: desc,
+      images: accident.imageUrl
+        ? [
+            accident.imageUrl.startsWith("http")
+              ? accident.imageUrl
+              : `${getSiteUrl()}${accident.imageUrl}`,
+          ]
+        : undefined,
+    },
+    other: {
+      "article:published_time": (accident.publishedAt ?? accident.occurredAt).toISOString(),
+      "article:modified_time": accident.updatedAt.toISOString(),
+      "article:section": "Sucesos",
     },
   };
 }
@@ -58,37 +95,52 @@ export default async function AccidentPage({ params }: Props) {
     listAccidents({ take: 4 }),
   ]);
 
-  const articleUrl = `${siteUrl}/accidentes/${accident.slug}`;
+  const articleUrl = `${getSiteUrl()}/accidentes/${accident.slug}`;
 
-  // Datos estructurados: los buscadores los usan para las noticias enrichidas.
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    headline: accident.title,
-    description: accident.summary,
-    datePublished: accident.occurredAt.toISOString(),
-    dateModified: accident.updatedAt.toISOString(),
-    mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
-    articleSection: "Accidentes de tráfico",
-    inLanguage: "es-ES",
-    url: articleUrl,
-    ...(accident.imageUrl ? { image: [accident.imageUrl] } : {}),
-    author: { "@type": "Organization", name: SITE.organization },
-    publisher: { "@type": "Organization", name: SITE.organization },
-    contentLocation: {
-      "@type": "Place",
-      name: accident.municipality.name,
-      address: { "@type": "PostalAddress", addressRegion: "Canarias", addressCountry: "ES" },
-    },
-  };
+  // Datos estructurados. Se agrupan en un unico @graph para no repetir el
+  // @context en cada bloque, y se anaden las migas de pan, que faltaban.
+  const jsonLd = graphSchema([
+    newsArticleSchema({
+      slug: accident.slug,
+      title: accident.seoTitle ?? accident.title,
+      description: accident.metaDescription ?? accident.excerpt ?? accident.summary,
+      excerpt: accident.excerpt,
+      body: accident.body,
+      imageUrl: accident.imageUrl,
+      occurredAt: accident.occurredAt,
+      publishedAt: accident.publishedAt,
+      updatedAt: accident.updatedAt,
+      municipalityName: accident.municipality.name,
+      road: accident.road,
+      severity: accident.severity,
+      fatalities: accident.fatalities,
+      injuries: accident.injuries,
+    }),
+    breadcrumbSchema([
+      { name: "Inicio", url: getSiteUrl() },
+      { name: accident.municipality.name, url: `${getSiteUrl()}/municipios/${accident.municipality.slug}` },
+      { name: "Accidentes", url: `${getSiteUrl()}/accidentes` },
+      { name: truncate(accident.title, 60) },
+    ]),
+    webSiteSchema(),
+    organizationSchema(),
+  ]);
 
   const paragraphs = accident.body.split(/\n{2,}/).filter((p) => p.trim().length > 0);
 
   return (
     <article className="container-page py-6 max-w-4xl">
+      {/*
+        JSON-LD en un <script>. El contenido se serializa con un reemplazo
+        adicional de "<": sin el, un titulo que contenga "</script>" cerraria la
+        etiqueta y ejecutaria lo que venga despues. Es un XSS real cuando la
+        noticia la escribe una IA a partir de texto de terceros.
+      */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       <nav aria-label="Miga de pan" className="text-xs text-ink-mute mb-4">

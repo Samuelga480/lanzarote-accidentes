@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# Ficheros excluidos del contexto de build de Docker.
+# Cuanto mas pequeno el contexto, mas rapido el build: node_modules pesa cientos
+# de megas y en Linux no sirve para nada (la imagen final es Alpine).
+# ---------------------------------------------------------------------------
+
+node_modules
+.next
+.git
+.gitignore
+
+# Secretos: NUNCA deben entrar en la imagen. Si se copian aqui, quedarian en las
+# capas intermedias, que se pueden leer aunque la imagen final no las tenga.
+.env
+.env.local
+.env.*.local
+
+# La base de datos antigua en SQLite.
+*.db
+prisma/dev.db
+
+# Artefactos de imagenes: se regeneran en tiempo de ejecucion.
+public/media
+
+# Logs y ficheros del editor.
+*.log
+logs
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Backups.
+*.bak
+*-backup.*
+
+# Documentacion que no hace falta en ejecucion.
+README.md
+*.md
+!README.md

@@ -389,6 +389,13 @@ export async function getForAdmin(id: string) {
       municipality: true,
       sources: { orderBy: { retrievedAt: "desc" } },
       revisions: { orderBy: { createdAt: "desc" }, take: 20 },
+      images: { where: { status: "PROCESSED" }, take: 3, orderBy: { createdAt: "desc" } },
+      duplicates: {
+        select: {
+          id: true, title: true, slug: true, status: true,
+          sources: { select: { outlet: true, url: true } },
+        },
+      },
     },
   });
   return row ? narrow(row) : null;

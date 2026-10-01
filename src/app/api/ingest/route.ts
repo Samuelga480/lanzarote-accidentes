@@ -22,6 +22,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
+ * Este endpoint descarga el articulo, verifica, reescribe con IA y procesa la
+ * imagen, asi que tarda bastante mas que una peticion normal. Sin esto, Vercel
+ * lo cortaria a los 10 segundos por defecto del plan Hobby y el trabajo se
+ * perderia a medias.
+ */
+export const maxDuration = 60;
+
+/**
  * POST /api/ingest
  *
  * Punto de entrada para que un servicio externo (un script propio, un bot, un

@@ -13,27 +13,30 @@
     "     OPENROUTER_API_KEY se ponen en el panel de Vercel, no en este fichero."
   ],
 
-  "buildCommand": "prisma generate && next build",
-
   "//buildCommand": [
-    "OJO: aqui NO hay `prisma migrate deploy`, y es deliberado.",
+    "AQUI NO HAY buildCommand, y es deliberado.",
     "",
-    "Poner las migraciones en el buildCommand es un error frecuente:",
+    "Si se declara un buildCommand propio, Vercel deja de aplicar su gestion",
+    "propia de Next.js y se rompen cosas sutiles. Se deja que use el de por",
+    "defecto, que es `npm run build`, y ahi(package.json):",
     "",
-    "  - Se ejecutan ANTES de desplegar. Si el despliegue falla despues, la",
-    "    base de datos ya quedo modificada y no hay vuelta atras.",
-    "  - Vercel puede lanzar varios builds en paralelo y competir por la misma",
-    "    migracion.",
-    "  - Exige que DATABASE_URL sea alcanzable desde la red de build, cosa que",
-    "    no ocurre con la URL interna de Postgres.",
+    "    postinstall -> prisma generate",
+    "    prebuild    -> prisma generate",
+    "    build       -> next build",
+    "",
+    "Tampoco hay `prisma migrate deploy` aqui, y tambien es deliberado:",
+    "",
+    "  - Se ejecutaria ANTES de desplegar. Si el despliegue fallara despues,",
+    "    la base de datos ya quedaria modificada y no habria vuelta atras.",
+    "  - Vercel puede lanzar varios builds en paralelo y competir por la",
+    "    misma migracion.",
+    "  - Exigiria que DATABASE_URL fuese alcanzable desde la red de build, y",
+    "    la URL interna de Postgres no lo es.",
     "",
     "La migracion se aplica una sola vez, a mano:",
     "",
     "    npx vercel env pull .env.local",
-    "    npx prisma migrate deploy",
-    "",
-    "El `postinstall` de package.json genera el cliente de Prisma en cada",
-    "instalacion, asi que el build no necesita ese paso explicito."
+    "    npx prisma migrate deploy"
   ],
 
   "regions": ["fra1"],
@@ -88,15 +91,14 @@
     }
   ],
 
-  "functions": {
-    "src/app/api/cron/monitor/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/ingest/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/health/route.ts": {
-      "maxDuration": 10
-    }
-  }
+  "//functions": [
+    "Aqui no hay bloque `functions`, y antes si lo habia. Era un error mio:",
+    "las claves se estaban poniendo como rutas de fichero",
+    "(`src/app/api/cron/monitor/route.ts`) cuando Vercel espera rutas de API",
+    "(`api/cron/monitor`). Con las rutas equivocadas, Vercel rechaza el",
+    "vercel.json y el build no llega ni a empezar.",
+    "",
+    "Ademas es innecesario: cada route handler exporta ya su propio",
+    "`maxDuration`, y es lo unico que Vercel necesita para esa funcion."
+  ]
 }

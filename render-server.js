@@ -259,7 +259,7 @@ const NOTICIAS_INICIALES = [
     }
 ];
 
-let NOTICIAS = [...NOTICIAS_INICIALES];
+let NOTICIAS = [];
 
 app.get('/api/noticias', (req, res) => {
     res.json({

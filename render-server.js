@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { recopilarNoticias } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -369,11 +370,31 @@ function reiniciarNoticias() {
 }
 
 // ===== RECOPILACIÓN AUTOMÁTICA DE NOTICIAS =====
-function recopilarNoticiasAutomatico() {
+async function recopilarNoticiasAutomatico() {
     console.log('Recopilando noticias automáticamente...');
-    // Aquí se conectaría con el scraper de RSS
-    // Por ahora, simulamos la recopilación
-    console.log('Recopilación automática completada');
+    try {
+        const noticias = await recopilarNoticias();
+        let nuevasNoticias = 0;
+        
+        for (const noticia of noticias) {
+            // Verificar si la noticia ya existe
+            const existe = NOTICIAS.some(n => 
+                n.titulo === noticia.titulo || n.url_fuente === noticia.url_fuente
+            );
+            
+            if (!existe) {
+                // Asignar ID único
+                noticia.id = String(Date.now() + Math.floor(Math.random() * 1000));
+                noticia.resumen_ia = null;
+                NOTICIAS.push(noticia);
+                nuevasNoticias++;
+            }
+        }
+        
+        console.log(`Recopilación automática completada: ${nuevasNoticias} noticias nuevas`);
+    } catch (error) {
+        console.error('Error en recopilación automática:', error.message);
+    }
 }
 
 // Ejecutar recopilación automática cada 30 minutos

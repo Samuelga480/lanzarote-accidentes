@@ -1,0 +1,29 @@
+# Ficheros que Vercel no necesita al desplegar desde la CLI.
+#
+# Vercel los respeta para los despliegues hechos con `vercel deploy`. Git ya
+# tiene su propio .gitignore, pero la CLI sube el directorio del disco, no lo
+# que git rastrea: sin este fichero, cada despliegue enviaria tambien
+# node_modules (cientos de megas) y .next.
+node_modules
+.next
+.git
+.vercel
+
+# Secretos: nunca deben subir a un despliegue.
+.env
+.env.local
+.env.*.local
+
+# Artefactos de imagenes: se regeneran en el contenedor.
+public/media
+
+# La base de datos SQLite antigua del proyecto, ya en desuso.
+*.db
+prisma/dev.db
+
+# Sistema y editores.
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.log

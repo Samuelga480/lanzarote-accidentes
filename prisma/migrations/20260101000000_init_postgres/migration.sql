@@ -17,6 +17,44 @@
 -- ---------------------------------------------------------------------------
 
 -- ===========================================================================
+--  Tipos enumerados
+--
+--  FALLO QUE COSTO TIEMPO: Prisma crea los tipos enum automaticamente, pero
+--  esta migracion esta escrita a mano, asi que hay que declararlos aqui. Sin
+--  este bloque, CREATE TABLE falla con
+--  'type "IncidentCategory" does not exist'.
+--
+--  Se envuelven en un DO porque PostgreSQL no admite
+--  CREATE TYPE IF NOT EXISTS, y asi el fichero se puede reintentar sin fallar
+--  por un tipo que ya exista.
+-- ===========================================================================
+
+DO $$ BEGIN
+  CREATE TYPE "IncidentCategory" AS ENUM (
+    'ACCIDENTE_TRAFICO', 'ATROPELLO', 'INCENDIO', 'RESCATE',
+    'EMERGENCIA_SANITARIA', 'ACTUACION_SERVICIOS', 'DESAPARICION', 'OTRO'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "VerificationStatus" AS ENUM (
+    'VERIFIED', 'PENDING_REVIEW', 'SUSPICIOUS', 'REJECTED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "FeedStatus" AS ENUM ('OK', 'DEGRADED', 'FAILING', 'DISABLED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "RunTrigger" AS ENUM ('CRON', 'MANUAL', 'API', 'STARTUP');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "SeenState" AS ENUM ('PRESENT', 'MISSING', 'REMOVED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ===========================================================================
 --  Geografia
 -- ===========================================================================
 
@@ -348,9 +386,9 @@ CREATE INDEX IF NOT EXISTS "AuditLog_action_createdAt_idx" ON "AuditLog"("action
 --  Se anaden al final, y no en cascada, por dos razones:
 --
 --  - Accident.municipalityId usa RESTRICT: no se puede borrar un municipio que
-    NOTA: la migracion es idempotente (IF NOT EXISTS). Ejecutarla dos veces no rompe
+--    tenga noticias, porque dejaria noticias huerfanas con un mapa roto.
 --  - Accident.duplicateOfId usa SET NULL: si se borra la noticia canonica, la
---    duplicada se queda sinApuntar en vez de desaparecer.
+--    duplicada se queda sin apuntar en vez de desaparecer.
 -- ===========================================================================
 
 ALTER TABLE "Accident"

@@ -47,3 +47,7 @@ desktop.ini
 # ---- Backups ----
 *.bak
 *-backup.*
+.vercel
+
+# Fichero que genera ercel env pull: lleva la URL de la base con su contrasena.
+.env.production

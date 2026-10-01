@@ -341,8 +341,23 @@ actual: el historial las conserva.
 
 ## Despliegue en Vercel
 
-Vercel compila Next.js de forma nativa e **ignora el `Dockerfile`**. La
-configuración está en `vercel.json`.
+Vercel compila Next.js de forma nativa e **ignora el `Dockerfile`**. El
+`vercel.json` solo lleva cuatro cosas: framework, región, cron y cabeceras.
+
+> **`vercel.json` no admite comentarios.** Vercel valida el esquema de forma
+> estricta y rechaza cualquier propiedad que no recognise, así que no se pueden
+> añadir claves `//` para documentar. Toda la explicación está aquí, no en el
+> fichero. Tampoco debe llevar `buildCommand` ni bloque `functions`: Vercel deja
+> de aplicar su gestión nativa de Next.js, y las rutas de API de ese bloque se
+> escriben `api/...` y no como rutas de fichero.
+
+### Qué hace `vercel.json`
+
+| Clave | Por qué |
+|---|---|
+| `regions: ["fra1"]` | Frankfurt, junto al Postgres |
+| `crons` | Un cron diario como red de seguridad |
+| `headers` | `no-store` en `/api` y `/admin`, caché en el feed |
 
 ### Tres diferencias respecto a Render
 
@@ -350,13 +365,16 @@ configuración está en `vercel.json`.
 
 Vercel no las aplica en el despliegue, y añadirlas al `buildCommand` es un error:
 se ejecutarían antes de desplegar, de modo que un despliegue fallido dejaría la
-base de datos ya modificada. Se aplican una vez, desde tu máquina:
+base de datos ya modificada. Además, varios builds en paralelo competirían por
+la misma migración. Se aplican una vez, desde tu máquina:
 
 ```bash
 npx vercel env pull .env.local    # descarga las variables de Vercel
 npx prisma migrate deploy         # crea las tablas
 npx prisma db seed                # carga los nueve municipios
 ```
+
+El cliente de Prisma sí se genera solo: `postinstall` y `prebuild` se encargan.
 
 **2. El disco es de solo lectura.**
 
@@ -390,8 +408,9 @@ eliminar el cron externo.
 Las funciones serverless tienen un límite según el plan: 10 s en Hobby. El ciclo
 de detección lo tiene en cuenta y baja su presupuesto a 8 segundos cuando
 detecta Vercel (`src/lib/monitor.ts`), para que le dé tiempo a devolver la
-respuesta. Si el cron se corta, no se ha guardado nada y el siguiente minuto lo
-reintenta.
+respuesta. Cada endpoint largo exporta además su propio `maxDuration`.
+
+Si el cron se corta, no se ha guardado nada y el siguiente minuto lo reintenta.
 
 ### Variables de entorno
 
@@ -403,10 +422,14 @@ Se ponen en el panel: **Settings → Environment Variables**.
 | `ADMIN_PASSWORD` | sí |
 | `ADMIN_SESSION_SECRET` | sí, mínimo 32 caracteres |
 | `CRON_SECRET` | sí, mínimo 24 caracteres |
-| `NEXT_PUBLIC_SITE_URL` | sí, sin `https://` ni barra final |
-| `TZ` | recommended: `Atlantic/Canary` |
+| `NEXT_PUBLIC_SITE_URL` | sí, sin barra final |
 | `OPENROUTER_API_KEY` | no, sin ella no hay reescritura |
 | `ADMIN_EMAIL` | no, para avisos por correo |
+
+**`TZ` no hace falta.** Vercel la reserva y no deja crearla. De todas formas el
+código no la lee: la zona horaria está fijada en `Atlantic/Canary` dentro del
+propio código, que es lo que evita que las fechas se desplacen una hora entre
+entornos.
 
 ---
 

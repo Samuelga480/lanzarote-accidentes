@@ -1,74 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-
-  "//": [
-    "Configuracion para Vercel. El Dockerfile de este repositorio es para el",
-    "despliegue en Render o en un servidor propio: Vercel lo ignora y compila",
-    "Next.js de forma nativa.",
-    "",
-    "Lo que hace falta y NO se puede declarar aqui:",
-    "  1. Las migraciones hay que ejecutarlas a mano (ver README).",
-    "  2. ADMIN_PASSWORD, ADMIN_SESSION_SECRET, CRON_SECRET y",
-    "     OPENROUTER_API_KEY se ponen en el panel de Vercel, no en este fichero."
-  ],
-
-  "//buildCommand": [
-    "AQUI NO HAY buildCommand, y es deliberado.",
-    "",
-    "Si se declara un buildCommand propio, Vercel deja de aplicar su gestion",
-    "propia de Next.js y se rompen cosas sutiles. Se deja que use el de por",
-    "defecto, que es `npm run build`, y ahi(package.json):",
-    "",
-    "    postinstall -> prisma generate",
-    "    prebuild    -> prisma generate",
-    "    build       -> next build",
-    "",
-    "Tampoco hay `prisma migrate deploy` aqui, y tambien es deliberado:",
-    "",
-    "  - Se ejecutaria ANTES de desplegar. Si el despliegue fallara despues,",
-    "    la base de datos ya quedaria modificada y no habria vuelta atras.",
-    "  - Vercel puede lanzar varios builds en paralelo y competir por la",
-    "    misma migracion.",
-    "  - Exigiria que DATABASE_URL fuese alcanzable desde la red de build, y",
-    "    la URL interna de Postgres no lo es.",
-    "",
-    "La migracion se aplica una sola vez, a mano:",
-    "",
-    "    npx vercel env pull .env.local",
-    "    npx prisma migrate deploy"
-  ],
-
   "regions": ["fra1"],
-
   "crons": [
     {
       "path": "/api/cron/monitor",
       "schedule": "0 9 * * *"
     }
   ],
-
-  "//crons": [
-    "CRON EN VERCEL: por que esta diario y no cada minuto.",
-    "",
-    "El requisito del proyecto es un ciclo de deteccion cada 60 segundos.",
-    "Vercel NO lo permite en el plan Hobby: su cron mas frecuente es una vez",
-    "al dia, y un plan que lo rechaza hace fallar el despliegue.",
-    "",
-    "Este cron diario es solo una red de seguridad: comprueba que el sistema",
-    "sigue vivo aunque nadie llame al endpoint.",
-    "",
-    "El ciclo de verdad lo lanza un cron EXTERNO (cron-job.org, EasyCron,",
-    "UptimeRobot o un workflow programado de GitHub Actions), que si permite",
-    "llamar cada minuto:",
-    "",
-    "    GET https://TU-DOMINIO.vercel.app/api/cron/monitor",
-    "    Authorization: Bearer <CRON_SECRET>",
-    "",
-    "Si estas en plan Pro, puedes cambiar '0 9 * * *' por '* * * * *' y",
-    "eliminar el cron externo."
-  ],
-
   "headers": [
     {
       "source": "/api/(.*)",
@@ -89,16 +28,5 @@
         { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=1800" }
       ]
     }
-  ],
-
-  "//functions": [
-    "Aqui no hay bloque `functions`, y antes si lo habia. Era un error mio:",
-    "las claves se estaban poniendo como rutas de fichero",
-    "(`src/app/api/cron/monitor/route.ts`) cuando Vercel espera rutas de API",
-    "(`api/cron/monitor`). Con las rutas equivocadas, Vercel rechaza el",
-    "vercel.json y el build no llega ni a empezar.",
-    "",
-    "Ademas es innecesario: cada route handler exporta ya su propio",
-    "`maxDuration`, y es lo unico que Vercel necesita para esa funcion."
   ]
 }

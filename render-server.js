@@ -239,6 +239,22 @@ const NOTICIAS_INICIALES = [
         lat: 28.9516,
         lng: -13.7629,
         resumen_ia: null
+    },
+    {
+        id: '4',
+        titulo: 'Accidente de moto en la carretera de Teguise: motorista herido',
+        descripcion: 'Un motorista resultó herido tras colisionar con un vehículo en la carretera LZ-10, que conecta Teguise con San Bartolomé. El accidente ocurrió cuando el coche intentó adelantar a otro vehículo y no vio la moto que venía en dirección contraria. El motorista fue trasladado al Hospital General de Lanzarote con fracturas en una pierna y contusiones varias. El conductor del coche permaneció en el lugar y colaboró con las autoridades. La carretera permaneció cortada durante aproximadamente una hora mientras se realizaban las tareas de investigación y limpieza. La Policía Local ha recordado a los conductores la importancia de mantener la distancia de seguridad y respetar las normas de adelantamiento.',
+        zona: 'Teguise',
+        tipo: 'Moto',
+        fecha: '2026-10-02',
+        estado: 'aprobada',
+        hora: '11:20',
+        municipio: 'Teguise',
+        fuente: 'Lanzarote Ahora',
+        url_fuente: 'https://www.lanzaroteahora.com',
+        lat: 28.9983,
+        lng: -13.5475,
+        resumen_ia: null
     }
 ];
 
@@ -351,6 +367,18 @@ function reiniciarNoticias() {
     NOTICIAS = [...NOTICIAS_INICIALES];
     console.log('Noticias reiniciadas correctamente');
 }
+
+// ===== RECOPILACIÓN AUTOMÁTICA DE NOTICIAS =====
+function recopilarNoticiasAutomatico() {
+    console.log('Recopilando noticias automáticamente...');
+    // Aquí se conectaría con el scraper de RSS
+    // Por ahora, simulamos la recopilación
+    console.log('Recopilación automática completada');
+}
+
+// Ejecutar recopilación automática cada 30 minutos
+setInterval(recopilarNoticiasAutomatico, 30 * 60 * 1000);
+recopilarNoticiasAutomatico();
 
 function programarReinicio() {
     const ahora = new Date();

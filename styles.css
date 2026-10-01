@@ -570,6 +570,58 @@ section {
     background: var(--text-muted);
 }
 
+/* ===== ESPACIOS PUBLICITARIOS ===== */
+.ad-slot {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 24px;
+    text-align: center;
+}
+
+.ad-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.ad-banner-top,
+.ad-banner-middle,
+.ad-banner-incontent,
+.ad-banner-bottom {
+    min-height: 90px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.ad-sidebar {
+    min-height: 250px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+}
+
+/* Placeholder para anuncios */
+.ad-slot[id] {
+    position: relative;
+}
+
+.ad-slot[id]::before {
+    content: "Espacio publicitario";
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
 /* ===== MENÚ DESPLEGABLE DE PERFIL ===== */
 .nav-profile {
     position: relative;

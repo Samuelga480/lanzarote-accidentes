@@ -341,23 +341,20 @@ actual: el historial las conserva.
 
 ## Despliegue en Vercel
 
-Vercel compila Next.js de forma nativa e **ignora el `Dockerfile`**. El
-`vercel.json` solo lleva cuatro cosas: framework, región, cron y cabeceras.
+Vercel compila Next.js de forma nativa e **ignora el `Dockerfile`**.
 
-> **`vercel.json` no admite comentarios.** Vercel valida el esquema de forma
-> estricta y rechaza cualquier propiedad que no recognise, así que no se pueden
-> añadir claves `//` para documentar. Toda la explicación está aquí, no en el
-> fichero. Tampoco debe llevar `buildCommand` ni bloque `functions`: Vercel deja
-> de aplicar su gestión nativa de Next.js, y las rutas de API de ese bloque se
-> escriben `api/...` y no como rutas de fichero.
-
-### Qué hace `vercel.json`
-
-| Clave | Por qué |
-|---|---|
-| `regions: ["fra1"]` | Frankfurt, junto al Postgres |
-| `crons` | Un cron diario como red de seguridad |
-| `headers` | `no-store` en `/api` y `/admin`, caché en el feed |
+> **Este proyecto no lleva `vercel.json`.** Se empezó con uno y hubo que
+> borrarlo: Vercel valida su esquema de forma estricta y rechaza cualquier
+> propiedad que no reconozca, sin avisar antes. Un solo comentario mal puesto
+> impedía el despliegue entero. Lo único que apportaba ya estaba en otro sitio:
+>
+> | Qué aportaba `vercel.json` | Dónde está ahora |
+> |---|---|
+> | Cabeceras de seguridad y caché | `next.config.ts` (CSP, nosniff, X-Frame-Options…) |
+> | Región Frankfurt | Panel: *Settings → Functions → Region* |
+> | Cron diario de seguridad | Panel: *Settings → Cron Jobs*, o el cron externo |
+>
+> Sin ese fichero no hay nada que Vercel pueda rechazar por formato.
 
 ### Tres diferencias respecto a Render
 
@@ -389,8 +386,7 @@ Blob o a S3.
 **3. El cron de un minuto no es posible en el plan Hobby.**
 
 Vercel Hobby permite un cron **diario**, y un plan que lo rechaza hace fallar el
-despliegue. El `vercel.json` declara un cron diario como red de seguridad; el
-ciclo real lo lanza un cron externo:
+despliegue. El ciclo real lo lanza un cron externo:
 
 ```
 GET https://TU-DOMINIO.vercel.app/api/cron/monitor
@@ -400,8 +396,8 @@ Authorization: Bearer <CRON_SECRET>
 Opciones gratuitas: cron-job.org, EasyCron, UptimeRobot, o un workflow
 programado de GitHub Actions.
 
-Con plan Pro puedes cambiar `"0 9 * * *"` por `"* * * * *"` en `vercel.json` y
-eliminar el cron externo.
+Con plan Pro puedes cambiar la frecuencia desde el panel y eliminar el cron
+externo.
 
 ### Límite de ejecución
 

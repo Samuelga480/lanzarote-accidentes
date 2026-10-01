@@ -1,0 +1,87 @@
+[
+  {
+    "semana": "2026-09-26 - 2026-10-03",
+    "inicio": "2026-09-26T22:00:00.000Z",
+    "fin": "2026-10-03T21:59:59.999Z",
+    "total": 3,
+    "porTipo": [
+      {
+        "tipo": "Colisión",
+        "count": 1
+      },
+      {
+        "tipo": "Atropello",
+        "count": 1
+      },
+      {
+        "tipo": "Salida de vía",
+        "count": 1
+      }
+    ],
+    "porZona": [
+      {
+        "zona": "Arrecife",
+        "count": 1
+      },
+      {
+        "zona": "Tías",
+        "count": 1
+      },
+      {
+        "zona": "Yaiza",
+        "count": 1
+      }
+    ],
+    "accidentes": [
+      {
+        "id": "1",
+        "titulo": "Colisión en la Avenida de la Marina de Arrecife deja dos heridos leves",
+        "descripcion": "Un choque entre dos vehículos se produjo a primera hora de la tarde en la Avenida de la Marina de Arrecife. Según testigos presenciales, uno de los conductores no respetó la señal de ceda el paso, lo que provocó el impacto. Los servicios de emergencia acudieron al lugar y atendieron a dos personas por contusiones leves, que fueron trasladadas al Hospital General de Lanzarote para su evaluación. El tráfico permaneció cortado durante aproximadamente 45 minutos mientras la policía local tomaba declaración y se retiraban los vehículos siniestrados. El Ayuntamiento ha vuelto a pedir precaución a los conductores en esta zona, que registra varios accidentes al año debido al elevado tráfico y la proximidad de pasos de peatones.",
+        "zona": "Arrecife",
+        "tipo": "Colisión",
+        "fecha": "2026-10-01",
+        "estado": "aprobada",
+        "hora": "14:30",
+        "municipio": "Arrecife",
+        "fuente": "La Voz de Lanzarote",
+        "url_fuente": "https://www.lavozdelanzarote.com",
+        "lat": 28.9633,
+        "lng": -13.5475,
+        "resumen_ia": null
+      },
+      {
+        "id": "2",
+        "titulo": "Atropello en la carretera de Tías: un peatón herido de gravedad",
+        "descripcion": "Un peatón resultó herido de gravedad tras ser atropellado en la carretera LZ-2, a la altura del municipio de Tías. El accidente ocurrió cuando la víctima intentaba cruzar la vía fuera del paso de peatones habilitado. El conductor del vehículo implicado se detuvo inmediatamente y llamó al 112. Los servicios sanitarios trasladaron al herido al Hospital Universitario de Lanzarote, donde permanece ingresado en observación. La Guardia Civil ha abierto una investigación para determinar las causas exactas del siniestro. Las autoridades recuerdan la importancia de utilizar los pasos de cebra y respetar las señales de tráfico para evitar este tipo de incidentes.",
+        "zona": "Tías",
+        "tipo": "Atropello",
+        "fecha": "2026-09-30",
+        "estado": "aprobada",
+        "hora": "08:15",
+        "municipio": "Tías",
+        "fuente": "Lanzarote Ahora",
+        "url_fuente": "https://www.lanzaroteahora.com",
+        "lat": 28.9553,
+        "lng": -13.6461,
+        "resumen_ia": null
+      },
+      {
+        "id": "3",
+        "titulo": "Salida de vía en la carretera de Yaiza: el conductor sufre un vuelco",
+        "descripcion": "Un vehículo salió de la vía y volcó en la carretera LZ-702, que conecta Yaiza con Uga. El conductor, único ocupante del coche, sufrió heridas leves y fue atendido en el lugar por los servicios de emergencia. Según las primeras investigaciones, el accidente pudo deberse a un exceso de velocidad en una curva cerrada. La carretera permaneció cortada al tráfico durante más de dos horas mientras se retiraba el vehículo y se realizaban las tareas de limpieza y señalización. La Policía Local ha iniciado una investigación para esclarecer los hechos y recuerda a los conductores la importancia de adaptar la velocidad a las condiciones de la vía.",
+        "zona": "Yaiza",
+        "tipo": "Salida de vía",
+        "fecha": "2026-09-29",
+        "estado": "aprobada",
+        "hora": "16:45",
+        "municipio": "Yaiza",
+        "fuente": "Canarias7",
+        "url_fuente": "https://www.canarias7.es",
+        "lat": 28.9516,
+        "lng": -13.7629,
+        "resumen_ia": null
+      }
+    ],
+    "fechaGeneracion": "2026-09-30T23:53:24.560Z"
+  }
+]

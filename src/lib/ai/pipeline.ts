@@ -12,7 +12,7 @@
 import { prisma } from "@/lib/prisma";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
-import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
+import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
 import { z } from "zod";
 import type { AccidentSeverity, Origin, VehicleType } from "@/lib/types";
 
@@ -41,6 +41,8 @@ export const aiDraftSchema = z.object({
   imageAlt: z.string().max(200).optional().nullable(),
   /** Descripcion del lugar en lenguaje natural. NUNCA la direccion exacta. */
   locationDescription: z.string().max(200).optional().nullable(),
+  /** Slug de la zona dentro del municipio. Se valida contra ZONES. */
+  zoneSlug: z.string().min(1).optional().nullable(),
   /**
    * Coordenada del lugar, si la fuente la facilita. Se usa SOLO como punto de
    * partida para obtener una ubicacion aproximada (ver perturbarCoordenada).
@@ -115,6 +117,20 @@ export async function createDraftFromAI(payload: unknown): Promise<CreateDraftRe
     return { ok: false, error: `Municipio no valido: ${input.municipalitySlug}` };
   }
 
+  /*
+    La zona tiene que existir Y pertenecer al municipio que se ha mandado.
+    Sin la segunda comprobacion se podia colar "Puerto del Carmen" (que es de
+    Tias) dentro de una noticia de Teguise, y /zonas contaria cosas que no son
+    de ahi.
+  */
+  let zone: string | null = null;
+  if (input.zoneSlug) {
+    const z = ZONE_BY_SLUG.get(input.zoneSlug);
+    if (z && z.municipalitySlug === municipality.slug) {
+      zone = z.slug;
+    }
+  }
+
   // --- Privacidad: limpieza de datos personales ---
   const { data: clean, findings } = sanitizeAccident({
     title: input.title,
@@ -145,6 +161,7 @@ export async function createDraftFromAI(payload: unknown): Promise<CreateDraftRe
       imageAlt: input.imageAlt ?? null,
       occurredAt: input.occurredAt,
       municipality: { connect: { slug: municipality.slug } },
+      zone,
       vehicleType: input.vehicleType,
       severity: input.severity,
       fatalities: input.fatalities,

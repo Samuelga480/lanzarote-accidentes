@@ -17,6 +17,7 @@
  */
 
 import { deaccent } from "@/lib/text";
+import { MUNICIPALITIES, MUNICIPALITY_BY_SLUG, ZONES } from "@/lib/constants";
 
 /* -------------------------------------------------------------------------- */
 /*  Tipos                                                                     */
@@ -39,6 +40,8 @@ export type IncidentCategory = (typeof INCIDENT_CATEGORIES)[number];
 export type ExtractedFacts = {
   /** null = no se ha podido determinar. No se inventa. */
   municipalitySlug: string | null;
+  /** Zona o localidad concreta, si se ha identificado. null si solo hay municipio. */
+  zoneSlug: string | null;
   /** Nombre legible de la zona o localidad, si se ha identificado. */
   areaLabel: string | null;
   road: string | null;
@@ -65,57 +68,68 @@ export function norm(input: string): string {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Municipios de Lanzarote y las localidades que les pertenecen. Un articulo
- * dice "Playa Blanca", no "Yaiza", asi que sin estos alias se perderia la
- * mayor parte de la geolocalizacion.
+ * Indice de topónimos de Lanzarote.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE SE GENERA Y NO SE ESCRIBE A MANO
+ * ---------------------------------------------------------------------------
+ *
+ * Antes estaba escrito a mano y se desincronizó de la lista de municipios: el
+ * índice decía `tinajo` y la lista decía `tinaj`, así que toda noticia de
+ * Tinajo salía con un municipio que no existía. Betancuria y Femés se
+ * quedaron metidos porque están en Fuerteventura.
+ *
+ * Ahora sale de MUNICIPALITIES y ZONES, que son la única fuente de verdad. Si
+ * mañana se añade un municipio, el índice lo recoge solo y no puede quedar
+ * desfasado.
+ *
+ * ---------------------------------------------------------------------------
+ *  ORDEN
+ * ---------------------------------------------------------------------------
+ *
+ * De más largo a más corto, para que "playa blanca" se pruebe antes que
+ * "yaiza" y gane el nombre más específico. Y si dos entradas comparten el mismo
+ * término se queda la primera: los municipios se añaden antes que las zonas,
+ * de forma que un "Tinajo" a secas es el municipio y no una zona.
  */
-const MUNICIPALITY_ALIASES: Record<string, string> = {
-  // Arrecife
-  arrecife: "arrecife",
-  pedroso: "arrecife",
-  "puerto de naos": "arrecife",
-  "los marmoles": "arrecife",
-  "la isleta": "arrecife",
-  "san francisco": "arrecife",
-  // Teguise (incluye La Graciosa)
-  teguise: "teguise",
-  "teguise villa": "teguise",
-  "costa teguise": "teguise",
-  tahiche: "teguise",
-  "puerto del carmen": "teguise",
-  orzola: "teguise",
-  soo: "teguise",
-  "la graciosa": "teguise",
-  "caleta de famara": "teguise",
-  // San Bartolome
-  "san bartolome": "san-bartolome",
-  // Tias
-  tias: "tias",
-  macher: "tias",
-  // Yaiza
-  yaiza: "yaiza",
-  "playa blanca": "yaiza",
-  "playa de las americas": "yaiza",
-  "el glean": "yaiza",
-  "san jose": "yaiza",
-  morros: "yaiza",
-  // Tinajo
-  tinajo: "tinajo",
-  // Haria
-  haria: "haria",
-  "el jable": "haria",
-  // Betancuria
-  betancuria: "betancuria",
-  // Femes
-  femes: "femes",
+type PlaceHit = {
+  /** Término normalizado, tal y como aparece tras pasar por norm(). */
+  term: string;
+  municipalitySlug: string;
+  /** null cuando lo que ha coincidence es el municipio entero. */
+  zoneSlug: string | null;
+  /** Nombre con mayúsculas para mostrar. */
+  label: string;
 };
 
-/** Etiqueta legible que se muestra cuando el articulo nombra una localidad. */
-const AREA_LABELS: Record<string, string> = {
-  teguise: "La Graciosa",
-  tias: "Puerto del Carmen",
-  yaiza: "Playa Blanca",
-};
+const PLACE_INDEX: PlaceHit[] = (() => {
+  const entries: PlaceHit[] = [];
+
+  for (const m of MUNICIPALITIES) {
+    entries.push({
+      term: norm(m.name),
+      municipalitySlug: m.slug,
+      zoneSlug: null,
+      label: m.name,
+    });
+  }
+
+  for (const z of ZONES) {
+    // El municipio de la zona tiene que existir. Si algún día se escribe mal,
+    // la zona se descarta en vez de colar un municipio inventado.
+    if (!MUNICIPALITY_BY_SLUG.has(z.municipalitySlug)) continue;
+
+    for (const term of [norm(z.name), ...(z.aliases ?? []).map(norm)]) {
+      if (term === "") continue;
+      entries.push({ term, municipalitySlug: z.municipalitySlug, zoneSlug: z.slug, label: z.name });
+    }
+  }
+
+  entries.sort((a, b) => b.term.length - a.term.length);
+
+  const seen = new Set<string>();
+  return entries.filter((e) => (seen.has(e.term) ? false : (seen.add(e.term), true)));
+})();
 
 /**
  * Municipios y zonas de OTRAS islas que aparecen a menudo en la prensa
@@ -243,21 +257,25 @@ function containsTerm(haystack: string, term: string): boolean {
   return ` ${haystack} `.includes(` ${term} `);
 }
 
-function extractMunicipality(text: string): { slug: string | null; area: string | null } {
-  let found: string | null = null;
-  let area: string | null = null;
-
-  for (const [alias, slug] of Object.entries(MUNICIPALITY_ALIASES)) {
-    if (!slug) continue;
-    if (!containsTerm(text, alias)) continue;
-    if (found === null) {
-      found = slug;
-      area = AREA_LABELS[slug] ?? alias;
-    }
-    break;
+/**
+ * Busca el topónimo mas especifico del texto.
+ *
+ * Devuelve null si no aparece ninguno: un municipio inventado es peor que
+ * ninguno, porque el mapa lo enseña como si fuera cierto.
+ */
+function extractPlace(text: string): { slug: string | null; zone: string | null; area: string | null } {
+  for (const hit of PLACE_INDEX) {
+    if (!containsTerm(text, hit.term)) continue;
+    return {
+      slug: hit.municipalitySlug,
+      zone: hit.zoneSlug,
+      // El area solo se rellena cuando hay una zona de verdad. Si solo
+      // aparece el municipio, se deja vacia: escribir "la zona de Tias, en
+      // Tias" no dice nada y hace que el texto suene a relleno.
+      area: hit.zoneSlug ? hit.label : null,
+    };
   }
-
-  return { slug: found, area };
+  return { slug: null, zone: null, area: null };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -425,17 +443,19 @@ export function extractFacts(title: string, body: string): ExtractedFacts {
 
   if (weight === 0) {
     return {
-      municipalitySlug: null, areaLabel: null, road: null, vehicleType: null,
+      municipalitySlug: null, zoneSlug: null, areaLabel: null, road: null, vehicleType: null,
       category: null, severity: null, injuries: null, fatalities: null,
       timeOfDay: null, outsideLanzarote: false, matchedTerms: [],
     };
   }
 
   // Toponimos: el titular manda, el cuerpo solo si el titular no los nombra.
-  const fromTitle = extractMunicipality(titleNorm);
-  const fromBody = extractMunicipality(bodyNorm);
-  const municipalitySlug = fromTitle.slug ?? fromBody.slug ?? null;
-  const areaLabel = fromTitle.slug ? fromTitle.area : fromBody.area;
+  const fromTitle = extractPlace(titleNorm);
+  const fromBody = extractPlace(bodyNorm);
+  const place = fromTitle.slug ? fromTitle : fromBody.slug ? fromBody : null;
+  const municipalitySlug = place?.slug ?? null;
+  const zoneSlug = place?.zone ?? null;
+  const areaLabel = place?.area ?? null;
 
   const fatalities = extractFatalities(combined);
   const injuries = extractInjuries(combined);
@@ -443,6 +463,7 @@ export function extractFacts(title: string, body: string): ExtractedFacts {
 
   return {
     municipalitySlug,
+    zoneSlug,
     areaLabel,
     road: extractRoad(combined),
     vehicleType: extractVehicleType(combined),

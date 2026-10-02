@@ -1,14 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { countByMunicipality } from "@/lib/queries";
-import { MUNICIPALITIES, SITE } from "@/lib/constants";
+import { MUNICIPALITIES, SITE, ZONES, zonesByMunicipality } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Accidentes por municipio",
   description:
-    "Accidentes de tráfico registrados en cada municipio de Lanzarote: Arrecife, Teguise, Tías, Yaiza, Tinaj, Haría, San Bartolomé, Betancuria y Femés.",
+    "Accidentes de tráfico registrados en cada uno de los siete municipios de Lanzarote: Arrecife, Haría, Teguise, Tinajo, Tías, Tizayuca y Yaiza.",
   alternates: { canonical: "/municipios" },
 };
 
@@ -39,10 +39,19 @@ export default async function MunicipalitiesPage() {
           Accidentes por municipio
         </h1>
         <p className="text-ink-soft mt-2 text-sm md:text-base max-w-2xl leading-relaxed">
-          Los nueve municipios de la isla de Lanzarote. En total, {total} noticias publicadas en{" "}
-          {SITE.name}.
+          Los {MUNICIPALITIES.length} municipios de la isla de Lanzarote. En total, {total}{" "}
+          noticias publicadas en {SITE.name}.
         </p>
       </header>
+
+      <p className="text-sm text-ink-soft mb-6">
+        Los municipios no cubren toda la isla: la prensa escribe de localidades concretas como
+        Puerto del Carmen o Playa Blanca. Hay{" "}
+        <Link href="/zonas" className="text-alert font-semibold hover:underline">
+          {ZONES.length} zonas
+        </Link>{" "}
+        con su propio listado.
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {ordered.map((m) => (

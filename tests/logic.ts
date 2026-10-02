@@ -19,6 +19,7 @@ import { verifyArticle } from "@/lib/verify";
 import { isBlockedIp, assertFetchable } from "@/lib/net";
 import { normalizeUrl, urlHashOf } from "@/lib/dedupe";
 import { sanitizeText } from "@/lib/privacy";
+import { MUNICIPALITIES, MUNICIPALITY_BY_SLUG, ZONES } from "@/lib/constants";
 
 let passed = 0;
 let failed = 0;
@@ -74,12 +75,87 @@ section("Extraccion de hechos: la regla es NO inventar");
 }
 
 {
+  // Playa Blanca no pertenece a Yaiza: es un nucleo turistico entre Tias y
+  // Tizayuca, y su casco urbano esta en Tizayuca. Antes resolvia a Yaiza.
   const f = extractFacts("Accidente en Playa Blanca", "Un coche choco en la LZ-20.");
   check(
-    "alias de localidad: Playa Blanca resuelve a Yaiza",
-    f.municipalitySlug === "yaiza",
+    "alias de localidad: Playa Blanca resuelve a Tizayuca",
+    f.municipalitySlug === "tizayuca",
     `obtenido: ${f.municipalitySlug}`,
   );
+  check(
+    "y ademas se identifica la zona",
+    f.zoneSlug === "playa-blanca",
+    `obtenido: ${f.zoneSlug}`,
+  );
+  check(
+    "con su nombre legible",
+    f.areaLabel === "Playa Blanca",
+    `obtenido: ${f.areaLabel}`,
+  );
+}
+
+{
+  // La zona y el municipio van por separado. Puerto del Carmen es de Tias, no
+  // de Teguise como decia el indice antiguo.
+  const f = extractFacts("Accidente en Puerto del Carmen", "Una moto se salio de la via.");
+  check("Puerto del Carmen resuelve a Tias", f.municipalitySlug === "tias", `obtenido: ${f.municipalitySlug}`);
+  check("y a la zona Puerto del Carmen", f.zoneSlug === "puerto-del-carmen", `obtenido: ${f.zoneSlug}`);
+}
+
+{
+  // El nombre del municipio a secas es el municipio, no una zona.
+  const f = extractFacts("Accidente en Tinajo", "Un camion se volcó en la LZ-1.");
+  check("Tinajo resuelve al municipio Tinajo", f.municipalitySlug === "tinajo", `obtenido: ${f.municipalitySlug}`);
+  check("y sin zona, porque no se ha nombrado ninguna", f.zoneSlug === null, `obtenido: ${f.zoneSlug}`);
+  check("ni area", f.areaLabel === null, `obtenido: ${f.areaLabel}`);
+}
+
+{
+  // Betancuria y Femes son de Fuerteventura. Antes salian como si fueran
+  // municipios de Lanzarote y el mapa los colocaba en la isla equivocada.
+  for (const topónimo of ["Betancuria", "Femés"]) {
+    const f = extractFacts(`Accidente en ${topónimo}`, "Hubo un choque en la carretera.");
+    check(`${topónimo} no resuelve a ningun municipio de Lanzarote`, f.municipalitySlug === null, `obtenido: ${f.municipalitySlug}`);
+  }
+}
+
+{
+  // El municipio tiene que existir de verdad, no basta con que el texto lo diga.
+  const huerfanas = ZONES.filter((z) => !MUNICIPALITY_BY_SLUG.has(z.municipalitySlug));
+  check("ninguna zona apunta a un municipio inexistente", huerfanas.length === 0, `huerfanas: ${huerfanas.map((z) => z.slug).join(", ")}`);
+
+  const repetidos = ZONES.map((z) => z.slug).filter((s, i, a) => a.indexOf(s) !== i);
+  check("no hay zonas con el mismo slug", repetidos.length === 0, `repetidos: ${repetidos.join(", ")}`);
+
+  const slugsMuni = new Set(MUNICIPALITIES.map((m) => m.slug));
+  const slugsZona = new Set(ZONES.map((z) => z.slug));
+  const choque = [...slugsZona].filter((s) => slugsMuni.has(s));
+  check("ningun slug de zona pisa el de un municipio", choque.length === 0, `choque: ${choque.join(", ")}`);
+}
+
+{
+  // Los siete municipios de verdad. Betancuria y Femes no estan: son de
+  // Fuerteventura. Y Tizayuca si, que antes faltaba.
+  const slugs = MUNICIPALITIES.map((m) => m.slug).sort();
+  check(
+    "son los siete municipios de Lanzarote",
+    JSON.stringify(slugs) === JSON.stringify(["arrecife", "haria", "teguise", "tias", "tinajo", "tizayuca", "yaiza"]),
+    `obtenido: ${slugs.join(", ")}`,
+  );
+  check("el nombre es Tinajo, no Tinaj", MUNICIPALITIES.some((m) => m.name === "Tinajo"));
+  check("no queda ningun Tinaj", !MUNICIPALITIES.some((m) => m.name === "Tinaj"));
+  check("no queda Betancuria", !MUNICIPALITIES.some((m) => /betancuria/i.test(m.name)));
+  check("no queda Femes", !MUNICIPALITIES.some((m) => /fem[eé]s/i.test(m.name)));
+}
+
+{
+  // Toda zona tiene que ser reconocible por el nombre que la prensa usa, y
+  // ningun municipio puede quedarse sin ninguna zona.
+  for (const m of MUNICIPALITIES) {
+    const zonas = ZONES.filter((z) => z.municipalitySlug === m.slug);
+    check(`${m.name} tiene al menos una zona`, zonas.length > 0, `zonas: ${zonas.length}`);
+  }
 }
 
 {

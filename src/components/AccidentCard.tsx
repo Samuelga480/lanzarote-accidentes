@@ -3,6 +3,7 @@ import type { AccidentWithMunicipality } from "@/lib/queries";
 import { AccidentImage } from "@/components/AccidentImage";
 import { CategoryBadge, SeverityBadge } from "@/components/Badges";
 import { formatDateShort, formatTime } from "@/lib/format";
+import { ZONE_BY_SLUG } from "@/lib/constants";
 
 /**
  * Tarjeta de noticia.
@@ -25,6 +26,10 @@ type Props = {
 export function AccidentCard({ accident, variant = "normal" }: Props) {
   const { municipality, occurredAt, severity, category } = accident;
   const href = `/accidentes/${accident.slug}`;
+
+  // La zona solo aparece si el medio la nombro. Un null en la base de datos es
+  // lo normal, no un dato que haya que rellenar con el nombre del municipio.
+  const zona = accident.zone ? ZONE_BY_SLUG.get(accident.zone) : undefined;
 
   if (variant === "compacto") {
     return (
@@ -79,7 +84,14 @@ export function AccidentCard({ accident, variant = "normal" }: Props) {
           </span>
 
           <Link href={`/municipios/${municipality.slug}`} className="news-zone">
-            {municipality.name}
+            {zona ? (
+              <>
+                {zona.name}
+                <span className="text-ink-mute"> · {municipality.name}</span>
+              </>
+            ) : (
+              municipality.name
+            )}
           </Link>
 
           <CategoryBadge category={category} />

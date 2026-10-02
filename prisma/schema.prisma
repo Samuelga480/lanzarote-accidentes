@@ -145,6 +145,12 @@ model Accident {
   municipalityId String
   municipality   Municipality @relation(fields: [municipalityId], references: [id], onDelete: Restrict)
 
+  /// Zona o localidad concreta dentro del municipio, como slug de ZONES
+  /// (constants.ts). Null cuando la noticia solo nombra el municipio.
+  /// Se guarda el slug y no el nombre para que renombrar una zona no obligue a
+  /// tocar las noticias ya escritas.
+  zone String?
+
   /// VehicleType: COCHE | MOTO | CAMION | BICICLETA | PEATON | OTROS
   vehicleType String
   /// AccidentSeverity: LEVE | MODERADO | GRAVE
@@ -233,6 +239,7 @@ model Accident {
   // ralentizan las escrituras.
   @@index([status, occurredAt(sort: Desc)])
   @@index([municipalityId, status])
+  @@index([zone, status])
   @@index([vehicleType, status])
   @@index([occurredAt])
   @@index([isFeatured])

@@ -325,6 +325,14 @@ export async function ingestArticle(params: {
   });
   const privacyNote = summarizeFindings(findings);
 
+  /*
+    La zona solo se guarda si de verdad pertenece al municipio detectado. Si el
+    texto nombra una localidad que no encaja, se descarta en vez de forzar el
+    almacenado: un dato editorial equivocado es peor que no tener dato.
+  */
+  const zone =
+    facts.zoneSlug && facts.municipalitySlug === municipalitySlug ? facts.zoneSlug : null;
+
   // --- Ubicacion aproximada ---
   const base = municipalitySlug
     ? MUNICIPALITY_BY_SLUG.get(municipalitySlug)
@@ -368,6 +376,7 @@ export async function ingestArticle(params: {
 
       occurredAt,
       municipality: { connect: { slug: municipalityConnect } },
+      zone,
       vehicleType: facts.vehicleType ?? "OTROS",
       severity: facts.severity ?? "MODERADO",
       category: facts.category ?? "ACCIDENTE_TRAFICO",

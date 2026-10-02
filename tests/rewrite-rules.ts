@@ -19,6 +19,7 @@ function ok(nombre: string, condicion: boolean, detalle = "") {
 
 const BASE: ExtractedFacts = {
   municipalitySlug: "tias",
+  zoneSlug: null,
   areaLabel: null,
   road: null,
   vehicleType: null,

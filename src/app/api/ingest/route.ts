@@ -205,6 +205,14 @@ async function processIngest(payload: IngestPayload): Promise<IngestResult> {
   const forcedMunicipality = payload.municipalitySlug ?? null;
   const municipalitySlug = forcedMunicipality ?? facts.municipalitySlug;
 
+  /*
+    Si quien llama fuerza el municipio, la zona detectada puede quedarse
+    huérfana: un "Puerto del Carmen" forzado a Teguise ya no encaja. Se descarta,
+    no se guarda a la fuerza.
+  */
+  const zoneSlug =
+    facts.zoneSlug && facts.municipalitySlug === municipalitySlug ? facts.zoneSlug : null;
+
   if (forcedMunicipality && !MUNICIPALITY_BY_SLUG.has(forcedMunicipality)) {
     return {
       ok: false,
@@ -404,6 +412,7 @@ async function processIngest(payload: IngestPayload): Promise<IngestResult> {
       excerpt,
       occurredAt,
       municipality: { connect: { slug: municipalitySlug ?? "arrecife" } },
+      zone: zoneSlug,
       vehicleType: (facts.vehicleType ?? "OTROS") as VehicleType,
       severity: (facts.severity ?? "MODERADO") as AccidentSeverity,
       category: (facts.category ?? "OTRO") as IncidentCategory,

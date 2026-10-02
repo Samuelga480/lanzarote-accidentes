@@ -10,7 +10,7 @@ import {
   type Origin,
   type VehicleType,
 } from "@/lib/types";
-import { CATEGORY_LABEL } from "@/lib/constants";
+import { CATEGORY_LABEL, ZONES } from "@/lib/constants";
 import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } from "@/lib/calendar-year";
 
 /* -------------------------------------------------------------------------- */
@@ -233,6 +233,54 @@ export async function countByMunicipality(): Promise<
       count: counts.get(m.id) ?? m._count.accidents,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Numero de accidentes publicados por zona.
+ *
+ * Las zonas no son filas en la base de datos sino slugs en `Accident.zone`, así
+ * que el recuento sale de agrupar por esa columna y se cruza con la lista de
+ * ZONES. Las zonas sin noticias no aparecen: las pinta la pagina /zonas, que
+ * ya las conoce todas.
+ */
+export async function countByZone(municipalitySlug?: string): Promise<
+  Array<{ slug: string; name: string; municipalitySlug: string; count: number }>
+> {
+  const grouped = await prisma.accident.groupBy({
+    by: ["zone"],
+    where: {
+      AND: [
+        ONLY_PUBLISHED,
+        { zone: { not: null } },
+        ...(municipalitySlug ? [{ municipality: { slug: municipalitySlug } }] : []),
+      ],
+    },
+    _count: { _all: true },
+  });
+
+  const counts = new Map(
+    grouped
+      .filter((g): g is typeof g & { zone: string } => g.zone !== null)
+      .map((g) => [g.zone, g._count._all]),
+  );
+
+  return ZONES.filter((z) => !municipalitySlug || z.municipalitySlug === municipalitySlug)
+    .map((z) => ({ slug: z.slug, name: z.name, municipalitySlug: z.municipalitySlug, count: counts.get(z.slug) ?? 0 }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
+}
+
+/** Accidentes publicados de una zona, de la mas reciente a la mas antigua. */
+export async function listByZone(
+  zoneSlug: string,
+  limit = 60,
+): Promise<AccidentWithMunicipality[]> {
+  const rows = await prisma.accident.findMany({
+    where: { AND: [ONLY_PUBLISHED, { zone: zoneSlug }] },
+    include: { municipality: true },
+    orderBy: { occurredAt: "desc" },
+    take: Math.max(1, Math.min(200, limit)),
+  });
+  return rows.map(narrow);
 }
 
 /** Accidentes recientes publicados, para el mapa. */

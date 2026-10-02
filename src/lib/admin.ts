@@ -19,7 +19,7 @@ import { narrow } from "@/lib/queries";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import { canaryLocalToUtc } from "@/lib/format";
-import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
+import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
 import { z } from "zod";
 import {
   isAccidentStatus,
@@ -45,6 +45,7 @@ export const accidentFormSchema = z.object({
   summary: z.string().trim().min(20, "El resumen debe tener al menos 20 caracteres").max(500),
   body: z.string().trim().min(50, "El cuerpo debe tener al menos 50 caracteres").max(20000),
   municipalitySlug: z.string().min(1, "Selecciona un municipio"),
+  zoneSlug: z.string().optional().or(z.literal("")),
   vehicleType: z.enum(["COCHE", "MOTO", "CAMION", "BICICLETA", "PEATON", "OTROS"]),
   severity: z.enum(["LEVE", "MODERADO", "GRAVE"]),
   /** Fecha/hora naive en hora de Canarias: "2026-09-30T14:30". */
@@ -69,6 +70,7 @@ export function formDataToInput(fd: FormData): AccidentFormInput {
     summary: fd.get("summary") ?? "",
     body: fd.get("body") ?? "",
     municipalitySlug: fd.get("municipalitySlug") ?? "",
+    zoneSlug: fd.get("zoneSlug") ?? "",
     vehicleType: fd.get("vehicleType") ?? "",
     severity: fd.get("severity") ?? "MODERADO",
     occurredAt: fd.get("occurredAt") ?? "",
@@ -154,11 +156,27 @@ type PreparedData = {
   fatalities: number;
   injuries: number;
   locationDescription: string | null;
+  /** Slug de la zona, ya comprobado contra ZONES y contra el municipio. */
+  zone: string | null;
   imageUrl: string | null;
   imageAlt: string | null;
   status: AccidentStatus;
   reviewNotes: string | null;
 };
+
+/**
+ * Zona válida para el municipio indicado, o null.
+ *
+ * El formulario deja elegir municipio y zona por separado, así que es fácil
+ * mandar "Puerto del Carmen" (que es de Tías) junto con el municipio Teguise.
+ * Aquí se descarta, en lugar de guardarlo y que /zonas cuente cosas que no son
+ * de ese sitio.
+ */
+function zonaValida(zoneSlug: string | undefined | null, municipalitySlug: string): string | null {
+  if (!zoneSlug) return null;
+  const z = ZONE_BY_SLUG.get(zoneSlug);
+  return z && z.municipalitySlug === municipalitySlug ? z.slug : null;
+}
 
 /** Limpia los datos personales y añade la nota de privacidad. */
 function prepare(input: AccidentFormInput, baseNotes: string | null): PreparedData {
@@ -188,6 +206,9 @@ function prepare(input: AccidentFormInput, baseNotes: string | null): PreparedDa
     fatalities: input.fatalities,
     injuries: input.injuries,
     locationDescription: clean.locationDescription ?? null,
+    // Una zona que no pertenece al municipio elegido se descarta. El editor
+    // puede haber cambiado el municipio despues de escribir la zona.
+    zone: zonaValida(input.zoneSlug, input.municipalitySlug),
     imageUrl: input.imageUrl || null,
     imageAlt: input.imageAlt || null,
     status: input.status,

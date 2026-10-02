@@ -1,4 +1,5 @@
 import { ADS_SNAPSHOT } from "@/data/ads-snapshot";
+import { conLineasExtra } from "@/data/ads-extra";
 
 /**
  * ads.txt del sitio.
@@ -88,7 +89,14 @@ async function desdeElPanel(): Promise<string | null> {
 }
 
 export async function GET() {
-  const txt = (await desdeElPanel()) ?? normalizar(ADS_SNAPSHOT);
+  /*
+    Las lineas extra se anaden DESPUES de la respuesta del panel, no antes. Si se
+    anadieran solo a la copia local, no aparecerian nunca: la peticion al panel
+    funciona y lo que devuelve es lo que se sirve. Ver ads-extra.ts, que explica
+    por que conviven los dos identificadores de la red.
+  */
+  const base = (await desdeElPanel()) ?? normalizar(ADS_SNAPSHOT);
+  const txt = conLineasExtra(base);
 
   return new Response(txt, {
     status: 200,

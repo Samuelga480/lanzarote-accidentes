@@ -9,7 +9,11 @@ import { MobileNav } from "@/components/MobileNav";
  * Reproduce la del diseno original: 60px de alto, marca con el icono de capas
  * junto al nombre en Merriweather, navegacion a la derecha con enlaces de 8px
  * de relleno, boton de tema e "Acceder" en bloque oscuro.
+ *
+ * El boton de tema va DENTRO de .nav a proposito: .nav se oculta por debajo de
+ * 768px, asi que en movil aparece el que hay en MobileNav y no se ven dos.
  */
+
 /**
  * Navegacion principal.
  *
@@ -66,11 +70,8 @@ export function Header() {
           </Link>
         </nav>
 
-        {/* En movil: boton de menu + acceso al panel */}
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <MobileNav links={NAV} />
-        </div>
+        {/* Solo en movil: boton de menu. El boton de tema ya va dentro de .nav. */}
+        <MobileNav links={NAV} />
       </div>
     </header>
   );

@@ -767,42 +767,7 @@ body {
   margin-bottom: 10px;
 }
 
-/* ============================================================================
- *  LEAFLET PERSONALIZADO
- * ========================================================================= */
-
-.leaflet-popup-content-wrapper {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
-}
-
-.leaflet-popup-tip {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-}
-
-.leaflet-popup-content {
-  margin: 12px 16px;
-  font-family: var(--font-sans);
-}
-
-.popup-title {
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--text-primary);
-}
-
-.popup-info {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.leaflet-container {
-  font-family: var(--font-sans);
-}
+/* Los estilos de Leaflet viven en map.css, junto al componente que lo usa. */
 
 /* ============================================================================
  *  ANIMACIONES

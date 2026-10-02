@@ -121,47 +121,29 @@ export async function ingestArticle(params: {
   const summary = article.summary?.trim() || params.feedSummary || "";
   const fullText = body.length >= 200 ? body : summary;
 
-  // --- 3. Puerta de trafico, relevancia y geolocalizacion ---
+  // --- 3. Alcance del sitio: ¿es de Lanzarote? ---
   /*
-    La puerta va PRIMERO, antes que el puntaje de relevancia. Es una condicion
-    necesaria y suficiente (suceso + vehiculo o via), mientras que el puntaje es
-    una heuristica que se puede superar con palabras sueltas. Sin este orden, un
-    articulo sobre un decreto municipal o el incendio de un edificio pasaba los
-    dos filtros y llegaba al panel como si fuera un accidente de coches.
+    ESTE ES AHORA EL UNICO FILTRO DURO DE LA INGESTA.
+
+    Antes habia dos mas. Uno era la puerta de trafico, que exigia suceso +
+    vehiculo o via; el otro, un corte de relevancia por vocabulario de
+    accidentes ("colision", "atropello", "112"...). Los dos descartaban
+    exactamente lo que este sitio ahora quiere recoger: una noticia de deporte,
+    de cultura o de una decision del Cabildo sobre Lanzarote puntuaba cero y se
+    perdia. El sitio paso a ser de cualquier noticia de la isla, asi que la
+    condicion es que sea de Lanzarote.
+
+    `outsideLanzarote` no alcanza por si solo: mira si el articulo nombra OTRAS
+    ISLAS, y una noticia de guardia en Pontevedra no nombra ninguna. Por eso se
+    exige ademas una mencion positiva de Lanzarote.
+
+    Aflojar el filtro automatico es aceptable porque TODO lo que entra sigue
+    siendo un borrador y necesita aprobacion humana en el panel. El coste de que
+    llegue de mas es que el editor descarte; el de seguir descartando por
+    palabras seria que la noticia nunca llegue a existir.
   */
-  const trafico = evaluaAccidenteTrafico(title, fullText);
-  if (!trafico.esAccidente) {
-    await recordSeen({
-      url: page.url, urlHash, title, contentHash: contentHashOf(title, fullText),
-      state: "PRESENT", sourceUrl: source.url, publishedAt: article.publishedAt,
-    });
-    log.debug("Descartado por la puerta de trafico", {
-      title, motivo: trafico.motivo, sucesos: trafico.sucesos, vehiculos: trafico.vehiculos,
-    });
-    return { kind: "skipped", reason: `No es un accidente de tráfico: ${trafico.motivo}.` };
-  }
-
-  const relevance = relevanceScore(title, fullText);
-  if (relevance < 0.25) {
-    await recordSeen({
-      url: page.url, urlHash, title, contentHash: contentHashOf(title, fullText),
-      state: "PRESENT", sourceUrl: source.url, publishedAt: article.publishedAt,
-    });
-    return { kind: "skipped", reason: `No es relevante (relevancia ${Math.round(relevance * 100)} %).` };
-  }
-
   const facts: ExtractedFacts = extractFacts(title, fullText);
 
-  /*
-    La isla se comprueba DESPUES de la puerta de trafico, porque la mayoria de lo
-    que no es de Lanzarote ni siquiera es de trafico y ya ha caído antes. Aqui solo
-    llegan los que son accidentes de verdad, y de esos hay que descartar los que
-    no son nuestros.
-
-    `outsideLanzarote` no alcanza: mira si el articulo nombra OTRAS ISLAS, y una
-    colision en Pontevedra no nombra ninguna. Por eso se exige una mencion
-    positiva de Lanzarote.
-  */
   const isla = evaluaIsla(title, fullText);
   if (!isla.deLanzarote || facts.outsideLanzarote) {
     await recordSeen({
@@ -175,11 +157,29 @@ export async function ingestArticle(params: {
     return { kind: "rejected", reason: motivo };
   }
 
-  // Sin municipio no se descarta: puede ser un accidente en una carretera
-  // insular que el medio noSitua por nombre. Quedara como pendiente y el editor
-  // lo situa. Lo que no se hace es inventarle un municipio.
+  /*
+    La puerta de trafico no se borra: pasa a CLASIFICAR. Dice si la noticia es un
+    suceso con vehiculo, y eso alimenta el tipo de noticia y la nota que ve el
+    editor, pero ya no decide si entra.
+
+    La relevancia tampoco descarta. Sigue midiendo, y de hecho una noticia que no
+    habla de accidentes sale con puntuacion baja: es informacion util para el
+    editor, que es quien decide.
+  */
+  const trafico = evaluaAccidenteTrafico(title, fullText);
+  const relevance = relevanceScore(title, fullText);
+  log.debug("Clasificado", {
+    title,
+    esSuceso: trafico.esAccidente,
+    motivo: trafico.motivo,
+    relevancia: Math.round(relevance * 100),
+  });
+
+  // Sin municipio no se descarta: puede ser una carretera insular que el medio no
+  // situa por nombre, o una noticia sobre la isla en general. Quedara como
+  // pendiente y el editor lo situa. Lo que no se hace es inventarle un municipio.
   if (!facts.municipalitySlug) {
-    log.debug("Articulo relevante sin municipio identificable", { title });
+    log.debug("Articulo de la isla sin municipio identificable", { title });
   }
 
   // --- 4. Fechas ---
@@ -315,29 +315,51 @@ export async function ingestArticle(params: {
     : { ok: false as const, error: "OPENROUTER_API_KEY no esta definido.", overlap: null };
 
   if (!rewrite.ok) {
-    // Camino de reserva: reglas. Si esto tampoco sale, se guarda el texto
-    // original y lo indica el log, porque perder la noticia es peor.
-    const porReglas = rewriteByRules(peticion);
+    /*
+      Camino de reserva: reglas. SOLO para articulos que son realmente un
+      suceso.
 
-    if (porReglas.ok) {
-      finalTitle = porReglas.title;
-      finalSummary = porReglas.summary;
-      finalBody = porReglas.body;
-      seoTitle = porReglas.seoTitle;
-      metaDescription = porReglas.metaDescription;
-      excerpt = porReglas.excerpt;
-      aiModel = null;
-      rewritten = true;
-      log.info("Noticia redactada por reglas", {
-        motivo: rewrite.error,
-        title: truncate(finalTitle, 80),
-      });
+      El redactor por reglas no resume: construye la noticia con los datos
+      extraidos (suceso, vehiculo, heridos) y siempre la redacta como
+      accidente. Cuando el sitio solo recogia accidentes eso era justo lo que
+      tocaba, pero ahora entra cualquier noticia de la isla: aplicarlo a una de
+      deporte o de una decision del Cabildo fabrificaba un accidente que no ha
+      ocurrido, con su titular, su resumen y su cuerpo. Eso es peor que no
+      reescribir nada.
+
+      Asi que, si el articulo no es un suceso, se conserva el texto original
+      tal como lo publico el medio. El editor lo ve en el panel y decide.
+    */
+    const esSuceso = trafico.esAccidente || (facts.category !== null && facts.category !== "OTRO");
+
+    if (esSuceso) {
+      const porReglas = rewriteByRules(peticion);
+
+      if (porReglas.ok) {
+        finalTitle = porReglas.title;
+        finalSummary = porReglas.summary;
+        finalBody = porReglas.body;
+        seoTitle = porReglas.seoTitle;
+        metaDescription = porReglas.metaDescription;
+        excerpt = porReglas.excerpt;
+        aiModel = null;
+        rewritten = true;
+        log.info("Noticia redactada por reglas", {
+          motivo: rewrite.error,
+          title: truncate(finalTitle, 80),
+        });
+      } else {
+        // Ultimo recurso: el texto tal cual. El editor lo vera en el panel y
+        // decidira si se publica.
+        log.warn("No se pudo reescribir la noticia; se guarda el texto original", {
+          title: truncate(title, 80),
+          error: porReglas.error,
+        });
+      }
     } else {
-      // Ultimo recurso: el texto tal cual. El editor lo vera en el panel y
-      // decidira si se publica.
-      log.warn("No se pudo reescribir la noticia; se guarda el texto original", {
+      log.info("No es un suceso: se conserva el texto original del medio", {
         title: truncate(title, 80),
-        error: porReglas.error,
+        motivo: rewrite.error,
       });
     }
   } else {

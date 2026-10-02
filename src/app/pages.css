@@ -589,6 +589,139 @@
   border: 1px solid var(--border);
 }
 
+/* ============================================================================
+ *  PERFIL
+ *
+ *  Del sitio original (legacy-site/perfil.css): seccion con el titulo y el boton
+ *  de editar en la misma fila, y el formulario escondido hasta que se pulsa ese
+ *  boton.
+ * ========================================================================= */
+
+.perfil-seccion {
+  margin-bottom: 32px;
+}
+
+.perfil-seccion:last-child {
+  margin-bottom: 0;
+}
+
+.perfil-seccion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.perfil-seccion-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.perfil-bio {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  min-height: 60px;
+  margin: 0;
+  /* La descripcion se escribe en un textarea: los saltos de linea que el usuario
+     teclee se conservan al pintar el texto plano. */
+  white-space: pre-wrap;
+}
+
+.perfil-bio-vacia {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Formulario de edicion: escondido hasta que se pulsa "Editar". */
+.perfil-editar {
+  display: none;
+}
+
+.perfil-editar.active {
+  display: block;
+}
+
+.perfil-editar .form-group {
+  margin-bottom: 20px;
+}
+
+.perfil-editar label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.perfil-editar input,
+.perfil-editar textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+}
+
+.perfil-editar input:focus,
+.perfil-editar textarea:focus {
+  outline: none;
+  border-color: var(--text-muted);
+}
+
+.perfil-editar textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.perfil-acciones {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.perfil-nombre {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.perfil-email {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.perfil-fecha {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Enlace a la noticia donde se escribio un comentario. */
+.comentario-noticia {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.comentario-noticia a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.comentario-noticia a:hover {
+  text-decoration: underline;
+}
+
 .comentario-header {
   display: flex;
   align-items: center;

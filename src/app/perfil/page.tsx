@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { getSessionUser } from "@/lib/user-auth";
+import { ProfileEditor } from "@/components/ProfileEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,9 @@ export const metadata = {
 /**
  * Perfil del usuario.
  *
- * Es la perfil.html del sitio original: tarjeta con la inicial en un circulo
- * rojo, el correo, la fecha de alta, la biografia y debajo los comentarios que
- * ha escrito.
+ * Es la perfil.html del sitio original con sus dos secciones: "Sobre mi", con el
+ * boton de editar a la derecha del titulo, y los comentarios que ha escrito, con
+ * enlace a la noticia donde los puso.
  */
 export default async function PerfilPage() {
   const session = await getSessionUser();
@@ -27,10 +28,13 @@ export default async function PerfilPage() {
       where: { id: session.id },
       select: { email: true, name: true, bio: true, createdAt: true, role: true },
     }),
+    // Los comentarios de esta cuenta, del mas nuevo al mas viejo. Se releen
+    // en cada visita, asi que lo que se escriba en una noticia aparece aqui
+    // nada mas guardarlo.
     prisma.comment.findMany({
       where: { userId: session.id },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 50,
       select: {
         id: true,
         body: true,
@@ -42,57 +46,57 @@ export default async function PerfilPage() {
 
   if (!user) redirect("/entrar");
 
-  const label = user.name ?? user.email;
+  const nombre = user.name ?? user.email;
 
   return (
     <main className="resumen-main">
       <div className="resumen-container">
-        {/* Cabecera del perfil */}
-        <div className="text-center pb-8 mb-8" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="profile-avatar mx-auto mb-4" style={{ width: 96, height: 96, fontSize: "2.25rem" }}>
-            {label.charAt(0).toUpperCase()}
+        {/* Cabecera */}
+        <div
+          className="text-center pb-8 mb-8"
+          style={{ borderBottom: "1px solid var(--border)" }}
+        >
+          <div
+            className="profile-avatar mx-auto mb-4"
+            style={{ width: 96, height: 96, fontSize: "2.25rem" }}
+            aria-hidden="true"
+          >
+            {nombre.charAt(0).toUpperCase()}
           </div>
 
-          <div className="perfil-nombre">{label}</div>
+          <div className="perfil-nombre">{nombre}</div>
           <div className="perfil-email">{user.email}</div>
           <div className="perfil-fecha">
             {user.role === "ADMIN" ? "Administrador" : "Invitado"} · Alta el {formatDate(user.createdAt)}
           </div>
         </div>
 
-        {/* Biografia */}
-        <section className="perfil-seccion">
-          <div className="perfil-seccion-header">
-            <h3>Sobre mi</h3>
-          </div>
-          {user.bio ? (
-            <p className="perfil-bio">{user.bio}</p>
-          ) : (
-            <p className="perfil-bio perfil-bio-vacia">Aun no has escrito nada sobre ti.</p>
-          )}
-        </section>
+        {/* Sobre mi, editable */}
+        <ProfileEditor name={nombre} bio={user.bio} />
 
         {/* Comentarios */}
-        <section className="perfil-seccion">
+        <div className="perfil-seccion">
           <div className="perfil-seccion-header">
-            <h3>Mis comentarios</h3>
+            <h3>Comentarios</h3>
           </div>
 
           {comments.length > 0 ? (
             comments.map((c) => (
-              <div key={c.id} className="comentario-item">
+              <article key={c.id} className="comentario-item">
                 <p className="comentario-texto">{c.body}</p>
                 <div className="comentario-fecha">{formatDate(c.createdAt)}</div>
                 <div className="comentario-noticia">
                   En{" "}
                   <Link href={`/accidentes/${c.accident.slug}`}>{c.accident.title}</Link>
                 </div>
-              </div>
+              </article>
             ))
           ) : (
-            <p className="perfil-bio perfil-bio-vacia">Todavia no has comentado nada.</p>
+            <p className="perfil-bio perfil-bio-vacia">
+              Este usuario aun no ha realizado comentarios.
+            </p>
           )}
-        </section>
+        </div>
 
         <p className="mt-8">
           <Link href="/" className="section-more">

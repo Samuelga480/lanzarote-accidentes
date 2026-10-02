@@ -161,6 +161,10 @@ export default async function ResumenPage({ searchParams }: Props) {
         <AdSlot position="resumen" />
 
         <p className="mt-8">
+          <Link href="/resumen-anual" className="section-more">
+            Ver el resumen anual
+          </Link>
+          <span className="resumen-sep"> · </span>
           <Link href="/" className="section-more">
             ← Volver a la portada
           </Link>

@@ -11,6 +11,7 @@ import {
   type VehicleType,
 } from "@/lib/types";
 import { CATEGORY_LABEL } from "@/lib/constants";
+import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } from "@/lib/calendar-year";
 
 /* -------------------------------------------------------------------------- */
 /*  REGLA CENTRAL DEL PROYECTO                                                 */
@@ -367,6 +368,130 @@ export async function getWeeklySummary(weekStart?: Date): Promise<WeeklySummary>
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
 
   return { weekStart: start, total: accidents.length, injuries, fatalities, byType, byMunicipality, accidents };
+}
+
+/* ======================================================================== *
+ *  Resumen anual
+ *
+ *  Cubre la pagina /resumen-anual: las cifras del ano civil completo, del
+ *  1 de enero a las 00:00 al 31 de diciembre a las 23:59, en hora de Canarias.
+ *  El corte lo hace calendar-year.ts, que resuelve el horario de verano.
+ * ======================================================================== */
+
+export type AnnualSummary = {
+  year: number;
+  /** 1 de enero a las 00:00 de Canarias. */
+  start: Date;
+  /** 1 de enero del ano siguiente a las 00:00. Excluido: el 31/12 cierra a las 23:59. */
+  end: Date;
+  total: number;
+  injuries: number;
+  fatalities: number;
+  byType: Array<{ label: string; count: number }>;
+  byMunicipality: Array<{ label: string; count: number }>;
+  /** Los doce meses, con los vacios a cero: asi se ve la forma del ano. */
+  byMonth: Array<{ month: number; label: string; count: number }>;
+  /** Noticias del ano, de la mas reciente a la mas antigua. */
+  accidents: AccidentWithMunicipality[];
+  /** Cuantas hay en total, por si `accidents` viene recortado. */
+  totalListed: number;
+};
+
+/**
+ * Resumen del ano civil `year`, o del ano en curso si no se indica.
+ * Solo cuenta noticias publicadas, igual que el resto del sitio.
+ *
+ * `limit` recorta el listado, nunca las cifras: los totales y los repartos se
+ * calculan sobre el ano entero y lo unico que se acota es la lista que se pinta,
+ * que si no puede tener cientos de entradas.
+ */
+export async function getAnnualSummary(
+  year?: number,
+  limit = 200,
+): Promise<AnnualSummary> {
+  const target = isValidYear(year) ? year : canaryYearOf(new Date());
+  const { start, end } = yearWindow(target);
+
+  const rows = await prisma.accident.findMany({
+    where: { AND: [ONLY_PUBLISHED, { occurredAt: { gte: start, lt: end } }] },
+    include: { municipality: true },
+    orderBy: { occurredAt: "desc" },
+  });
+
+  const accidents = rows.map(narrow);
+  const totalListed = accidents.length;
+
+  const typeCounts = new Map<string, number>();
+  const muniCounts = new Map<string, number>();
+  // Se arrancan los doce meses a cero. Si se rellenara solo con los meses que
+  // tienen noticias, el grafico ocultaria que el resto del ano estuvo tranquilo,
+  // que es justo lo que un resumen anual tiene que enseñar.
+  const monthCounts = MONTH_LABELS.map(() => 0);
+  let injuries = 0;
+  let fatalities = 0;
+
+  for (const a of accidents) {
+    typeCounts.set(
+      CATEGORY_LABEL[a.category] ?? "Otro",
+      (typeCounts.get(CATEGORY_LABEL[a.category] ?? "Otro") ?? 0) + 1,
+    );
+    muniCounts.set(a.municipality.name, (muniCounts.get(a.municipality.name) ?? 0) + 1);
+    monthCounts[canaryMonthOf(a.occurredAt) - 1] += 1;
+
+    injuries += a.injuries;
+    fatalities += a.fatalities;
+  }
+
+  const byType = [...typeCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+
+  const byMunicipality = [...muniCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+
+  return {
+    year: target,
+    start,
+    end,
+    total: totalListed,
+    injuries,
+    fatalities,
+    byType,
+    byMunicipality,
+    byMonth: monthCounts.map((count, i) => ({
+      month: i + 1,
+      label: MONTH_LABELS[i],
+      count,
+    })),
+    accidents: accidents.slice(0, Math.max(0, limit)),
+    totalListed,
+  };
+}
+
+/**
+ * Anos con noticias publicadas, del mas reciente al mas antiguo.
+ * Alimenta el desplegable de anos de /resumen-anual.
+ */
+export async function listYearsWithAccidents(limit = 6): Promise<number[]> {
+  const rows = await prisma.accident.findMany({
+    where: ONLY_PUBLISHED,
+    select: { occurredAt: true },
+    orderBy: { occurredAt: "desc" },
+  });
+
+  // El ano se lee en hora de Canarias, no en UTC: un accidente del 1 de enero
+  // de madrugada pertenece al ano nuevo, y con UTC Todavia no.
+  const seen = new Set<number>();
+  const years: number[] = [];
+  for (const r of rows) {
+    const y = canaryYearOf(r.occurredAt);
+    if (seen.has(y)) continue;
+    seen.add(y);
+    years.push(y);
+    if (years.length >= limit) break;
+  }
+  return years;
 }
 
 /**

@@ -199,6 +199,49 @@
   font-size: 0.95rem;
 }
 
+/* ============================================================================
+ *  RESUMEN ANUAL
+ *
+ *  Tres lineas anadidas sobre las del resumen semanal: la ventana que cubre el
+ *  ano, la cuenta atras hasta su cierre, y la nota cuando el listado esta
+ *  recortado. Se mantienen sobrias como el resto, para que la pagina se lea
+ *  igual que /resumen.
+ * ========================================================================= */
+
+/* Ventana que cubre el ano, con el reloj al lado. */
+.resumen-ventana {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Cuenta atras hasta el 31 de diciembre a las 23:59. */
+.resumen-cuenta {
+  margin: 0 0 28px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.resumen-cuenta strong {
+  color: var(--text-primary);
+}
+
+/* Aviso de que el listado no cabe entero. */
+.resumen-nota {
+  margin: 16px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.resumen-nota a {
+  color: var(--accent);
+}
+
+/* Separador entre los dos enlaces del pie. */
+.resumen-sep {
+  color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
   .resumen-main {
     padding: 24px 16px;

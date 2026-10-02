@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 /**
  * Formulario de alta de cuenta de invitado.
@@ -11,7 +10,6 @@ import { useRouter } from "next/navigation";
  * enviar, no despues: el backend los vuelve a comprobar.
  */
 export function RegisterForm() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
@@ -41,8 +39,13 @@ export function RegisterForm() {
         return;
       }
 
-      router.refresh();
-      router.push("/perfil");
+      /*
+        Igual que en LoginForm: la cabecera se dibuja en el servidor leyendo la
+        cookie de sesion, asi que despues del alta hay que pedir la pagina de
+        nuevo. Con `router.refresh()` + `router.push()` el menu seguia
+        enseñando "Acceder" hasta recargar a mano.
+      */
+      window.location.assign("/perfil");
     } catch {
       setError("No se ha podido conectar con el servidor.");
       setBusy(false);

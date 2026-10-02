@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 /**
  * Formulario de acceso.
@@ -11,7 +10,6 @@ import { useRouter } from "next/navigation";
  * destino: cuando hay exito se sale de la pagina de acceso y se vuelve al sitio.
  */
 export function LoginForm() {
-  const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -41,8 +39,16 @@ export function LoginForm() {
         return;
       }
 
-      router.refresh();
-      router.push("/perfil");
+      /*
+        Tras el login hay que rehacer la pagina entera, no solo mover el router.
+
+        `router.refresh()` recarga el arbol de la ruta actual, pero la cabecera
+        es un Server Component que lee la cookie httpOnly: si se navega en el
+        cliente, Next reutiliza la carga anterior de la ruta y el menu sigue
+        mostrando "Acceder" hasta que se recargue a mano. `location.assign` pide
+        el HTML de nuevo al servidor, que ya ve la cookie nueva.
+      */
+      window.location.assign("/perfil");
     } catch {
       setError("No se ha podido conectar con el servidor.");
       setBusy(false);

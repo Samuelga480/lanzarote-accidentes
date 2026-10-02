@@ -4,7 +4,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav } from "@/components/MobileNav";
 import { ResumenMenu } from "@/components/ResumenMenu";
 import { UserMenu } from "@/components/auth/UserMenu";
-import { getSessionUser } from "@/lib/user-auth";
 
 /**
  * Cabecera del sitio.
@@ -32,10 +31,11 @@ const RESUMEN = [
 ];
 
 export async function Header() {
-  // Se lee en el servidor: si hay sesion, "Acceder" es el boton de perfil con
-  // su desplegable; si no, es un enlace a la pagina de acceso. La cabecera se
-  // vuelve a renderizar con cada navegacion, asi que el cambio se ve al momento.
-  const user = await getSessionUser();
+  /*
+    La cabecera ya no lee la sesion: lo hace UserMenu, que es un componente de
+    servidor y la consulta por su cuenta. Aqui solo se compone el orden de los
+    elementos, y el menu de usuario decide si dibuja "Acceder" o su desplegable.
+  */
 
   return (
     <header className="header">
@@ -78,7 +78,7 @@ export async function Header() {
 
           <ThemeToggle />
 
-          <UserMenu user={user} />
+          <UserMenu />
         </nav>
 
         {/* Solo en movil: boton de menu */}

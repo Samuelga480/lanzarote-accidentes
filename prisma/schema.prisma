@@ -518,6 +518,18 @@ model User {
   /// scrypt en formato "scrypt$<salida hex>$<hash hex>". Nunca en claro.
   passwordHash String
 
+  /// Momento en que se confirmo la direccion de correo. NULL = sin verificar.
+  /// Solo con SMTP configurado se exige confirmar; sin el, las cuentas nuevas
+  /// tambien se crean verificadas para no dejar el registro inutilizable.
+  emailVerifiedAt DateTime?
+
+  /// SHA-256 del token de confirmacion que se mando por correo. Nunca el token
+  /// en claro: con el hash, leer la tabla no permite fabricar enlaces validos.
+  verificationTokenHash String? @unique
+
+  /// Cuando se envio el ultimo correo de confirmacion, para limitar el reenvio.
+  verificationSentAt DateTime?
+
   /// Nombre visible. El sitio original solo guardaba el correo.
   name String?
 

@@ -246,29 +246,19 @@ export default async function AccidentPage({ params }: Props) {
         ))}
       </div>
 
-      {/* ------------------------- Fuentes ------------------------- */}
-      {accident.sources.length > 0 ? (
-        <section aria-labelledby="titulo-fuentes" className="card p-4 mb-8">
-          <h2 id="titulo-fuentes" className="text-sm font-bold uppercase tracking-wide text-ink-soft mb-3">
-            Fuentes
-          </h2>
-          <ul className="space-y-2">
-            {accident.sources.map((s) => (
-              <li key={s.id} className="text-sm flex flex-wrap items-baseline gap-x-2">
-                <span className="font-semibold text-ink-soft">{s.outlet}</span>
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="text-alert hover:underline break-all"
-                >
-                  {s.url}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {/*
+        Aqui hubo hasta ahora una seccion "Fuentes" con el medio y el enlace al
+        original. Se ha quitado por decision del editor.
+
+        Motivo: cada noticia se redacta cruzando varios medios, asi que un solo
+        enlace no identifica de donde sale el accidente y da la falsa impresion
+        de que la noticia es una copia del original cuando en realidad la ha
+        escrito el sitio. El enlace tampoco aporta nada al lector, que no busca
+        el diario original sino saber que paso.
+
+        La lista de fuentes NO se borra: sigue guardada y el editor la ve en el
+        panel, que es donde hace falta para decidir si una noticia se publica.
+      */}
 
       {/* ------------------------- Aviso de privacidad ------------------------- */}
       <aside className="border-l-4 border-alert bg-alert-soft/40 p-4 mb-8">

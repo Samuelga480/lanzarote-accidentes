@@ -53,16 +53,21 @@ export default function PrivacyPage() {
           El proyecto está preparado para que un sistema de inteligencia artificial recopile información de
           fuentes públicas y redacte borradores. Esas noticias{" "}
           <strong className="text-ink">nunca se publican automáticamente</strong>: se crean siempre con el
-          estado «pendiente de revisión» y solo un editor puede aprobarlas. Si un borrador se publica, la
-          noticia conserva la lista de fuentes consultadas para que cualquier persona pueda contrastarla.
+          estado «pendiente de revisión» y solo un editor puede aprobarlas. El editor dispone de la relación de
+          medios consultados para cada borrador, de modo que puede comprobar de dónde sale cada dato antes de
+          aprobarlo. Esa relación es interna y no se publica junto a la noticia.
         </p>
 
         <h2 className="font-serif text-xl font-bold mt-8 mb-3">Fuentes</h2>
         <p>
-          Cada noticia incluye las fuentes de las que procede. Cuando la información procede de una
-          comunicación oficial (Cabildo de Lanzarote, dispositivo de emergencias, cuerpos de seguridad), se
-          indica expresamente. Las referencias a datos procedentes de redes sociales o canales no oficiales se
-          señalan como no verificadas y requieren confirmación antes de publicarse.
+          La información procede de medios y comunicaciones de ámbito público, y el editor tiene acceso a la
+          relación completa de fuentes de cada noticia a efectos de verificación interna. Las noticias se
+          redactan de nuevo en este sitio: no son una reproducción del texto original, sino una elaboración
+          propia a partir de varias fuentes, por lo que no enlazan al medio de origen ni reproducen su
+          headlines. Cuando un dato procede de una comunicación oficial (Cabildo de Lanzarote, dispositivo de
+          emergencias, cuerpos de seguridad) se indica expresamente en la propia noticia. Las referencias a
+          datos procedentes de redes sociales o canales no oficiales se señalan como no verificadas y
+          requieren confirmación antes de publicarse.
         </p>
 
         <h2 className="font-serif text-xl font-bold mt-8 mb-3">Fin de la información</h2>

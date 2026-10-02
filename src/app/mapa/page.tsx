@@ -41,7 +41,7 @@ export default async function MapaPage({ searchParams }: Props) {
       <main>
         <section className="site-section map-section" aria-labelledby="titulo-mapa">
           <div className="section-header">
-            <h2 id="titulo-mapa">Mapa de accidentes</h2>
+            <h1 id="titulo-mapa">Mapa de accidentes</h1>
             <p>Ubicación de los accidentes señalados en la isla</p>
           </div>
 

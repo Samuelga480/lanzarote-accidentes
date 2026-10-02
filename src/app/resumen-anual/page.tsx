@@ -67,7 +67,7 @@ export default async function ResumenAnualPage({ searchParams }: Props) {
     <main className="resumen-main">
       <div className="resumen-container">
         <div className="resumen-header">
-          <h2>Resumen anual de accidentes</h2>
+          <h1>Resumen anual de accidentes</h1>
           <p>Las cifras del año completo en Lanzarote, mes a mes</p>
         </div>
 

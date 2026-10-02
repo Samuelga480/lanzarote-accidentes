@@ -65,7 +65,7 @@ export default async function UsuariosPage({
   return (
     <main className="usuarios-main">
       <div className="resumen-header">
-        <h2>Usuarios Registrados</h2>
+        <h1>Usuarios Registrados</h1>
         <p>Cuentas dadas de alta en Accidentes Lanzarote</p>
       </div>
 

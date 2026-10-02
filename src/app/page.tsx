@@ -44,7 +44,7 @@ export default async function HomePage({ searchParams }: Props) {
           peso 900, tal como estaba en el diseño original. */}
       <section className="hero">
         <div className="hero-content">
-          <h2>Información de accidentes de tráfico en Lanzarote</h2>
+          <h1>Información de accidentes de tráfico en Lanzarote</h1>
           <p>
             Consulta los accidentes recientes y zonas de riesgo de la isla. Información actualizada y verificada.
           </p>

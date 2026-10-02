@@ -54,7 +54,7 @@ export default async function ResumenPage({ searchParams }: Props) {
     <main className="resumen-main">
       <div className="resumen-container">
         <div className="resumen-header">
-          <h2>Resumen de accidentes semanal</h2>
+          <h1>Resumen de accidentes semanal</h1>
           <p>Consulta el resumen de accidentes de tráfico en Lanzarote por semana</p>
         </div>
 

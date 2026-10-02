@@ -201,7 +201,8 @@ body {
   text-decoration: none;
 }
 
-.logo h1 {
+.logo h1,
+.logo-name {
   font-family: var(--font-serif);
   font-size: 1.25rem;
   font-weight: 700;
@@ -1148,4 +1149,19 @@ body {
   .news-card {
     animation: none;
   }
+}
+/* Boton de enviar de los filtros. Solo se ve sin JavaScript (va dentro de un
+   <noscript>), y hace lo mismo que el desplegable: ir a /accidentes con los
+   filtros puestos. */
+.filters-submit {
+  display: inline-block;
+  padding: 9px 18px;
+  background: var(--text-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
 }

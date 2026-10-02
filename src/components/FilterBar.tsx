@@ -50,7 +50,7 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
 
   return (
     <section className="controls">
-      <form onSubmit={onSubmit} role="search" aria-label="Filtrar accidentes">
+      <form action="/accidentes" method="get" onSubmit={onSubmit} role="search" aria-label="Filtrar accidentes">
         <div className="controls-inner">
           {showSearch ? (
             <div className="search-box">
@@ -72,6 +72,7 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
               </label>
               <input
                 id="f-q"
+                name="q"
                 type="search"
                 placeholder="Buscar por zona, tipo o descripción..."
                 value={q}
@@ -86,6 +87,7 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
             </label>
             <select
               id="f-mun"
+              name="municipio"
               value={params.get("municipio") ?? ""}
               onChange={(e) => update("municipio", e.target.value)}
             >
@@ -102,6 +104,7 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
             </label>
             <select
               id="f-veh"
+              name="vehicle"
               value={params.get("vehicle") ?? ""}
               onChange={(e) => update("vehicle", e.target.value)}
             >
@@ -118,6 +121,7 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
             </label>
             <select
               id="f-date"
+              name="desde"
               value={params.get("desde") ?? ""}
               onChange={(e) => update("desde", e.target.value)}
             >
@@ -129,6 +133,18 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
               ))}
             </select>
           </div>
+
+          {/*
+            Boton de enviar. Con JavaScript no hace falta: cada select navega al
+            cambiar. Sin JavaScript, sin este boton el formulario no se envia
+            nunca, porque cambiar un desplegable no envia nada por si solo. Es
+            tambien la tecla Intro del campo de buscar.
+          */}
+          <noscript>
+            <button type="submit" className="filters-submit">
+              Filtrar
+            </button>
+          </noscript>
         </div>
 
         {hasFilters ? (

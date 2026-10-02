@@ -57,7 +57,14 @@ export async function Header() {
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
-          <h1>{SITE.name}</h1>
+          {/*
+            El nombre del sitio NO es un h1. Lo era, y era un error en las dos
+            direcciones: en las paginas que tienen titulo propio salian dos h1 en
+            la misma pagina, y en las que no lo tienen (portada, mapa, resumenes)
+            el unico h1 era el logo, de modo que la pagina no tenia ninguno. Un
+            h1 debe ser el titulo de lo que se esta leyendo.
+          */}
+          <span className="logo-name">{SITE.name}</span>
         </Link>
 
         <nav className="nav" aria-label="Principal">

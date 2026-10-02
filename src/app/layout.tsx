@@ -48,6 +48,25 @@ export const metadata: Metadata = {
     "siniestros Canarias",
   ],
   authors: [{ name: SITE.organization }],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "/",
+    // Enlaza el feed desde el head de todas las paginas. Los lectores de RSS
+    // solo lo detectan si aparece aqui o en un <link> del HTML.
+    types: { "application/rss+xml": FEED_PATH },
+  },
+  /*
+    Imagen para compartir. Sin ella, un enlace pegado en WhatsApp, Facebook o
+    Twitter sale como un rectangulo gris sin nada dentro: en un medio de noticias
+    donde el visitante llega por un enlace compartido, es la primera impression
+    y era la que no se tenia.
+
+    Se declara aqui y no pagina por pagina porque las secciones no tienen imagen
+    propia. Las noticias si la overwritean con la foto real del accidente.
+  */
   openGraph: {
     type: "website",
     locale: SITE.locale,
@@ -55,20 +74,12 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: `${SITE.name} · ${SITE.tagline}`,
     description: SITE.description,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: `${SITE.name} · ${SITE.tagline}` }],
   },
   twitter: {
     card: "summary_large_image",
     site: SITE.twitter,
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  alternates: {
-  canonical: "/",
-    // Enlaza el feed desde el head de todas las paginas. Los lectores de RSS
-    // solo lo detectan si aparece aqui o en un <link> del HTML.
-    types: { "application/rss+xml": FEED_PATH },
+    images: ["/og.png"],
   },
   other: {
     "geo.region": "ES-CN",
@@ -95,6 +106,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/*
+          El enlace al feed va escrito a mano y no solo en `alternates.types` de
+          metadata porque ahi no se renderizaba: el HTML salia sin un solo
+          `<link rel="alternate">` y ningun lector de RSS encontraba el sitio.
+          Escrito aqui sale en todas las paginas, incluidas las que definen su
+          propio `alternates` para el canonical, que replaces el objeto entero.
+        */}
+        <link rel="alternate" type="application/rss+xml" title={`${SITE.name} · RSS`} href={FEED_PATH} />
+
         {/*
           Se aplica el tema ANTES de que se pinte nada. Va como script suelto y
           no como componente porque tiene que ejecutarse de forma sincrona

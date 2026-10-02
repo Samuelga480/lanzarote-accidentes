@@ -8,6 +8,9 @@ import { getPublishedAccidentBySlug, getRelatedAccidents, listAccidents } from "
 import { formatDate, formatDateTime, formatRelative, formatTime } from "@/lib/format";
 import { SEVERITY_LABEL, SITE, VEHICLE_LABEL } from "@/lib/constants";
 import { newsArticleSchema, breadcrumbSchema, graphSchema, organizationSchema, webSiteSchema } from "@/lib/jsonld";
+import { Comments } from "@/components/Comments";
+import { getSessionUser } from "@/lib/user-auth";
+import { prisma } from "@/lib/prisma";
 import { siteUrl as getSiteUrl } from "@/lib/env";
 import { truncate } from "@/lib/text";
 
@@ -90,9 +93,23 @@ export default async function AccidentPage({ params }: Props) {
   const accident = await getPublishedAccidentBySlug(slug);
   if (!accident) notFound();
 
-  const [related, recent] = await Promise.all([
+  const [related, recent, sessionUser, rows] = await Promise.all([
     getRelatedAccidents(accident, 4),
     listAccidents({ take: 4 }),
+    getSessionUser(),
+    // Comentarios de esta noticia, del mas reciente al mas antiguo.
+    prisma.comment.findMany({
+      where: { accidentId: accident.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        userId: true,
+        user: { select: { name: true, email: true } },
+      },
+    }),
   ]);
 
   const articleUrl = `${getSiteUrl()}/accidentes/${accident.slug}`;
@@ -291,6 +308,21 @@ export default async function AccidentPage({ params }: Props) {
           </div>
         </section>
       ) : null}
+
+      {/* ------------------------- Comentarios ------------------------- */}
+      <Comments
+        accidentId={accident.id}
+        loggedIn={Boolean(sessionUser)}
+        comments={rows.map((c) => ({
+          id: c.id,
+          // El cuerpo se pinta como texto en un <p>: nunca se interpreta como
+          // HTML, que es lo unico que evita que un comentario inyecte etiquetas.
+          body: c.body,
+          createdAt: c.createdAt.toISOString(),
+          userName: c.user.name ?? c.user.email,
+          isOwn: c.userId === sessionUser?.id,
+        }))}
+      />
     </article>
   );
 }

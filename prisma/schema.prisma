@@ -225,6 +225,7 @@ model Accident {
   sources   Source[]
   revisions Revision[]
   images    ImageAsset[]
+  comments  Comment[]
 
   // Solo hay UN indice para status+occurredAt, en orden descendente. El listado
   // del sitio ordena siempre por fecha hacia atras, asi que el indice
@@ -487,4 +488,65 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
+}
+/// -----------------------------------------------------------------------------
+///  Usuarios del sitio
+///
+///  El sitio original tenia registro de invitados, perfil y comentarios. Se
+///  recuperan aqui, pero las contrasenas NO se guardan en claro como hacia el
+///  sitio estatico: se almacenan con scrypt (ver lib/user-auth.ts).
+/// -----------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  INVITADO
+}
+
+model User {
+  id String @id @default(cuid())
+
+  /// Minusculas y sin espacios. Es la clave de inicio de sesion.
+  email String @unique
+
+  /// scrypt en formato "scrypt$<salida hex>$<hash hex>". Nunca en claro.
+  passwordHash String
+
+  /// Nombre visible. El sitio original solo guardaba el correo.
+  name String?
+
+  /// Texto libre que se muestra en el perfil.
+  bio String?
+
+  /// URL de la foto de perfil. Vacio si el usuario no ha subido ninguna.
+  photoUrl String?
+
+  role UserRole @default(INVITADO)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+
+  /// El correo se busca mucho: al iniciar sesion y al evitar duplicados.
+  @@index([email])
+  @@index([role])
+}
+
+model Comment {
+  id String @id @default(cuid())
+
+  /// Texto plano. Se escapa al renderizar; nunca se guarda HTML.
+  body String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accidentId String
+  accident   Accident @relation(fields: [accidentId], references: [id], onDelete: Cascade)
+
+  @@index([accidentId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }

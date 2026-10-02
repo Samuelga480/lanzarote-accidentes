@@ -2,36 +2,31 @@ import Link from "next/link";
 import { SITE } from "@/lib/constants";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav } from "@/components/MobileNav";
+import { UserMenu } from "@/components/auth/UserMenu";
+import { getSessionUser } from "@/lib/user-auth";
 
 /**
  * Cabecera del sitio.
  *
  * Reproduce la del diseno original: 60px de alto, marca con el icono de capas
- * junto al nombre en Merriweather, navegacion a la derecha con enlaces de 8px
- * de relleno, boton de tema e "Acceder" en bloque oscuro.
+ * junto al nombre en Merriweather, y a la derecha Inicio, Mapa, Resumen
+ * Semanal, el boton de tema y Acceder. Nada mas.
  *
  * El boton de tema va DENTRO de .nav a proposito: .nav se oculta por debajo de
- * 768px, asi que en movil aparece el que hay en MobileNav y no se ven dos.
- */
-
-/**
- * Navegacion principal.
- *
- * La del sitio original era: Noticias, Mapa, Resumen Semanal, tema y Acceder.
- * Se mantienen esos enlaces y se anaden los que la version con base de datos
- * necesita (municipios, buscador, aviso legal), que no existian entonces.
+ * 768px, asi que en movil aparece el de MobileNav y no se ven los dos.
  */
 const NAV = [
   { href: "/", label: "Inicio" },
-  { href: "/accidentes", label: "Noticias" },
-  { href: "/resumen", label: "Resumen Semanal" },
   { href: "/mapa", label: "Mapa" },
-  { href: "/municipios", label: "Municipios" },
-  { href: "/buscar", label: "Buscar" },
-  { href: "/privacidad", label: "Aviso legal" },
+  { href: "/resumen", label: "Resumen Semanal" },
 ];
 
-export function Header() {
+export async function Header() {
+  // Se lee en el servidor: si hay sesion, "Acceder" es el boton de perfil con
+  // su desplegable; si no, es un enlace a la pagina de acceso. La cabecera se
+  // vuelve a renderizar con cada navegacion, asi que el cambio se ve al momento.
+  const user = await getSessionUser();
+
   return (
     <header className="header">
       <div className="header-inner">
@@ -55,7 +50,6 @@ export function Header() {
           <h1>{SITE.name}</h1>
         </Link>
 
-        {/* Navegacion. En movil se oculta y la sustituye MobileNav. */}
         <nav className="nav" aria-label="Principal">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className="nav-link">
@@ -65,12 +59,10 @@ export function Header() {
 
           <ThemeToggle />
 
-          <Link href="/admin" className="nav-link nav-admin">
-            Acceder
-          </Link>
+          <UserMenu user={user} />
         </nav>
 
-        {/* Solo en movil: boton de menu. El boton de tema ya va dentro de .nav. */}
+        {/* Solo en movil: boton de menu */}
         <MobileNav links={NAV} />
       </div>
     </header>

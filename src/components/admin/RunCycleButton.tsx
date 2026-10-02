@@ -1,37 +1,36 @@
 "use client";
 
 import { useActionState } from "react";
-import { runCycleAction, type CycleActionState } from "@/app/admin/actions-cycle";
-
-const INITIAL: CycleActionState | null = null;
+import { runCycleAction } from "@/app/admin/actions";
+import type { CycleActionState } from "@/app/admin/actions-cycle";
 
 /**
- * Boton "Buscar ahora" de /admin/fuentes.
+ * Boton "Recopilar".
  *
- * Se usa `useActionState` porque la accion devuelve un estado que hay que
- * mostrar. Con `action` a secas, React no dejaria leer el resultado.
+ * El sitio original lo tenia en el panel y lanzaba el scraper a mano. Aqui
+ * dispara un ciclo de monitorizacion: revisa las fuentes, reescribe lo nuevo y
+ * lo deja como borrador. No publica nada; publicar sigue siendo siempre un acto
+ * manual del editor.
  */
 export function RunCycleButton() {
-  const [state, formAction, pending] = useActionState(runCycleAction, INITIAL);
+  const [state, formAction, pending] = useActionState<CycleActionState, FormData>(runCycleAction, {
+    ok: false,
+    message: "",
+  });
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <form action={formAction}>
-        <button type="submit" className="btn btn-primary" disabled={pending}>
-          {pending ? "Buscando…" : "Buscar ahora"}
-        </button>
-      </form>
+    <form action={formAction} style={{ display: "inline" }}>
+      <button type="submit" className="btn btn-primary" disabled={pending}>
+        {pending ? "Recopilando..." : "Recopilar"}
+      </button>
 
-      {state ? (
-        <p
-          role="status"
-          className={`text-xs text-right max-w-sm ${
-            state.ok ? "text-ok" : "text-alert"
-          }`}
-        >
-          {state.message}
-        </p>
-      ) : null}
-    </div>
+      {/*
+        aria-live para que el lector de pantalla anuncie el resultado: el texto
+        aparece sin que se recargue la pagina y con el foco donde estaba.
+      */}
+      <span role="status" aria-live="polite" className="login-error" style={{ marginBottom: 0 }}>
+        {state.message}
+      </span>
+    </form>
   );
 }

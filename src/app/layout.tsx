@@ -15,6 +15,8 @@ import "./map.css";
 // Estilos de las paginas que tambien existian en el sitio original:
 // resumen semanal, login/registro, ficha de noticia y ficha de usuarios.
 import "./pages.css";
+// Estilos del panel de administracion, con su cabecera fija oscura.
+import "./admin.css";
 
 // Merriweather para los titulares y Source Sans 3 para el texto: son las dos
 // tipografias del diseno original del sitio (legacy-site/styles.css).

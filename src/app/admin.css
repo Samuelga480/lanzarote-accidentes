@@ -1,0 +1,569 @@
+/* ============================================================================
+ *  PANEL DE ADMINISTRACION
+ *
+ *  Estilos del panel que tenia el sitio (legacy-site/admin.css), con sus medidas
+ *  y sus clases exactas: cabecera fija de 64px sobre fondo casi negro con
+ *  desenfoque, contenido de 1400px, tarjetas de cifras con el borde en el color
+ *  del estado, lista horizontal con los botones a la derecha y modales.
+ * ========================================================================= */
+
+.admin-body {
+  padding-top: 64px;
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+.admin-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-header .logo {
+  color: #ffffff;
+}
+
+.admin-header .logo h1 {
+  color: #ffffff;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  transition: var(--transition);
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.admin-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.admin-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* ============================================================================
+ *  ESTADISTICAS
+ * ========================================================================= */
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.admin-stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.admin-stat-card.pendiente {
+  border-color: var(--warning);
+}
+
+.admin-stat-card.aprobada {
+  border-color: var(--success);
+}
+
+.admin-stat-card.rechazada {
+  border-color: var(--accent);
+}
+
+.admin-stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.admin-stat-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* ============================================================================
+ *  FILTROS
+ * ========================================================================= */
+
+.admin-filters {
+  margin-bottom: 24px;
+}
+
+.admin-filters-inner {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-input,
+.admin-select {
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  min-width: 180px;
+}
+
+.admin-input:focus,
+.admin-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================================
+ *  LISTA DE NOTICIAS
+ * ========================================================================= */
+
+.admin-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-news-item {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: var(--transition);
+}
+
+.admin-news-item:hover {
+  border-color: var(--accent);
+}
+
+.admin-news-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-news-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-news-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.admin-news-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-news-status.pendiente {
+  background: rgba(230, 119, 0, 0.15);
+  color: var(--warning);
+}
+
+.admin-news-status.aprobada {
+  background: rgba(43, 138, 62, 0.15);
+  color: var(--success);
+}
+
+.admin-news-status.rechazada {
+  background: rgba(201, 42, 42, 0.15);
+  color: var(--accent);
+}
+
+.admin-news-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ *  BOTONES
+ * ========================================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background: #27ae60;
+}
+
+.btn-danger {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+/* ============================================================================
+ *  MODAL
+ * ========================================================================= */
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+/* ============================================================================
+ *  FORMULARIO
+ * ========================================================================= */
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================================
+ *  PESTANAS DE NAVEGACION
+ * ========================================================================= */
+
+.admin-nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.admin-nav-tab {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.admin-nav-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.admin-nav-tab.active {
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+/* ============================================================================
+ *  LISTA DE USUARIOS
+ * ========================================================================= */
+
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-user-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+.admin-user-item:hover {
+  box-shadow: var(--shadow);
+}
+
+.admin-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-user-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.admin-user-email {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.admin-user-role {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.admin-user-role.admin {
+  background: #fff5f5;
+  color: #c92a2a;
+}
+
+.admin-user-role.invitado {
+  background: #e7f5ff;
+  color: #1971c2;
+}
+
+[data-theme="dark"] .admin-user-role.admin {
+  background: #3a1f1f;
+  color: #ff8787;
+}
+
+[data-theme="dark"] .admin-user-role.invitado {
+  background: #16293a;
+  color: #74c0fc;
+}
+
+.admin-user-date {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Texto centrado cuando una lista esta vacia. */
+.admin-vacio {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 40px;
+}
+
+/* ============================================================================
+ *  RESPONSIVE
+ * ========================================================================= */
+
+@media (max-width: 768px) {
+  .admin-header-inner {
+    padding: 0 16px;
+  }
+
+  .admin-main {
+    padding: 24px 16px;
+  }
+
+  .admin-filters-inner {
+    flex-direction: column;
+  }
+
+  .admin-input,
+  .admin-select {
+    width: 100%;
+  }
+
+  .admin-news-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-news-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -16,8 +16,10 @@ import {
   toggleFeatured,
   updateAccident,
 } from "@/lib/admin";
+import { runCycle } from "@/lib/monitor";
 import type { AccidentStatus } from "@/lib/types";
 import type { ActionState } from "./action-state";
+import type { CycleActionState } from "./actions-cycle";
 
 /** Todas las acciones cuelgan de la sesion del panel. */
 async function requireAuth(): Promise<string> {
@@ -176,4 +178,35 @@ export async function deleteAccidentAction(formData: FormData): Promise<void> {
   await removeAccident(id, "editor");
   revalidatePath("/", "layout");
   redirect("/admin?borrada=1");
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Recopilar ahora                                                           */
+/*                                                                             */
+/*  El sitio original tenia un boton "Recopilar" que lanzaba el scraper. Aqui  */
+/*  dispara un ciclo de monitorizacion: detectan las fuentes nuevas, las        */
+/*  reescriben y las dejan como borrador, sin publicar nada.                     */
+/* -------------------------------------------------------------------------- */
+
+export async function runCycleAction(
+  _prev: CycleActionState,
+  _formData: FormData,
+): Promise<CycleActionState> {
+  await requireAuth();
+
+  try {
+    const result = await runCycle("MANUAL");
+
+    revalidatePath("/admin");
+    revalidatePath("/", "layout");
+
+    const partes = [`${result.itemsFound} noticia(s) encontrada(s)`];
+    if (result.duplicatesMerged) partes.push(`${result.duplicatesMerged} duplicada(s) fusionada(s)`);
+    if (result.draftsCreated) partes.push(`${result.draftsCreated} borrador(es) esperando revision`);
+    if (result.feedsFailed) partes.push(`${result.feedsFailed} fuente(s) con errores`);
+
+    return { ok: result.ok, message: partes.join(". ") + "." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "No se pudo ejecutar el ciclo." };
+  }
 }

@@ -30,6 +30,14 @@ export type FetchOptions = {
   maxBytes?: number;
   accept?: string;
   headers?: Record<string, string>;
+  /**
+   * Devuelve los bytes crudos en `bytes` y deja `body` vacio.
+   *
+   * Hace falta para lo que no es texto: los sitemaps de Crónicas vienen
+   * comprimidos en gzip, y si el cuerpo se decodifica como UTF-8 los bytes
+   * invalidos se convierten en U+FFFD y el archivo deja de poder descomprimirse.
+   */
+  binary?: boolean;
 };
 
 export type SafeResponse = {
@@ -37,6 +45,8 @@ export type SafeResponse = {
   status: number;
   url: string;
   body: string;
+  /** Bytes crudos. Solo se rellena con `binary: true`. */
+  bytes: Buffer | null;
   contentType: string | null;
   /** false si se corto la lectura por superar maxBytes. */
   complete: boolean;
@@ -169,7 +179,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
   const check = await assertFetchable(rawUrl);
   if (!check.ok) {
     return {
-      ok: false, status: 0, url: rawUrl, body: "", contentType: null,
+      ok: false, status: 0, url: rawUrl, body: "", bytes: null, contentType: null,
       complete: false, durationMs: elapsed(), error: check.reason,
     };
   }
@@ -198,7 +208,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
         if (!location) {
           clearTimeout(timerHandle);
           return {
-            ok: false, status: response.status, url: currentUrl, body: "",
+            ok: false, status: response.status, url: currentUrl, body: "", bytes: null,
             contentType: null, complete: false, durationMs: elapsed(),
             error: "Redireccion sin cabecera Location",
           };
@@ -209,7 +219,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
         } catch {
           clearTimeout(timerHandle);
           return {
-            ok: false, status: response.status, url: currentUrl, body: "",
+            ok: false, status: response.status, url: currentUrl, body: "", bytes: null,
             contentType: null, complete: false, durationMs: elapsed(),
             error: "Location no es una URL valida",
           };
@@ -222,7 +232,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
             from: redact(currentUrl), to: redact(next), reason: nextCheck.reason,
           });
           return {
-            ok: false, status: response.status, url: currentUrl, body: "",
+            ok: false, status: response.status, url: currentUrl, body: "", bytes: null,
             contentType: null, complete: false, durationMs: elapsed(),
             error: `Redireccion bloqueada: ${nextCheck.reason}`,
           };
@@ -237,7 +247,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
       if (declaredLength > maxBytes) {
         clearTimeout(timerHandle);
         return {
-          ok: false, status: response.status, url: currentUrl, body: "",
+          ok: false, status: response.status, url: currentUrl, body: "", bytes: null,
           contentType, complete: false, durationMs: elapsed(),
           error: `Respuesta demasiado grande (${declaredLength} bytes)`,
         };
@@ -248,7 +258,7 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
       if (!reader) {
         clearTimeout(timerHandle);
         return {
-          ok: false, status: response.status, url: currentUrl, body: "",
+          ok: false, status: response.status, url: currentUrl, body: "", bytes: null,
           contentType, complete: false, durationMs: elapsed(),
           error: "Respuesta sin cuerpo",
         };
@@ -272,13 +282,16 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
       }
       clearTimeout(timerHandle);
 
-      const body = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
+      const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)));
 
       return {
         ok: response.ok,
         status: response.status,
         url: currentUrl,
-        body,
+        // En binario `body` se deja vacio a proposito: convertirlo a UTF-8
+        // destruiria los bytes, que es justo lo que se quiere conservar.
+        body: options.binary ? "" : buffer.toString("utf8"),
+        bytes: options.binary ? buffer : null,
         contentType,
         complete,
         durationMs: elapsed(),
@@ -295,20 +308,27 @@ export async function safeFetch(rawUrl: string, options: FetchOptions = {}): Pro
       log.debug("Fallo de descarga", { url: redact(rawUrl), ...serializeError(err) });
 
       return {
-        ok: false, status: 0, url: currentUrl, body: "", contentType: null,
+        ok: false, status: 0, url: currentUrl, body: "", bytes: null, contentType: null,
         complete: false, durationMs: elapsed(), error: message,
       };
     }
   }
 
   return {
-    ok: false, status: 0, url: currentUrl, body: "", contentType: null,
+    ok: false, status: 0, url: currentUrl, body: "", bytes: null, contentType: null,
     complete: false, durationMs: elapsed(),
     error: `Demasiadas redirecciones (${maxRedirects})`,
   };
 }
 
-/** Descarga binario, para las imagenes. Mismas protecciones que safeFetch. */
+/**
+ * Descarga binario, para las imagenes.
+ *
+ * OJO: esta deja que fetch siga las redirecciones solo, sin volver a pasar cada
+ * salto por `assertFetchable`. Para descargar binarios de terceros de los que no
+ * se controlo nada (por ejemplo, un sitemap comprimido) hay que usar
+ * `safeFetch(url, { binary: true })`, que si valida cada salto.
+ */
 export async function safeFetchBinary(
   rawUrl: string,
   options: FetchOptions = {},

@@ -141,6 +141,22 @@ export async function syncFeeds(): Promise<number> {
       log.info("URL de fuente actualizada", { feed: definition.name, url: definition.url });
       count++;
     }
+
+    /*
+      `enabled` NO se toca en la rama de arriba, a proposito: una fuente se
+      apaga desde la base de datos sin tener que desplegar. La excepcion es
+      `forceDisabled`, que dice "esta fuente esta muerta, apagala aunque la base
+      de datos diga lo contrario". Sin ella, una fuente marcada en el codigo
+      seguiria leyendose si alguien la habia reactivado a mano.
+    */
+    if (definition.forceDisabled && existing?.enabled) {
+      await prisma.feedSource.update({
+        where: { id: existing.id },
+        data: { enabled: false, notes: definition.notes ?? null },
+      });
+      log.info("Fuente apagada desde el codigo", { feed: definition.name });
+      count++;
+    }
   }
   return count;
 }

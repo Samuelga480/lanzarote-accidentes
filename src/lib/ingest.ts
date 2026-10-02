@@ -25,6 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { safeFetch } from "@/lib/net";
 import { extractArticle } from "@/lib/extract";
 import { extractFacts, relevanceScore, type ExtractedFacts } from "@/lib/facts";
+import { evaluaAccidenteTrafico } from "@/lib/traffic-gate";
 import { parseSourceDate, resolveOccurredAt, validateDate, localDayKey, formatLocal } from "@/lib/dates";
 import { verifyArticle, type VerificationResult } from "@/lib/verify";
 import { checkDuplicate, urlHashOf, mergeIntoCanonical } from "@/lib/dedupe";
@@ -120,7 +121,26 @@ export async function ingestArticle(params: {
   const summary = article.summary?.trim() || params.feedSummary || "";
   const fullText = body.length >= 200 ? body : summary;
 
-  // --- 3. Relevancia y geolocalizacion ---
+  // --- 3. Puerta de trafico, relevancia y geolocalizacion ---
+  /*
+    La puerta va PRIMERO, antes que el puntaje de relevancia. Es una condicion
+    necesaria y suficiente (suceso + vehiculo o via), mientras que el puntaje es
+    una heuristica que se puede superar con palabras sueltas. Sin este orden, un
+    articulo sobre un decreto municipal o el incendio de un edificio pasaba los
+    dos filtros y llegaba al panel como si fuera un accidente de coches.
+  */
+  const trafico = evaluaAccidenteTrafico(title, fullText);
+  if (!trafico.esAccidente) {
+    await recordSeen({
+      url: page.url, urlHash, title, contentHash: contentHashOf(title, fullText),
+      state: "PRESENT", sourceUrl: source.url, publishedAt: article.publishedAt,
+    });
+    log.debug("Descartado por la puerta de trafico", {
+      title, motivo: trafico.motivo, sucesos: trafico.sucesos, vehiculos: trafico.vehiculos,
+    });
+    return { kind: "skipped", reason: `No es un accidente de tráfico: ${trafico.motivo}.` };
+  }
+
   const relevance = relevanceScore(title, fullText);
   if (relevance < 0.25) {
     await recordSeen({

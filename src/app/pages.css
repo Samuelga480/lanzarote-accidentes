@@ -904,6 +904,16 @@
 .usuario-name {
   font-weight: 700;
   color: var(--text-primary);
+  /*
+    El nombre lleva a la ficha publica del usuario, asi que es un enlace. El
+    subrayado por defecto del navegador lo convertia en un enlace mas dentro de
+    un panel donde el resto de nombres no lo llevan.
+  */
+  text-decoration: none;
+}
+
+.usuario-name:hover {
+  color: var(--accent);
 }
 
 .usuario-email {

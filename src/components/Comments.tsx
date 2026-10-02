@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/format";
 
@@ -8,6 +9,7 @@ export type CommentItem = {
   id: string;
   body: string;
   createdAt: string;
+  userId: string;
   userName: string | null;
   isOwn: boolean;
 };
@@ -37,6 +39,17 @@ export function Comments({
     setBusy(true);
 
     const data = new FormData(e.currentTarget);
+
+    /*
+      El formulario se guarda aqui y no se usa `e.currentTarget` despues del
+      await. React vacia esa propiedad en cuanto el manejador termina su parte
+      sincrona, asi que tras un await es `null`: usarla ahi lanzaba un
+      TypeError que caia en el catch y decia "No se ha podido conectar con el
+      servidor" cuando el servidor si habia contestado. El comentario quedaba
+      guardado y el usuario creia que no se habia publicado.
+    */
+    const form = e.currentTarget;
+
     try {
       const res = await fetch("/api/comments", {
         method: "POST",
@@ -52,13 +65,21 @@ export function Comments({
         return;
       }
 
-      e.currentTarget.reset();
+      form.reset();
       setBusy(false);
       // Los comentarios se releen en el servidor: se recargan la pagina para no
       // duplicar a mano la lista que acaba de pintar la base de datos.
       router.refresh();
-    } catch {
-      setError("No se ha podido conectar con el servidor.");
+    } catch (err) {
+      /*
+        Solo el fallo de red llega aqui: el fetch es lo unico que puede cortar
+        la ejecucion de verdad. Cualquier otro error (un fallo de base de datos,
+        por ejemplo) devuelve una respuesta con status 500 y lo trata el `if
+        (!res.ok)` de arriba. Este texto no se muestra cuando el servidor si ha
+        contestado, para no culpar a la conexion de un fallo que no es suyo.
+      */
+      console.error("No se pudo enviar el comentario", err);
+      setError("No se ha podido enviar el comentario. Intentalo de nuevo.");
       setBusy(false);
     }
   }
@@ -99,7 +120,15 @@ export function Comments({
         comments.map((c) => (
           <article key={c.id} className="comentario-item">
             <div className="comentario-header">
-              <span className="comentario-usuario">{c.userName ?? "Invitado"}</span>
+              {/*
+                El nombre lleva a la ficha publica del autor. Antes era texto
+                plano: el comentario no llevaba a ninguna parte, de modo que la
+                descripcion que el usuario escribe en su perfil no era visible
+                para nadie mas.
+              */}
+              <Link href={`/u/${c.userId}`} className="comentario-usuario">
+                {c.userName ?? "Invitado"}
+              </Link>
               <time className="comentario-fecha" dateTime={c.createdAt}>
                 {formatDate(c.createdAt)}
               </time>

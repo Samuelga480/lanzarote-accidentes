@@ -108,13 +108,25 @@ export default async function UsuariosPage({
           {users.map((u) => {
             const label = u.name ?? u.email;
             return (
+              /*
+                El nombre y el avatar llevan a la ficha publica del usuario, que es
+                la que ven los lectores desde los comentarios. Aqui el correo se
+                sigue mostrando porque esta pagina es del panel y exige sesion de
+                administrador.
+              */
               <article key={u.id} className="usuario-card">
-                <div className="usuario-avatar" aria-hidden="true">
+                <Link
+                  href={`/u/${u.id}`}
+                  className="usuario-avatar"
+                  aria-label={`Ver el perfil de ${label}`}
+                >
                   {label.charAt(0).toUpperCase()}
-                </div>
+                </Link>
 
                 <div className="usuario-info">
-                  <div className="usuario-name">{label}</div>
+                  <Link href={`/u/${u.id}`} className="usuario-name">
+                    {label}
+                  </Link>
                   <div className="usuario-email">{u.email}</div>
                 </div>
 

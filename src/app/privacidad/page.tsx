@@ -40,6 +40,30 @@ export default function PrivacyPage() {
           detecta. El editor ve un aviso con lo que se ha suprimido.
         </p>
 
+        <h2 className="font-serif text-xl font-bold mt-8 mb-3">Perfiles de los usuarios</h2>
+        <p>
+          Para poder comentar hay que darse de alta. Cada cuenta tiene una ficha
+          pública en la que solo se publica lo que la persona ha escrito: su
+          <strong className="text-ink"> nombre público</strong>, su{" "}
+          <strong className="text-ink">descripción</strong> y los{" "}
+          <strong className="text-ink">comentarios</strong> que ha escrito, con la
+          fecha y la noticia en la que los dejó. Desde el nombre que aparece al
+          pie de un comentario se puede llegar a esa ficha.
+        </p>
+        <p>
+          El <strong className="text-ink">correo electrónico no se publica</strong> en
+          la ficha pública. Sigue estando solo donde hace falta: en tu propia
+          página de perfil, que requiere iniciar sesión, y en el panel de
+          administración, que requiere ser administrador. La ficha pública de los
+          usuarios tampoco se incluye en los buscadores.
+        </p>
+        <p>
+          Si prefieres no que tu nombre y tu descripción se associate a tus
+          comentarios, puedes vaciar la descripción desde tu perfil. Los
+          comentarios se publican bajo el nombre que tengas configurado en ese
+          momento, así que conviene revisar ese dato antes de escribir.
+        </p>
+
         <h2 className="font-serif text-xl font-bold mt-8 mb-3">Ubicaciones aproximadas</h2>
         <p>
           El mapa no marca el punto exacto de ningún accidente. Cuando una fuente facilita una coordenada, el

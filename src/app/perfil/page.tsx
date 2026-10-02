@@ -99,6 +99,12 @@ export default async function PerfilPage() {
         </div>
 
         <p className="mt-8">
+          <Link href={`/u/${session.id}`} className="section-more">
+            Ver como lo ven los demas
+          </Link>
+        </p>
+
+        <p className="mt-4">
           <Link href="/" className="section-more">
             Volver a la portada
           </Link>

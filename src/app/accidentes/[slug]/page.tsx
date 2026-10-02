@@ -318,6 +318,7 @@ export default async function AccidentPage({ params }: Props) {
           // El cuerpo se pinta como texto en un <p>: nunca se interpreta como
           // HTML, que es lo unico que evita que un comentario inyecte etiquetas.
           body: c.body,
+          userId: c.userId,
           createdAt: c.createdAt.toISOString(),
           userName: c.user.name ?? c.user.email,
           isOwn: c.userId === sessionUser?.id,

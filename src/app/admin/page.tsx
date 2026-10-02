@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-guard";
-import { isAuthenticated } from "@/lib/auth";
+import { requireAuth, getSession } from "@/lib/auth-guard";
 import { formatDate } from "@/lib/format";
 import { CATEGORY_LABEL, STATUS_LABEL } from "@/lib/constants";
 import { RunCycleButton } from "@/components/admin/RunCycleButton";
 import { NewsRow, type AdminRow } from "@/components/admin/NewsRow";
+import { AdminPasswordForm } from "@/components/admin/AdminPasswordForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
@@ -38,22 +38,17 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  if (!(await isAuthenticated())) {
+  // Sin sesion se ofrece la entrada del panel. La via normal es /entrar con la
+  // cuenta de administrador; esta es la de emergencia con ADMIN_PASSWORD.
+  const sesion = await getSession();
+  if (!sesion) {
     return (
-      <main className="admin-main">
-        <div className="admin-stat-card" style={{ textAlign: "center", maxWidth: 480, margin: "60px auto" }}>
-          <div className="admin-stat-label">Necesitas iniciar sesion para entrar al panel.</div>
-          <p style={{ marginTop: 16 }}>
-            <Link href="/entrar" className="btn btn-primary">
-              Acceder
-            </Link>
-          </p>
-        </div>
-      </main>
+      <div className="admin-body">
+        <AdminPasswordForm />
+      </div>
     );
   }
 
-  await requireAuth();
   const sp = await searchParams;
 
   const q = filtro(sp, "q");

@@ -36,7 +36,7 @@ import { processImage } from "@/lib/images";
 import { imageConfig } from "@/lib/env";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
-import { perturbCoordinate } from "@/lib/ai/pipeline";
+import { puntoAproximado } from "@/lib/map-point";
 import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
 import { notifyNewArticle } from "@/lib/notify";
 import { contentHashOf, simHash, tidy, truncate } from "@/lib/text";
@@ -369,12 +369,13 @@ export async function ingestArticle(params: {
     facts.zoneSlug && facts.municipalitySlug === municipalitySlug ? facts.zoneSlug : null;
 
   // --- Ubicacion aproximada ---
-  const base = municipalitySlug
-    ? MUNICIPALITY_BY_SLUG.get(municipalitySlug)
-    : undefined;
-  const approx = perturbCoordinate(
-    base ? { lat: base.lat, lon: base.lon } : { lat: 29.0, lon: -13.63 },
-  );
+  /*
+    Sin punto de reserva. Antes, si no habia municipio, se colocaba el marcador en
+    un punto fijo (29.0, -13.63), que esta en el norte de la isla, mientras que en
+    la base de datos se guardaba Arrecife, en el sur. El marcador acababa a 60 km
+    del nombre que llevaba al lado. Si no se sabe donde, no se pinta nada.
+  */
+  const approx = puntoAproximado(municipalitySlug, zone);
 
   // --- 8. Guardar como PENDING_REVIEW ---
   const slug = await uniqueSlug(slugify(clean.title), async (candidate) => {
@@ -423,8 +424,8 @@ export async function ingestArticle(params: {
       injuries: facts.injuries ?? 0,
       isFeatured: false,
 
-      approxLat: approx.lat,
-      approxLon: approx.lon,
+      approxLat: approx?.lat ?? null,
+      approxLon: approx?.lon ?? null,
       locationDescription: clean.locationDescription ?? null,
 
       confidenceScore: verification.confidenceScore,

@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
+import { puntoAproximado } from "@/lib/map-point";
 import { z } from "zod";
 import type { AccidentSeverity, Origin, VehicleType } from "@/lib/types";
 
@@ -140,8 +141,14 @@ export async function createDraftFromAI(payload: unknown): Promise<CreateDraftRe
   });
 
   // --- Privacidad: ubicacion aproximada ---
-  const origin = input.geoPoint ?? basePoint(input.municipalitySlug);
-  const approx = perturbCoordinate(origin);
+  /*
+    Si la fuente da una coordenada se respeta tal cual. Si no, se usa la de la
+    zona o la del municipio, con el desplazamiento de privacidad. Antes se
+    calculaba siempre desde el municipio, y ademas habia un punto de reserva
+    inventado que colocaba marcadores a sesenta kilometros del nombre que
+    llevaba al lado. Ver map-point.ts.
+  */
+  const approx = input.geoPoint ?? puntoAproximado(input.municipalitySlug, zone);
 
   // --- Slug unico ---
   const slug = await uniqueSlug(slugify(clean.title), async (candidate) => {
@@ -166,8 +173,8 @@ export async function createDraftFromAI(payload: unknown): Promise<CreateDraftRe
       severity: input.severity,
       fatalities: input.fatalities,
       injuries: input.injuries,
-      approxLat: approx.lat,
-      approxLon: approx.lon,
+      approxLat: approx?.lat ?? null,
+      approxLon: approx?.lon ?? null,
       locationDescription: clean.locationDescription ?? null,
 
       // Punto no negociable del pipeline

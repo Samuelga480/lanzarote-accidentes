@@ -1,5 +1,5 @@
 /**
- * Redacta los pendientes que se guardaron con el texto del medio.
+ * Redacta los pendientes y las publicadas con el texto del medio.
  *
  *   npx tsx scripts:redactar-pendientes.ts
  *
@@ -28,9 +28,16 @@ import { evaluaIsla } from "@/lib/traffic-gate";
 import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
 
 async function main() {
+  /*
+    Se redraftan tambien las YA PUBLICADAS. Estas se redactaron con el codigo
+    anterior, que escribia "estaba implicado una bicicleta" y cerraba siempre con
+    la misma frase. Corregir el redactor no cambia lo ya publicado: hay que pasar
+    por delante. Aqui si se tocan articles en vivo, y a proposito: son fallos de
+    redaccion, no cambios de contenido.
+  */
   const lista = await prisma.accident.findMany({
-    where: { status: "PENDING_REVIEW" },
     orderBy: { occurredAt: "desc" },
+    where: { status: { in: ["PENDING_REVIEW", "PUBLISHED"] } },
     select: {
       id: true,
       title: true,
@@ -48,7 +55,7 @@ async function main() {
     },
   });
 
-  console.log(`\n  Pendientes: ${lista.length}\n`);
+  console.log(`\n  Pendientes y publicadas a redactar: ${lista.length}\n`);
 
   let redactados = 0;
   let saltados = 0;

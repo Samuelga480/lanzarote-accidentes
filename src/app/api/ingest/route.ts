@@ -9,7 +9,7 @@ import { embedArticle, rewriteArticle } from "@/lib/ai/rewrite";
 import { processImage } from "@/lib/images";
 import { sanitizeAccident, summarizeFindings } from "@/lib/privacy";
 import { slugify, uniqueSlug } from "@/lib/slug";
-import { perturbCoordinate } from "@/lib/ai/pipeline";
+import { puntoAproximado } from "@/lib/map-point";
 import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
 import { monitorConfig, siteUrl, aiConfig } from "@/lib/env";
 import { isAuthorized } from "@/lib/cron-auth";
@@ -391,8 +391,8 @@ async function processIngest(payload: IngestPayload): Promise<IngestResult> {
   });
 
   // --- Ubicacion aproximada ---
-  const base = municipalitySlug ? MUNICIPALITY_BY_SLUG.get(municipalitySlug) : undefined;
-  const approx = perturbCoordinate(base ? { lat: base.lat, lon: base.lon } : { lat: 29.0, lon: -13.63 });
+  // Sin punto de reserva: si no hay municipio, no hay marcador. Ver map-point.ts.
+  const approx = puntoAproximado(municipalitySlug, zoneSlug);
 
   const editorNotes = [
     "Enviada mediante POST /api/ingest.",
@@ -422,8 +422,8 @@ async function processIngest(payload: IngestPayload): Promise<IngestResult> {
       origin: "AI",
       fatalities: facts.fatalities ?? 0,
       injuries: facts.injuries ?? 0,
-      approxLat: approx.lat,
-      approxLon: approx.lon,
+      approxLat: approx?.lat ?? null,
+      approxLon: approx?.lon ?? null,
       locationDescription: clean.locationDescription ?? null,
       confidenceScore: verification.confidenceScore,
       sourceScore: verification.sourceScore,

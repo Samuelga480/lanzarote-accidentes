@@ -273,6 +273,18 @@ async function processFeed(
 
   const finish = async (error?: string) => {
     const durationMs = elapsed();
+
+    /*
+      `outcome.ok` no se ponia en ningun sitio. Se inicializa a false y solo se
+      leia, asi que el contador daba "6 de 6 fuentes fallidas" y la ruta del cron
+      respondia 207 en todas las pasadas, aunque las fuentes estuvieran
+      perfectas. Lo que si se guardaba bien era el estado real en la tabla
+      (lastOkAt, consecutiveFailures, status), que es por eso que el fallo
+      pasaba desapercibido: la base de datos decia que todo iba bien y el
+      resultado del ciclo decia lo contrario.
+    */
+    outcome.ok = !error;
+
     await prisma.scrapeRun.update({
       where: { id: run.id },
       data: {

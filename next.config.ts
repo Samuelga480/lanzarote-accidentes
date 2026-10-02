@@ -30,16 +30,32 @@ const nextConfig: NextConfig = {
       {
         /*
           Todo el sitio tiene que ir por HTTPS, y no solo por buena costumbre: las
-          redes de anuncios rechazan los sitios que sirven contenido en HTTP. El
-          usuario que llega por http:// esvisitor de la red, y si recibe una
-          pagina sin cifrar la revision se queda en el camino.
+          redes de anuncios rechazan los sitios que sirven contenido en HTTP, y si
+          el revisor recibe la pagina sin cifrar la revision se queda en el camino.
 
-          Se manda a la variante con www, que es la que devuelve el certificado.
-          El canonical del sitio ya apunta a https:// sin www, asi que de ahi se
-          quita la www en una regla aparte para no dejar dos rutas al mismo sitio.
+          LA CONDICION DEL PROTOCOLO NO ES OPCIONAL. Una regla que solo mire por
+          `host` se aplicaria tambien a las peticiones que ya vienen por https, y
+          las mandaria a https otra vez: bucle infinito, web caida. La unica forma
+          de distinguirlo es mirar `x-forwarded-proto`, que es la cabecera que
+          Vercel pone con el protocolo original.
         */
         source: "/:path*",
-        has: [{ type: "host", value: "(www\\.)?accidenteslanzarote\\.com" }],
+        has: [
+          { type: "header", key: "x-forwarded-proto", value: "http" },
+          { type: "host", value: "(www\\.)?accidenteslanzarote\\.com" },
+        ],
+        destination: "https://accidenteslanzarote.com/:path*",
+        permanent: true,
+      },
+      {
+        /*
+          Quita la www. Aqui si que vale la regla por `host` a secas: el destino
+          cambia de dominio, asi que una peticion que ya esta en el destino no
+          vuelve a entrar en la regla y no hay bucle. El canonical ya apunta a la
+          variante sin www, asi que esto cierra el SEO de verdad.
+        */
+        source: "/:path*",
+        has: [{ type: "host", value: "www\\.accidenteslanzarote\\.com" }],
         destination: "https://accidenteslanzarote.com/:path*",
         permanent: true,
       },

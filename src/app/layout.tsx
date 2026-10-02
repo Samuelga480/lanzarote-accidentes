@@ -5,6 +5,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
+// site.css va DESPUES a proposito: es el diseño original del sitio y, al no
+// estar dentro de @layer, gana a las utilidades de Tailwind de globals.css.
+import "./site.css";
 
 // Merriweather para los titulares y Source Sans 3 para el texto: son las dos
 // tipografias del diseno original del sitio (legacy-site/styles.css).

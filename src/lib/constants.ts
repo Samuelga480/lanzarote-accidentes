@@ -43,6 +43,36 @@ export const VEHICLE_LABEL: Record<VehicleType, string> = {
   OTROS: "Otros vehículos",
 };
 
+/**
+ * Categorias de incidente y la pastilla de color que lleva cada una.
+ *
+ * `pill` es el nombre de clase de site.css. Los cinco primeros son los del
+ * diseno original (colision, atropello, salida, vuelco, moto); los siguientes
+ * son las categorias nuevas de la base de datos y siguen el mismo patron pastel
+ * para que la rejilla se lea igual de un vistazo.
+ */
+export const CATEGORY_LABEL: Record<string, string> = {
+  ACCIDENTE_TRAFICO: "Accidente",
+  ATROPELLO: "Atropello",
+  INCENDIO: "Incendio",
+  RESCATE: "Rescate",
+  EMERGENCIA_SANITARIA: "Emergencia sanitaria",
+  ACTUACION_SERVICIOS: "Servicios de emergencia",
+  DESAPARICION: "Desaparición",
+  OTRO: "Otro",
+};
+
+export const CATEGORY_PILL: Record<string, string> = {
+  ACCIDENTE_TRAFICO: "colision",
+  ATROPELLO: "atropello",
+  INCENDIO: "incendio",
+  RESCATE: "rescate",
+  EMERGENCIA_SANITARIA: "sanitario",
+  ACTUACION_SERVICIOS: "servicios",
+  DESAPARICION: "servicios",
+  OTRO: "neutral",
+};
+
 export const VEHICLE_LABEL_PLURAL: Record<VehicleType, string> = {
   COCHE: "Coches",
   MOTO: "Motos",

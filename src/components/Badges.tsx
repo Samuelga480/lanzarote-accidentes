@@ -1,32 +1,46 @@
 import type { AccidentSeverity, AccidentStatus, Origin, VehicleType } from "@/lib/types";
 import {
+  CATEGORY_LABEL,
+  CATEGORY_PILL,
   ORIGIN_LABEL,
   SEVERITY_LABEL,
   STATUS_LABEL,
   VEHICLE_LABEL,
 } from "@/lib/constants";
 
+/* --------------------------- Categoría ---------------------------- */
+
+/**
+ * Pastilla de tipo de incidente, con los colores del diseño original.
+ * Los valores que no estén en el mapa caen en gris en vez de romperse.
+ */
+export function CategoryBadge({ category, className = "" }: { category: string; className?: string }) {
+  const label = CATEGORY_LABEL[category] ?? "Otro";
+  const pill = CATEGORY_PILL[category] ?? "neutral";
+  return <span className={`news-type ${pill} ${className}`}>{label}</span>;
+}
+
 /* ------------------------------ Vehículo ------------------------------ */
 
-const VEHICLE_STYLE: Record<VehicleType, string> = {
-  COCHE: "bg-ink-soft/10 text-ink-soft",
-  MOTO: "bg-alert-soft text-alert-dark",
-  CAMION: "bg-warn-soft text-warn",
-  BICICLETA: "bg-ok-soft text-ok",
-  PEATON: "bg-alert-soft text-alert-dark",
-  OTROS: "bg-ink-soft/10 text-ink-soft",
+const VEHICLE_PILL: Record<VehicleType, string> = {
+  COCHE: "neutral",
+  MOTO: "moto",
+  CAMION: "vuelco",
+  BICICLETA: "moto",
+  PEATON: "atropello",
+  OTROS: "neutral",
 };
 
 export function VehicleBadge({ type, className = "" }: { type: VehicleType; className?: string }) {
-  return <span className={`chip ${VEHICLE_STYLE[type]} ${className}`}>{VEHICLE_LABEL[type]}</span>;
+  return <span className={`news-type ${VEHICLE_PILL[type]} ${className}`}>{VEHICLE_LABEL[type]}</span>;
 }
 
 /* ------------------------------ Gravedad ------------------------------ */
 
-const SEVERITY_STYLE: Record<AccidentSeverity, { cls: string; mark: string }> = {
-  LEVE: { cls: "bg-ok-soft text-ok", mark: "●" },
-  MODERADO: { cls: "bg-warn-soft text-warn", mark: "◆" },
-  GRAVE: { cls: "bg-alert text-white", mark: "▲" },
+const SEVERITY_STYLE: Record<AccidentSeverity, { pill: string; mark: string }> = {
+  LEVE: { pill: "moto", mark: "●" },
+  MODERADO: { pill: "atropello", mark: "◆" },
+  GRAVE: { pill: "colision", mark: "▲" },
 };
 
 export function SeverityBadge({
@@ -38,7 +52,7 @@ export function SeverityBadge({
 }) {
   const s = SEVERITY_STYLE[severity];
   return (
-    <span className={`chip ${s.cls} ${className}`}>
+    <span className={`news-type ${s.pill} ${className}`}>
       <span aria-hidden="true">{s.mark}</span>
       {SEVERITY_LABEL[severity]}
     </span>

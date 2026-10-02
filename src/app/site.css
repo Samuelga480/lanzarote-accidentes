@@ -1,0 +1,992 @@
+/* ============================================================================
+ *  DISENO ORIGINAL DEL SITIO
+ *
+ *  Este fichero reproduce el diseno que tenia el sitio antes (los estilos que
+ *  estaban en legacy-site/styles.css), con sus medidas, sus clases y sus
+ *  colores exactos. No es una reinterpretacion: es el mismo diseno.
+ *
+ *  Estructura original, de arriba abajo:
+ *    header (60px, pegajoso)  ->  hero  ->  controls (pegajoso bajo el header)
+ *    ->  map-section  ->  news-section  ->  footer
+ *
+ *  La paleta se declara aqui con los nombres originales (--bg-primary,
+ *  --text-primary, --accent...) y los nombres que usa el resto de la aplicacion
+ *  (--color-paper, --color-ink...) quedan como alias, de modo que las dos
+ *  nomenclaturas leen la misma fuente y no pueden desincronizarse.
+ * ========================================================================= */
+
+:root {
+  /* ---- Claro ---- */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f3f5;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --accent: #c92a2a;
+  --accent-hover: #a61e1e;
+  --border: #dee2e6;
+  --success: #2b8a3e;
+  --warning: #e67700;
+  --info: #1971c2;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: all 0.2s ease;
+
+  /* ---- Alias para el resto de la aplicacion ---- */
+  --color-paper: var(--bg-primary);
+  --color-canvas: var(--bg-primary);
+  --color-ink: var(--text-primary);
+  --color-ink-soft: var(--text-secondary);
+  --color-ink-mute: var(--text-muted);
+  --color-ink-faint: #adb5bd;
+  --color-rule: var(--border);
+  --color-rule-strong: #ced4da;
+
+  --color-alert: var(--accent);
+  --color-alert-dark: var(--accent-hover);
+  --color-alert-soft: #fff5f5;
+
+  --color-warn: var(--warning);
+  --color-warn-soft: #fff9db;
+
+  --color-ok: var(--success);
+  --color-ok-soft: #ebfbee;
+
+  --color-info: var(--info);
+  --color-info-soft: #e7f5ff;
+
+  --font-serif: "Merriweather", Georgia, "Times New Roman", serif;
+  --font-sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ============================================================================
+ *  MODO OSCURO
+ * ========================================================================= */
+
+[data-theme="dark"] {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #1e1e1e;
+  --bg-hover: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  --accent: #ff6b6b;
+  --accent-hover: #ff8787;
+  --border: #333333;
+  --success: #51cf66;
+  --warning: #ffa94d;
+  --info: #74c0fc;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  /* Las pastillas de categoria son claras sobre fondo oscuro: se pasan a
+     variante translucida para no quedar blindingas. */
+  --color-alert-soft: #3a1f1f;
+  --color-warn-soft: #3a2f1a;
+  --color-ok-soft: #1a3524;
+  --color-info-soft: #16293a;
+  --color-ink-faint: #5a5a5a;
+  --color-rule-strong: #444444;
+}
+
+/* ============================================================================
+ *  BASE
+ * ========================================================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Ancho de contenido: 1200px con 24px de margen, como en el original. */
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================================================
+ *  BOTON DE TEMA
+ *
+ *  Sin borde y sin fondo: solo el icono, con relleno de 8px. Las dos imagenes
+ *  estan siempre en el DOM y se ocultan por CSS segun el tema, que es como
+ *  funcionaba el original.
+ * ========================================================================= */
+
+.theme-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.theme-toggle .icon-moon {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+/* Hueco del mismo tamano antes de hidratar, para que la cabecera no salte. */
+.theme-toggle-placeholder {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ *  HEADER
+ * ========================================================================= */
+
+.header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.logo h1 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.nav-admin {
+  background: var(--text-primary);
+  color: #ffffff;
+}
+
+.nav-admin:hover {
+  background: var(--text-secondary);
+  color: #ffffff;
+}
+
+/* En movil el original ocultaba la navegacion entera (.nav { display:none }). */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.nav-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ============================================================================
+ *  HERO
+ * ========================================================================= */
+
+.hero {
+  padding: 80px 24px 60px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-content h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 900;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.hero-content p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.hero-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  min-width: 140px;
+  text-align: center;
+}
+
+.hero-stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.hero-stat-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================================
+ *  CONTROLES (buscador y filtros)
+ *
+ *  Pegajoso justo debajo del header, que mide 60px.
+ * ========================================================================= */
+
+.controls {
+  position: sticky;
+  top: 60px;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+}
+
+.controls-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  transition: var(--transition);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--text-muted);
+  background: var(--bg-primary);
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filters select {
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 150px;
+}
+
+.filters select:focus {
+  outline: none;
+  border-color: var(--text-muted);
+}
+
+.filters select:hover {
+  background: var(--bg-hover);
+}
+
+/* Aviso de filtros activos */
+.filters-active {
+  max-width: 1200px;
+  margin: 10px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.filters-clear {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 0;
+}
+
+.filters-clear:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+ *  SECCIONES
+ * ========================================================================= */
+
+.site-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+.section-header {
+  margin-bottom: 28px;
+}
+
+.section-header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.section-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.section-more {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-more:hover {
+  text-decoration: underline;
+}
+
+/* Cabecera de seccion con enlace a la derecha, sobre la misma fila. */
+.section-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.section-head-row h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+/* ============================================================================
+ *  MAPA
+ * ========================================================================= */
+
+.map-section {
+  padding-top: 40px;
+}
+
+.map-container {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+#map {
+  height: 450px;
+  width: 100%;
+  background: var(--bg-secondary);
+}
+
+/* ============================================================================
+ *  NOTICIAS
+ * ========================================================================= */
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.news-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.news-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--text-muted);
+}
+
+.news-card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.news-image {
+  display: block;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+}
+
+.news-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.news-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.news-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.news-zone {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  text-decoration: none;
+}
+
+.news-zone:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+/* ---- Pastillas de tipo ----
+   Los cinco colores originales (colision, atropello, salida, vuelco, moto) se
+   conservan tal cual. Las categorias nuevas de la base de datos (incendio,
+   rescate, emergencia sanitaria, etc.) siguen el mismo patron pastel para que
+   la rejilla se lea igual de un vistazo. */
+
+.news-type {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.news-type.colision {
+  background: #fff5f5;
+  color: #c92a2a;
+  border: 1px solid #ffc9c9;
+}
+.news-type.atropello {
+  background: #fff9db;
+  color: #e67700;
+  border: 1px solid #ffe066;
+}
+.news-type.salida {
+  background: #e7f5ff;
+  color: #1971c2;
+  border: 1px solid #a5d8ff;
+}
+.news-type.vuelco {
+  background: #f3f0ff;
+  color: #5f3dc4;
+  border: 1px solid #d0bfff;
+}
+.news-type.moto {
+  background: #ebfbee;
+  color: #2b8a3e;
+  border: 1px solid #b2f2bb;
+}
+.news-type.incendio {
+  background: #fff4e6;
+  color: #d9480f;
+  border: 1px solid #ffc078;
+}
+.news-type.rescate {
+  background: #e3fafc;
+  color: #0b7285;
+  border: 1px solid #99e9f2;
+}
+.news-type.sanitario {
+  background: #fff0f6;
+  color: #c2255c;
+  border: 1px solid #faa2c1;
+}
+.news-type.servicios {
+  background: #edf2ff;
+  color: #364fc7;
+  border: 1px solid #bac8ff;
+}
+.news-type.neutral {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .news-type {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.news-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.news-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.news-title a:hover {
+  color: var(--accent);
+}
+
+.news-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.news-more {
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.news-more:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+ *  ESTADISTICAS
+ * ========================================================================= */
+
+.stats-section {
+  padding-bottom: 80px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.stat-number {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.1;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ============================================================================
+ *  FOOTER
+ * ========================================================================= */
+
+.footer {
+  text-align: center;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  background: var(--bg-secondary);
+}
+
+.footer a {
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+
+.footer a:hover {
+  color: var(--accent);
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+/* ============================================================================
+ *  LEAFLET PERSONALIZADO
+ * ========================================================================= */
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-family: var(--font-sans);
+}
+
+.popup-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.popup-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+}
+
+/* ============================================================================
+ *  ANIMACIONES
+ * ========================================================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.news-card {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.news-card:nth-child(1) { animation-delay: 0.02s; }
+.news-card:nth-child(2) { animation-delay: 0.04s; }
+.news-card:nth-child(3) { animation-delay: 0.06s; }
+.news-card:nth-child(4) { animation-delay: 0.08s; }
+.news-card:nth-child(5) { animation-delay: 0.1s; }
+.news-card:nth-child(6) { animation-delay: 0.12s; }
+.news-card:nth-child(7) { animation-delay: 0.14s; }
+.news-card:nth-child(8) { animation-delay: 0.16s; }
+.news-card:nth-child(9) { animation-delay: 0.18s; }
+
+/* ============================================================================
+ *  SCROLLBAR
+ * ========================================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ============================================================================
+ *  RESPONSIVE
+ * ========================================================================= */
+
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 0 16px;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .hero {
+    padding: 60px 16px 40px;
+  }
+
+  .controls {
+    top: 60px;
+    padding: 12px 16px;
+  }
+
+  .controls-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    min-width: 100%;
+  }
+
+  .filters {
+    width: 100%;
+  }
+
+  .filters select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .site-section {
+    padding: 40px 16px;
+  }
+
+  #map {
+    height: 350px;
+  }
+
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-number {
+    font-size: 1.75rem;
+  }
+
+  .hero-stats {
+    gap: 8px;
+  }
+
+  .hero-stat {
+    min-width: 110px;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .filters select {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+ *  MENU DESPLEGABLE EN MOVIL
+ * ========================================================================= */
+
+.nav-drawer {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.nav-drawer.open {
+  display: block;
+}
+
+.nav-drawer a {
+  display: block;
+  padding: 12px 24px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-drawer a:last-child {
+  border-bottom: none;
+}
+
+.nav-drawer a:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.nav-drawer a.nav-admin {
+  color: #ffffff;
+  background: var(--text-primary);
+}
+
+.nav-drawer a.nav-admin:hover {
+  background: var(--text-secondary);
+}
+
+/* Respeta la preferencia de menos animacion */
+@media (prefers-reduced-motion: reduce) {
+  .news-card {
+    animation: none;
+  }
+}

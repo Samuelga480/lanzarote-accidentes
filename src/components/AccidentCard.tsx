@@ -1,18 +1,29 @@
 import Link from "next/link";
 import type { AccidentWithMunicipality } from "@/lib/queries";
 import { AccidentImage } from "@/components/AccidentImage";
-import { SeverityBadge, VehicleBadge } from "@/components/Badges";
+import { CategoryBadge, SeverityBadge } from "@/components/Badges";
 import { formatDateShort, formatTime } from "@/lib/format";
 
+/**
+ * Tarjeta de noticia.
+ *
+ * Reproduce la del diseno original: borde de 1px, radio de 6px, imagen arriba,
+ * y dentro una fila de metadatos (fecha, municipio como pastilla, tipo de
+ * incidente), el titular en 1.05rem en negrita y el resumen en gris.
+ *
+ * El titulo va en la tipografia de texto y en negrita, no en serif: es como
+ * estaba en el original, donde Merriweather se reservaba para el hero y los
+ * titulos de seccion.
+ */
 type Props = {
   accident: AccidentWithMunicipality;
-  /** "destacado" | "normal" | "compacto" */
+  /** "normal" | "compacto" */
   variant?: "normal" | "compacto";
   priority?: boolean;
 };
 
 export function AccidentCard({ accident, variant = "normal" }: Props) {
-  const { municipality, occurredAt, severity, vehicleType } = accident;
+  const { municipality, occurredAt, severity, category } = accident;
   const href = `/accidentes/${accident.slug}`;
 
   if (variant === "compacto") {
@@ -29,7 +40,6 @@ export function AccidentCard({ accident, variant = "normal" }: Props) {
         <div className="min-w-0 flex-1">
           <h3 className="font-serif text-sm font-bold leading-snug">
             <Link href={href} className="hover:text-alert transition-colors">
-              <span className="absolute inset-0" aria-hidden="true" />
               {accident.title}
             </Link>
           </h3>
@@ -42,43 +52,49 @@ export function AccidentCard({ accident, variant = "normal" }: Props) {
   }
 
   return (
-    <article className="card overflow-hidden flex flex-col hover:border-rule-strong transition-colors group">
-      <Link href={href} className="block" tabIndex={-1} aria-hidden="true">
-        <AccidentImage
-          seed={accident.slug}
-          alt=""
-          imageUrl={accident.imageUrl}
-          municipality={municipality.name}
-          className="border-b border-rule"
-        />
-      </Link>
+    <article className="news-card">
+      {accident.imageUrl ? (
+        <Link href={href} tabIndex={-1} aria-hidden="true" className="news-image">
+          <AccidentImage
+            seed={accident.slug}
+            alt=""
+            imageUrl={accident.imageUrl}
+            municipality={municipality.name}
+            ratio="aspect-video"
+          />
+        </Link>
+      ) : null}
 
-      <div className="p-4 flex flex-col flex-1">
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          <VehicleBadge type={vehicleType} />
+      <div className="news-content">
+        {/* Fecha + municipio + tipo, en una sola fila */}
+        <div className="news-meta">
+          <span className="news-date">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <time dateTime={occurredAt.toISOString()}>
+              {formatDateShort(occurredAt)} · {formatTime(occurredAt)}
+            </time>
+          </span>
+
+          <Link href={`/municipios/${municipality.slug}`} className="news-zone">
+            {municipality.name}
+          </Link>
+
+          <CategoryBadge category={category} />
           <SeverityBadge severity={severity} />
         </div>
 
-        <h3 className="font-serif text-[17px] font-bold leading-snug mb-2">
-          <Link href={href} className="hover:text-alert transition-colors">
-            {accident.title}
-          </Link>
+        <h3 className="news-title">
+          <Link href={href}>{accident.title}</Link>
         </h3>
 
-        <p className="text-[13px] text-ink-soft leading-relaxed line-clamp-3 mb-3">{accident.summary}</p>
+        <p className="news-description">{accident.summary}</p>
 
-        <div className="mt-auto pt-3 border-t border-rule flex items-center justify-between gap-3">
-          <p className="text-[11px] text-ink-mute">
-            <span className="font-semibold text-ink-soft">{municipality.name}</span>
-            <br />
-            <time dateTime={occurredAt.toISOString()}>
-              {formatDateShort(occurredAt)} · {formatTime(occurredAt)} h
-            </time>
-          </p>
-          <Link href={href} className="text-xs font-semibold text-alert hover:underline whitespace-nowrap">
-            Leer más →
-          </Link>
-        </div>
+        <Link href={href} className="news-more">
+          Leer más →
+        </Link>
       </div>
     </article>
   );

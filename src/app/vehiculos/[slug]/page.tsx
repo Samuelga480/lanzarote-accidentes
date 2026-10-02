@@ -77,7 +77,7 @@ export default async function VehiclePage({ params, searchParams }: Props) {
               <Fragment key={a.id}>
                 <AccidentCard accident={a} />
                 {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
-                <AdSlot indice={i} position={`vehiculo-${i}`} />
+                <AdSlot indice={i} position={`vehiculo-${i}`} formato="rectangular" />
               </Fragment>
             ))}
           </div>

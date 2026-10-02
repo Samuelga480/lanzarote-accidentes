@@ -251,8 +251,8 @@ export async function rewriteArticle(request: RewriteRequest): Promise<RewriteRe
     };
   }
 
-  const model = aiConfig.model();
-
+  // Sin modelo explicito: chat() va probando los de la configuracion en orden,
+  // asi que si el principal falla por limite de peticiones usa el suplente.
   const factsContext = buildFactsContext(request.facts);
 
   const userPrompt = `DATOS VERIFICADOS POR EL SISTEMA (extracidos del texto, no los cambies):
@@ -275,13 +275,16 @@ REGLAS ADICIONALES PARA ESTE CASO:
 
 Devuelve solo el objeto JSON.`;
 
+  // Se recuerda que modelo contesto, porque con la cadena de suplentes puede no
+  // ser el primero de la configuracion.
+  let modeloUsado: string | null = null;
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     const response = await chat({
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: attempt === 1 ? userPrompt : userPrompt + "\n\nEl intento anterior fue rechazado por copiar texto. Redacta con otras palabras." },
       ],
-      model,
       temperature: attempt === 1 ? 0.6 : 0.85,
       maxTokens: 3000,
       json: true,
@@ -294,6 +297,8 @@ Devuelve solo el objeto JSON.`;
       }
       continue;
     }
+
+    modeloUsado = response.model ?? null;
 
     const parsed = parseJsonLoose<{
       title?: string; summary?: string; body?: string; excerpt?: string;
@@ -368,7 +373,9 @@ Devuelve solo el objeto JSON.`;
       excerpt: excerpt ?? summary.slice(0, 160),
       seoTitle: seoTitle ?? title.slice(0, 60),
       metaDescription: metaDescription ?? summary.slice(0, 155),
-      model,
+      // Que modelo redacto de verdad: con la cadena de suplentes puede no ser el
+    // primero de la configuracion.
+      model: modeloUsado,
       overlap: Math.round(overlap * 1000) / 1000,
     };
   }

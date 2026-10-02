@@ -90,9 +90,23 @@ export const aiConfig = {
   appTitle(): string {
     return optional("OPENROUTER_APP_TITLE") ?? "Accidentes Lanzarote";
   },
-  /** Modelo de redaccion. Uno barato y rapido basta: se trata de resumir. */
-  model(): string {
-    return optional("OPENROUTER_MODEL") ?? "google/gemini-flash-1.5";
+  /**
+   * Modelo de redaccion, ysuplente por si el principal falla.
+   *
+   * Los dos son gratuitos (los que acaban en ":free"). Se pone un segundo
+   * porque los gratuitos tienen un limite de peticiones por minuto y son
+   * efimeros: OpenRouter cambia la lista sin avisar y un dia disappears el
+   * modelo que era el principal. Con suplente, un cambio asi no para el sitio.
+   *
+   * El suplente sale de OPENROUTER_MODEL_FALLBACK y, si no se define, no hay
+   * ninguno: es opcional a proposito.
+   */
+  models(): string[] {
+    const principal = optional("OPENROUTER_MODEL") ?? "google/gemma-4-31b-it:free";
+    const suplente = optional("OPENROUTER_MODEL_FALLBACK");
+
+    // Se filtra el principal para no repetirlo como suplente si estan iguales.
+    return suplente && suplente !== principal ? [principal, suplente] : [principal];
   },
   /** Modelo de embeddings para la similitud semantica de duplicados. */
   embeddingModel(): string {
@@ -365,7 +379,9 @@ export const verifyConfig = {
 export function configSummary(): Record<string, unknown> {
   return {
     site: siteUrl(),
-    ai: aiConfig.enabled() ? aiConfig.model() : "deshabilitado",
+    // La lista entera, no solo el principal: cuando el monitor tenga que saltar
+    // al suplente, el log tiene que decir desde el principio que lo hay.
+    ai: aiConfig.enabled() ? aiConfig.models().join(" | ") : "deshabilitado",
     notifications: {
       email: notifyConfig.email.enabled,
       telegram: notifyConfig.telegram.enabled,

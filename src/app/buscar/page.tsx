@@ -105,7 +105,7 @@ export default async function SearchPage({ searchParams }: Props) {
                 <Fragment key={a.id}>
                   <AccidentCard accident={a} />
                   {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
-                  <AdSlot indice={i} position={`buscar-${i}`} />
+                  <AdSlot indice={i} position={`buscar-${i}`} formato="rectangular" />
                 </Fragment>
               ))}
             </div>

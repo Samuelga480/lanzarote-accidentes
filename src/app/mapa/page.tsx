@@ -64,7 +64,7 @@ export default async function MapaPage({ searchParams }: Props) {
                 <Fragment key={a.id}>
                   <AccidentCard accident={a} />
                   {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
-                  <AdSlot indice={i} position={`mapa-${i}`} />
+                  <AdSlot indice={i} position={`mapa-${i}`} formato="rectangular" />
                 </Fragment>
               ))}
             </div>

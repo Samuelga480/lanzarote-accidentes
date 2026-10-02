@@ -14,7 +14,9 @@ import { aiConfig } from "@/lib/env";
 import { log, serializeError, timer } from "@/lib/logger";
 
 export type AiResult<T> =
-  | { ok: true; data: T; durationMs: number }
+  // `model` dice que modelo redacto de verdad. Con cadena de suplentes no es
+  // siempre el primero, y el panel lo necesita saber para auditar.
+  | { ok: true; data: T; durationMs: number; model?: string }
   | { ok: false; error: string; durationMs: number };
 
 const BASE_URL = "https://openrouter.ai/api/v1";
@@ -76,7 +78,39 @@ export async function chat(params: {
   json?: boolean;
 }): Promise<AiResult<string>> {
   const elapsed = timer();
-  const model = params.model ?? aiConfig.model();
+
+  // Sin modelo explicito se prueban los de la configuracion, en orden. Con
+  // modelo explicito solo se prueba ese: quien lo pasa sabe lo que quiere.
+  const modelos = params.model ? [params.model] : aiConfig.models();
+
+  let ultimoError = "No se pudo llamar a la IA.";
+
+  for (const modelo of modelos) {
+    const r = await chatConUnModelo(modelo, params);
+    if (r.ok) return r;
+
+    ultimoError = r.error;
+    log.warn("Modelo sin resultado, se pasa al siguiente", {
+      modelo,
+      restantes: modelos.length - modelos.indexOf(modelo) - 1,
+      error: r.error,
+    });
+  }
+
+  return { ok: false, error: ultimoError, durationMs: elapsed() };
+}
+
+/** Una llamada a un modelo concreto, con sus reintentos. */
+async function chatConUnModelo(
+  model: string,
+  params: {
+    messages: ChatMessage[];
+    temperature?: number;
+    maxTokens?: number;
+    json?: boolean;
+  },
+): Promise<AiResult<string>> {
+  const elapsed = timer();
 
   const body: Record<string, unknown> = {
     model,
@@ -126,7 +160,7 @@ export async function chat(params: {
       };
     }
 
-    return { ok: true, data: content.trim(), durationMs: elapsed() };
+    return { ok: true, data: content.trim(), durationMs: elapsed(), model };
   } catch (err) {
     clearTimeout(timeout);
     const aborted = err instanceof Error && err.name === "AbortError";

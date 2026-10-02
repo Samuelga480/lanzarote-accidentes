@@ -56,9 +56,9 @@ export async function GET(): Promise<NextResponse> {
   let aiDetail = "OPENROUTER_API_KEY no definido: las noticias se crean sin reescribir";
   if (aiConfig.enabled()) {
     try {
-      const model = aiConfig.model();
+      const modelos = aiConfig.models();
       aiOk = true;
-      aiDetail = `Proveedor listo (${model})`;
+      aiDetail = `Proveedor listo (${modelos.join(", ")})`;
     } catch {
       aiDetail = "OPENROUTER_API_KEY definido pero la configuracion es incompleta";
     }

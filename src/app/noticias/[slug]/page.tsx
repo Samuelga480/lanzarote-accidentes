@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = accident.seoTitle ?? accident.title;
   const desc = accident.metaDescription ?? accident.excerpt ?? accident.summary;
 
-  const canonical = `/accidentes/${accident.slug}`;
+  const canonical = `/noticias/${accident.slug}`;
 
   return {
     title,
@@ -113,7 +113,7 @@ export default async function AccidentPage({ params }: Props) {
     }),
   ]);
 
-  const articleUrl = `${getSiteUrl()}/accidentes/${accident.slug}`;
+  const articleUrl = `${getSiteUrl()}/noticias/${accident.slug}`;
 
   // Datos estructurados. Se agrupan en un unico @graph para no repetir el
   // @context en cada bloque, y se anaden las migas de pan, que faltaban.
@@ -137,7 +137,7 @@ export default async function AccidentPage({ params }: Props) {
     breadcrumbSchema([
       { name: "Inicio", url: getSiteUrl() },
       { name: accident.municipality.name, url: `${getSiteUrl()}/municipios/${accident.municipality.slug}` },
-      { name: "Accidentes", url: `${getSiteUrl()}/accidentes` },
+      { name: "Noticias", url: `${getSiteUrl()}/noticias` },
       { name: truncate(accident.title, 60) },
     ]),
     webSiteSchema(),

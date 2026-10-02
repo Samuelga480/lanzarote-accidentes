@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!municipality) return { title: "Municipio no encontrado" };
 
   return {
-    title: `Accidentes en ${municipality.name}`,
-    description: `Listado de accidentes de coches, motos y otros vehículos registrados en ${municipality.name}, Lanzarote. Filtra por fecha y tipo de vehículo.`,
+    title: `Noticias en ${municipality.name}`,
+    description: `Listado de noticias publicadas en ${municipality.name}, Lanzarote. Filtra por tipo de noticia y por fecha.`,
     alternates: { canonical: `/municipios/${slug}` },
   };
 }
@@ -58,7 +58,7 @@ export default async function MunicipalityPage({ params, searchParams }: Props) 
           Municipio de Lanzarote
         </p>
         <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-2">
-          Accidentes en {municipality.name}
+          Noticias en {municipality.name}
         </h1>
         <p className="text-ink-mute text-sm">
           {total} {total === 1 ? "noticia publicada" : "noticias publicadas"} en este municipio.

@@ -182,7 +182,7 @@ export default async function ResumenAnualPage({ searchParams }: Props) {
                 {summary.accidents.map((a) => (
                   <Link
                     key={a.id}
-                    href={`/accidentes/${a.slug}`}
+                    href={`/noticias/${a.slug}`}
                     className="resumen-accidente-item"
                   >
                     <div className="resumen-accidente-title">{a.title}</div>
@@ -199,7 +199,7 @@ export default async function ResumenAnualPage({ searchParams }: Props) {
                 <p className="resumen-nota">
                   Se muestran las {summary.accidents.length} más recientes. Quedan{" "}
                   {recortado} más en la{" "}
-                  <Link href="/accidentes">portada de accidentes</Link>.
+                  <Link href="/noticias">portada de accidentes</Link>.
                 </p>
               ) : null}
             </section>

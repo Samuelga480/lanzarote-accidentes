@@ -6,9 +6,9 @@ import { SITE, zonesByMunicipality } from "@/lib/constants";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Accidentes por zona",
+  title: "Noticias por zona",
   description:
-    "Todas las zonas y localidades de Lanzarote con los accidentes registrados en cada una: Puerto del Carmen, Costa Teguise, Playa Blanca, Órzola, Famara, La Geria y el resto.",
+    "Todas las zonas y localidades de Lanzarote con las noticias publicadas en cada una: Puerto del Carmen, Costa Teguise, Playa Blanca, Órzola, Famara, La Geria y el resto.",
   alternates: { canonical: "/zonas" },
 };
 
@@ -33,7 +33,7 @@ export default async function ZonesPage() {
 
       <header className="mb-8">
         <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight">
-          Accidentes por zona
+          Noticias por zona
         </h1>
         <p className="text-ink-soft mt-2 text-sm md:text-base max-w-2xl leading-relaxed">
           Las {grupos.reduce((s, g) => s + g.zones.length, 0)} localidades y zonas de los{" "}

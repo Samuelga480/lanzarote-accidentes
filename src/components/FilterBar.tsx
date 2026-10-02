@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { MUNICIPALITIES, VEHICLE_LIST, DATE_RANGE_OPTIONS } from "@/lib/constants";
+import { MUNICIPALITIES, CATEGORY_LIST, DATE_RANGE_OPTIONS } from "@/lib/constants";
 
 /**
  * Buscador y filtros.
@@ -45,12 +45,12 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
   };
 
   const hasFilters = Boolean(
-    params.get("municipio") || params.get("vehicle") || params.get("desde") || params.get("q"),
+    params.get("municipio") || params.get("categoria") || params.get("desde") || params.get("q"),
   );
 
   return (
     <section className="controls">
-      <form action="/accidentes" method="get" onSubmit={onSubmit} role="search" aria-label="Filtrar accidentes">
+      <form action="/noticias" method="get" onSubmit={onSubmit} role="search" aria-label="Filtrar noticias">
         <div className="controls-inner">
           {showSearch ? (
             <div className="search-box">
@@ -99,19 +99,19 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
               ))}
             </select>
 
-            <label htmlFor="f-veh" className="sr-only">
-              Tipo de vehículo
+            <label htmlFor="f-cat" className="sr-only">
+              Tipo de noticia
             </label>
             <select
-              id="f-veh"
-              name="vehicle"
-              value={params.get("vehicle") ?? ""}
-              onChange={(e) => update("vehicle", e.target.value)}
+              id="f-cat"
+              name="categoria"
+              value={params.get("categoria") ?? ""}
+              onChange={(e) => update("categoria", e.target.value)}
             >
-              <option value="">Todos los vehículos</option>
-              {VEHICLE_LIST.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.plural}
+              <option value="">Todos los tipos</option>
+              {CATEGORY_LIST.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>

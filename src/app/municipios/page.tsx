@@ -6,9 +6,9 @@ import { MUNICIPALITIES, SITE, ZONES, zonesByMunicipality } from "@/lib/constant
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Accidentes por municipio",
+  title: "Noticias por municipio",
   description:
-    "Accidentes de tráfico registrados en cada uno de los siete municipios de Lanzarote: Arrecife, San Bartolomé, Teguise, Tinajo, Tías, Yaiza y Haría.",
+    "Noticias publicadas en cada uno de los siete municipios de Lanzarote: Arrecife, San Bartolomé, Teguise, Tinajo, Tías, Yaiza y Haría.",
   alternates: { canonical: "/municipios" },
 };
 
@@ -36,7 +36,7 @@ export default async function MunicipalitiesPage() {
 
       <header className="mb-8">
         <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight">
-          Accidentes por municipio
+          Noticias por municipio
         </h1>
         <p className="text-ink-soft mt-2 text-sm md:text-base max-w-2xl leading-relaxed">
           Los {MUNICIPALITIES.length} municipios de la isla de Lanzarote. En total, {total}{" "}

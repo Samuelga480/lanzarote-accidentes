@@ -17,8 +17,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const sp = await searchParams;
   const q = (sp.q ?? "").toString().trim();
   return {
-    title: q ? `Buscar: ${q}` : "Buscador de accidentes",
-    description: "Busca accidentes de tráfico en Lanzarote por palabra clave, vía, municipio o zona.",
+    title: q ? `Buscar: ${q}` : "Buscador de noticias",
+    description: "Busca noticias de Lanzarote por palabra clave, municipio o zona.",
     // Las paginas de resultados no se indexan.
     robots: { index: false, follow: true },
   };
@@ -46,7 +46,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
       <header className="mb-6">
         <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-2">
-          Buscar accidentes
+          Buscar noticias
         </h1>
         <p className="text-ink-soft text-sm max-w-2xl leading-relaxed">
           Busca por palabra clave (una vía, una calle, un municipio) y combínalo con los filtros de fecha y
@@ -117,8 +117,8 @@ export default async function SearchPage({ searchParams }: Props) {
             <p className="text-xs text-ink-mute mb-5">
               No hay noticias publicadas que coincidan con{ q ? ` «${q}»` : " estos filtros"}.
             </p>
-            <Link href="/accidentes" className="btn btn-ghost">
-              Ver todos los accidentes
+            <Link href="/noticias" className="btn btn-ghost">
+              Ver todas las noticias
             </Link>
           </div>
         )

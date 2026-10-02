@@ -40,12 +40,13 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   keywords: [
+    "noticias Lanzarote",
+    "actualidad Lanzarote",
+    "noticias Arrecife",
+    "noticias Teguise",
     "accidentes Lanzarote",
     "accidentes de coches Lanzarote",
-    "accidentes de motos Lanzarote",
-    "tráfico Lanzarote",
-    "noticias Arrecife",
-    "siniestros Canarias",
+    "sucesos Lanzarote",
   ],
   authors: [{ name: SITE.organization }],
   robots: {

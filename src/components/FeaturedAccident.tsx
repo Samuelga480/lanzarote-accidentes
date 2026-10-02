@@ -8,7 +8,7 @@ type Props = { accident: AccidentWithMunicipality };
 
 export function FeaturedAccident({ accident }: Props) {
   const { municipality, occurredAt, severity, vehicleType, fatalities, injuries } = accident;
-  const href = `/accidentes/${accident.slug}`;
+  const href = `/noticias/${accident.slug}`;
 
   return (
     <section aria-labelledby="titulo-destacado" className="card overflow-hidden">

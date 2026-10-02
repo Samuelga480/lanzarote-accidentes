@@ -72,6 +72,12 @@ export type AccidentWithMunicipality = AccidentRow & { municipality: Municipalit
 export type AccidentFilters = {
   municipality?: string;
   vehicle?: VehicleType;
+  /**
+   * Tipo de noticia. Es lo que el filtro del sitio llama "tipo de noticia";
+   * sustituye al de vehiculo, que en un diario de cualquier actualidad no
+   * significa nada.
+   */
+  category?: string;
   /** Fecha minima (inclusive) */
   from?: Date;
   /** Fecha maxima (inclusive), se incrementa un dia para cubrir el entero */
@@ -89,6 +95,9 @@ function buildWhere(filters: AccidentFilters): Prisma.AccidentWhereInput {
   }
   if (filters.vehicle) {
     and.push({ vehicleType: filters.vehicle });
+  }
+  if (filters.category) {
+    and.push({ category: filters.category as Accident["category"] });
   }
   if (filters.from || filters.to) {
     const occurredAt: Prisma.DateTimeFilter = {};

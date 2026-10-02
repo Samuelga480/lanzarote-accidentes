@@ -100,7 +100,7 @@ export function NewsRow({ row }: { row: AdminRow }) {
 
               <div className="modal-actions">
                 {row.status === "aprobada" ? (
-                  <a href={`/accidentes/${row.slug}`} className="btn btn-secondary">
+                  <a href={`/noticias/${row.slug}`} className="btn btn-secondary">
                     Ver en la web
                   </a>
                 ) : (
@@ -119,7 +119,7 @@ export function NewsRow({ row }: { row: AdminRow }) {
           borrador da 404 y el boton parece roto sin serlo.
         */}
         {row.status === "aprobada" ? (
-          <a href={`/accidentes/${row.slug}`} className="btn btn-primary btn-small">
+          <a href={`/noticias/${row.slug}`} className="btn btn-primary btn-small">
             Ver
           </a>
         ) : null}

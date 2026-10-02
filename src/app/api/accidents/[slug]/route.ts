@@ -58,7 +58,7 @@ export async function GET(_request: NextRequest, { params }: Ctx) {
         url: s.url,
         publishedAt: s.publishedAt?.toISOString() ?? null,
       })),
-      url: `/accidentes/${accident.slug}`,
+      url: `/noticias/${accident.slug}`,
     },
   });
 }

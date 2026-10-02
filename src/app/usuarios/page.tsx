@@ -66,7 +66,7 @@ export default async function UsuariosPage({
     <main className="usuarios-main">
       <div className="resumen-header">
         <h1>Usuarios Registrados</h1>
-        <p>Cuentas dadas de alta en Accidentes Lanzarote</p>
+        <p>Cuentas dadas de alta en Noticias 24/7</p>
       </div>
 
       {/* Buscador y filtro */}

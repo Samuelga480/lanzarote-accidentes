@@ -75,7 +75,7 @@ export function newsArticleSchema(params: {
   fatalities: number;
   injuries: number;
 }) {
-  const url = `${siteUrl()}/accidentes/${params.slug}`;
+  const url = `${siteUrl()}/noticias/${params.slug}`;
   const image = params.imageUrl
     ? params.imageUrl.startsWith("http")
       ? params.imageUrl

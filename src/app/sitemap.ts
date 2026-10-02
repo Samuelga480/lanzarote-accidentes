@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${base}/`, lastModified: now, changeFrequency: "hourly", priority: 1 },
-    { url: `${base}/accidentes`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },
+    { url: `${base}/noticias`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },
     { url: `${base}/mapa`, lastModified: now, changeFrequency: "hourly", priority: 0.7 },
     { url: `${base}/resumen`, lastModified: now, changeFrequency: "daily", priority: 0.5 },
     { url: `${base}/resumen-anual`, lastModified: now, changeFrequency: "daily", priority: 0.5 },
@@ -47,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await getPublishedSlugs();
 
   const articleRoutes: MetadataRoute.Sitemap = articles.map((a) => ({
-    url: `${base}/accidentes/${a.slug}`,
+    url: `${base}/noticias/${a.slug}`,
     lastModified: a.updatedAt,
     changeFrequency: "yearly",
     priority: 0.6,

@@ -233,6 +233,24 @@ export const CATEGORY_LABEL: Record<string, string> = {
   OTRO: "Otro",
 };
 
+/**
+ * Los tipos de noticia, en el orden en que salen en el filtro.
+ *
+ * Se construye desde CATEGORY_LABEL y no al reves, para que anadir un tipo en
+ * las etiquetas lo anade aqui solo. Este listado sustituye al de vehiculos en
+ * los filtros del sitio: en un diario que recoge cualquier actualidad, "tipo de
+ * vehiculo" no significa nada y "tipo de noticia" si.
+ *
+ * Se mantienen los valores que ya tenia la columna `category` de la base de
+ * datos. Anadir tipos nuevos (deportes, politica, cultura) exige cambiar el
+ * enum, y eso es una migracion que hay que aplicar a mano: no se hace aqui para
+ * no dejar el sitio sin desplegar. Todo lo que no encaje en ninguno de estos
+ * tipos cae en OTRO.
+ */
+export const CATEGORY_LIST: Array<{ value: string; label: string }> = Object.entries(CATEGORY_LABEL)
+  .filter(([value]) => value !== "OTRO")
+  .map(([value, label]) => ({ value, label }));
+
 export const CATEGORY_PILL: Record<string, string> = {
   ACCIDENTE_TRAFICO: "colision",
   ATROPELLO: "atropello",
@@ -281,17 +299,16 @@ export const ORIGIN_LABEL: Record<Origin, string> = {
 
 export const SITE = {
   /**
-   * El nombre debe coincidir con el dominio (accidenteslanzarote.com).
-   *
-   * Antes decia "Tráfico Lanzarote", que era el nombre del proyecto antiguo y
-   * no el del sitio. Con el dominio ya cambiado, mantener el nombre viejo
-   * desconcertaba: la direccion decia una cosa y la pagina otra.
+   * El nombre ya no coincide con el dominio (accidenteslanzarote.com), y es a
+   * proposito: el sitio paso de ser un diario de accidentes de trafico a
+   * recoger cualquier noticia de la isla. El dominio es el que era y moverlo
+   * seria otra historia.
    */
-  name: "Accidentes Lanzarote",
-  tagline: "Accidentes, emergencias y rescates en la isla",
+  name: "Noticias 24/7",
+  tagline: "Toda la actualidad de Lanzarote, a cualquier hora",
   description:
-    "Noticias de accidentes de coches, motos y otros vehículos, emergencias y rescates en Lanzarote. Información por municipio, carretera, fecha y tipo de vehículo.",
-  organization: "Accidentes Lanzarote",
+    "Noticias de Lanzarote de cualquier tipo: accidentes, incendios, rescates, emergencias y toda la actualidad de la isla. Información por municipio, tipo de noticia y fecha.",
+  organization: "Noticias 24/7",
   locale: "es_ES",
   twitter: "@accidentesLZ",
 };

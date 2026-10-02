@@ -45,7 +45,7 @@ export default async function EntrarPage() {
                 <path d="M2 12l10 5 10-5" />
               </svg>
               <h1>
-                Accidentes <span>Lanzarote</span>
+                Noticias <span>24/7</span>
               </h1>
             </div>
             <p>Iniciar sesion</p>

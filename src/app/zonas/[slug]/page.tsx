@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const municipio = MUNICIPALITY_BY_SLUG.get(zona.municipalitySlug);
   return {
-    title: `Accidentes en ${zona.name}`,
-    description: `Listado de accidentes registrados en ${zona.name}${municipio ? `, ${municipio.name}` : ""}, Lanzarote.`,
+    title: `Noticias en ${zona.name}`,
+    description: `Listado de noticias publicadas en ${zona.name}${municipio ? `, ${municipio.name}` : ""}, Lanzarote.`,
     alternates: { canonical: `/zonas/${slug}` },
   };
 }
@@ -67,7 +67,7 @@ export default async function ZonePage({ params }: Props) {
           {municipio ? `Zona de ${municipio.name}` : "Zona de Lanzarote"}
         </p>
         <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-2">
-          Accidentes en {zona.name}
+          Noticias en {zona.name}
         </h1>
         <p className="text-ink-mute text-sm">
           {accidents.length}{" "}
@@ -79,7 +79,7 @@ export default async function ZonePage({ params }: Props) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {accidents.map((a) => (
             <article key={a.id} className="card p-5">
-              <Link href={`/accidentes/${a.slug}`} className="block hover:text-alert">
+              <Link href={`/noticias/${a.slug}`} className="block hover:text-alert">
                 <h2 className="font-serif text-lg font-bold leading-snug mb-1">{a.title}</h2>
               </Link>
               <p className="text-xs text-ink-mute">

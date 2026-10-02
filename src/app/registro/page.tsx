@@ -42,7 +42,7 @@ export default async function RegistroPage() {
                 <path d="M2 12l10 5 10-5" />
               </svg>
               <h1>
-                Accidentes <span>Lanzarote</span>
+                Noticias <span>24/7</span>
               </h1>
             </div>
             <p>Crear cuenta de invitado</p>

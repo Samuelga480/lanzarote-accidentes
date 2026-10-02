@@ -169,7 +169,7 @@ export function MapLanzarote({
         info.appendChild(tipo);
 
         const link = document.createElement("a");
-        link.href = `/accidentes/${a.slug}`;
+        link.href = `/noticias/${a.slug}`;
         link.textContent = "Ver noticia completa";
         info.appendChild(link);
 

@@ -129,7 +129,7 @@ export default async function UsuarioPublicoPage({ params }: { params: Promise<{
                 <div className="comentario-fecha">{formatDate(c.createdAt)}</div>
                 <div className="comentario-noticia">
                   En{" "}
-                  <Link href={`/accidentes/${c.accident.slug}`}>{c.accident.title}</Link>
+                  <Link href={`/noticias/${c.accident.slug}`}>{c.accident.title}</Link>
                 </div>
               </article>
             ))

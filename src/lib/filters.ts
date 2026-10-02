@@ -1,6 +1,6 @@
 import type { VehicleType } from "@/lib/types";
 import type { AccidentFilters } from "@/lib/queries";
-import { MUNICIPALITIES } from "@/lib/constants";
+import { MUNICIPALITIES, CATEGORY_LABEL } from "@/lib/constants";
 
 /** Forma de los searchParams tal y como llegan desde Next.js (string | string[]). */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -24,11 +24,15 @@ function isVehicle(v: string | undefined): v is VehicleType {
 export function parseFilters(sp: RawSearchParams): AccidentFilters & { q: string } {
   const municipio = one(sp.municipio);
   const vehicle = one(sp.vehicle);
+  const categoria = one(sp.categoria);
   const desde = one(sp.desde);
   const q = (one(sp.q) ?? "").trim().slice(0, 120);
 
   const validMunicipality = MUNICIPALITIES.some((m) => m.slug === municipio) ? municipio : undefined;
   const validVehicle = isVehicle(vehicle) ? vehicle : undefined;
+  // Se comprueba contra las etiquetas conocidas: una URL manipulada con un
+  // valor inventado no debe acabar en la consulta.
+  const validCategory = categoria && categoria in CATEGORY_LABEL ? categoria : undefined;
 
   // "desde" es un numero de dias hacia atras.
   let from: Date | undefined;
@@ -43,6 +47,7 @@ export function parseFilters(sp: RawSearchParams): AccidentFilters & { q: string
   return {
     municipality: validMunicipality,
     vehicle: validVehicle,
+    category: validCategory,
     from,
     q,
     take,
@@ -61,10 +66,10 @@ export function describeFilters(
     if (m) parts.push(m.name);
   }
   if (f.q) parts.push(`"${f.q}"`);
-  if (f.vehicle) parts.push(f.vehicle.toLowerCase());
+  if (f.category) parts.push(CATEGORY_LABEL[f.category] ?? f.category);
 
   return {
-    title: parts.length ? parts.join(" · ") : "Todos los accidentes",
+    title: parts.length ? parts.join(" · ") : "Todas las noticias",
     parts,
   };
 }

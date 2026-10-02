@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       approxLat: a.approxLat,
       approxLon: a.approxLon,
       imageUrl: a.imageUrl,
-      url: `/accidentes/${a.slug}`,
+      url: `/noticias/${a.slug}`,
     })),
   });
 }

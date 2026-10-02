@@ -29,6 +29,28 @@ const nextConfig: NextConfig = {
     return [
       {
         /*
+          El sitio paso de recoger accidentes a recoger cualquier noticia de la
+          isla, y las noticias se movieron de /accidentes a /noticias. Estas
+          reglas hacen que las direcciones antiguas sigan funcionando.
+
+          Van en `redirects` y no como paginas que redirijan, porque asi las
+          resuelve Vercel antes de llegar a Next: no gastan una invocacion de
+          servidor y el buscador ve el redirect permanente desde el principio,
+          que es lo que necesita para traspasar la autoridad de las URL antiguas.
+          `permanent: true` responde con un 308, que conserva el metodo de la
+          peticion; para estas URLs da igual porque solo llegan peticiones GET.
+        */
+        source: "/accidentes",
+        destination: "/noticias",
+        permanent: true,
+      },
+      {
+        source: "/accidentes/:slug",
+        destination: "/noticias/:slug",
+        permanent: true,
+      },
+      {
+        /*
           Todo el sitio tiene que ir por HTTPS, y no solo por buena costumbre: las
           redes de anuncios rechazan los sitios que sirven contenido en HTTP, y si
           el revisor recibe la pagina sin cifrar la revision se queda en el camino.

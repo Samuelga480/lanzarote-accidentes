@@ -94,7 +94,7 @@ export async function createAccidentAction(
   try {
     const created = await createAccident(parsed.input, "editor");
     revalidatePath("/");
-    revalidatePath("/accidentes");
+    revalidatePath("/noticias");
     redirect(`/admin/${created.id}?creado=1`);
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e) throw e; // redirect()
@@ -123,8 +123,8 @@ export async function updateAccidentAction(
   try {
     await updateAccident(id, parsed.input, "editor");
     revalidatePath("/");
-    revalidatePath("/accidentes");
-    revalidatePath(`/accidentes`);
+    revalidatePath("/noticias");
+    revalidatePath(`/noticias`);
     return { ok: true, message: "Cambios guardados." };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "No se pudo guardar." };

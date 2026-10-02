@@ -18,13 +18,13 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const f = parseFilters(sp);
   const { title } = describeFilters(f);
   const desc = f.q
-    ? `Resultados de la búsqueda "${f.q}" en ${SITE.name}. Accidentes de tráfico en Lanzarote filtrados por municipio, fecha y vehículo.`
-    : `${title} en ${SITE.name}. Listado de accidentes de tráfico en Lanzarote con filtros por municipio, fecha y tipo de vehículo.`;
+    ? `Resultados de la búsqueda "${f.q}" en ${SITE.name}. Noticias de Lanzarote filtradas por municipio, tipo de noticia y fecha.`
+    : `${title} en ${SITE.name}. Toda la actualidad de Lanzarote, con filtros por municipio, tipo de noticia y fecha.`;
 
   return {
     title,
     description: desc.slice(0, 180),
-    alternates: { canonical: "/accidentes" },
+    alternates: { canonical: "/noticias" },
     // Las paginas de resultados no aportan contenido unico al buscador.
     robots: { index: false, follow: true },
   };
@@ -47,7 +47,7 @@ export default async function AccidentsPage({ searchParams }: Props) {
         <span aria-hidden="true" className="mx-1.5">
           /
         </span>
-        <span className="text-ink-soft">Accidentes</span>
+        <span className="text-ink-soft">Noticias</span>
       </nav>
 
       <header className="mb-6">
@@ -73,7 +73,7 @@ export default async function AccidentsPage({ searchParams }: Props) {
               </Fragment>
             ))}
           </div>
-          <Pagination base="/accidentes" sp={sp} page={page} total={total} take={filters.take ?? 12} />
+          <Pagination base="/noticias" sp={sp} page={page} total={total} take={filters.take ?? 12} />
         </>
       ) : (
         <div className="card p-10 text-center">
@@ -81,8 +81,8 @@ export default async function AccidentsPage({ searchParams }: Props) {
           <p className="text-xs text-ink-mute mb-5">
             Prueba a ampliar el rango de fechas o a quitar el filtro de municipio.
           </p>
-          <Link href="/accidentes" className="btn btn-ghost">
-            Ver todos los accidentes
+          <Link href="/noticias" className="btn btn-ghost">
+            Ver todas las noticias
           </Link>
         </div>
       )}

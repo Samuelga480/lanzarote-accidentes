@@ -43,7 +43,7 @@ export async function GET(): Promise<Response> {
 
   const items = articles
     .map((a) => {
-      const url = `${base}/accidentes/${a.slug}`;
+      const url = `${base}/noticias/${a.slug}`;
       const image = a.images[0];
       const imageUrl = image?.ogPath ?? image?.localPath ?? null;
       const fullImage = imageUrl ? (imageUrl.startsWith("http") ? imageUrl : `${base}${imageUrl}`) : null;

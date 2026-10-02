@@ -1151,7 +1151,7 @@ body {
   }
 }
 /* Boton de enviar de los filtros. Solo se ve sin JavaScript (va dentro de un
-   <noscript>), y hace lo mismo que el desplegable: ir a /accidentes con los
+   <noscript>), y hace lo mismo que el desplegable: ir a /noticias con los
    filtros puestos. */
 .filters-submit {
   display: inline-block;

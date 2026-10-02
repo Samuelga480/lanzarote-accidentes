@@ -142,7 +142,7 @@ export default async function ResumenPage({ searchParams }: Props) {
                 {summary.accidents.map((a) => (
                   <Link
                     key={a.id}
-                    href={`/accidentes/${a.slug}`}
+                    href={`/noticias/${a.slug}`}
                     className="resumen-accidente-item"
                   >
                     <div className="resumen-accidente-title">{a.title}</div>

@@ -4,7 +4,7 @@ import { SITE } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Aviso legal y privacidad",
   description:
-    "Criterios editoriales, política de privacidad y tratamiento de datos personales del portal de accidentes de tráfico en Lanzarote.",
+    "Criterios editoriales, política de privacidad y tratamiento de datos personales del portal de noticias de Lanzarote.",
   alternates: { canonical: "/privacidad" },
 };
 

@@ -25,7 +25,7 @@ type Props = {
 
 export function AccidentCard({ accident, variant = "normal" }: Props) {
   const { municipality, occurredAt, severity, category } = accident;
-  const href = `/accidentes/${accident.slug}`;
+  const href = `/noticias/${accident.slug}`;
 
   // La zona solo aparece si el medio la nombro. Un null en la base de datos es
   // lo normal, no un dato que haya que rellenar con el nombre del municipio.

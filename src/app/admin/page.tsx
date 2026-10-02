@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, getSession } from "@/lib/auth-guard";
 import { formatDate } from "@/lib/format";
 import { CATEGORY_LABEL, STATUS_LABEL } from "@/lib/constants";
+import { duplicateFilter } from "@/lib/dedupe";
 import { RunCycleButton } from "@/components/admin/RunCycleButton";
 import { NewsRow, type AdminRow } from "@/components/admin/NewsRow";
 import { AdminPasswordForm } from "@/components/admin/AdminPasswordForm";
@@ -58,11 +59,21 @@ export default async function AdminPage({
   // Se cuentan las tres cifras del panel antes de aplicar filtros: las cifras
   // son del total, no de lo que hay en pantalla.
   const [totales, porEstado, zonas, filas] = await Promise.all([
-    prisma.accident.count(),
-    prisma.accident.groupBy({ by: ["status"], _count: { _all: true } }),
+    // Las cifras se cuentan con el mismo filtro que la lista: si una duplicada
+    // salia en el listado pero no en "Pendientes", el editor ve un numero que
+    // no corresponde a lo que tiene delante.
+    prisma.accident.count({ where: duplicateFilter() }),
+    prisma.accident.groupBy({
+      by: ["status"],
+      where: duplicateFilter(),
+      _count: { _all: true },
+    }),
     prisma.municipality.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.accident.findMany({
       where: {
+        // Las duplicadas que aun no estan publicadas no salen: su texto ya esta en
+        // la canonica y aprobarlas republicaba el mismo suceso.
+        ...duplicateFilter(),
         ...(estado && estado in STATUS_LABEL ? { status: estado } : {}),
         ...(zona ? { municipalityId: zona } : {}),
         ...(q ? { title: { contains: q } } : {}),

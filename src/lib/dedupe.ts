@@ -315,10 +315,27 @@ export async function mergeIntoCanonical(params: {
         },
       });
 
-      // 3. Marcar la duplicada. No se borra.
+      /*
+        3. Marcar la duplicada. No se borra, pero se descarta.
+
+        `duplicateOfId` es solo una marca de agrupacion: no cambia el estado
+        editorial. Como el borrador se creo con PENDING_REVIEW, se quedaba en
+        "Pendientes" del panel para siempre, aunque su contenido ya estuviera
+        fusionado en la noticia canonica. Aprobandola se publicaba una segunda
+        vez el mismo suceso, y sin tocarla nunca se iba de la cola. Por eso
+        aqui pasa a REJECTED: su texto vive ya en la canonica y el editor no
+        tiene nada que decidir sobre el.
+      */
       await tx.accident.update({
         where: { id: duplicateId },
-        data: { duplicateOfId: canonicalId },
+        data: {
+          duplicateOfId: canonicalId,
+          status: "REJECTED",
+          reviewedAt: new Date(),
+          reviewedBy: "dedupe",
+          // Al descartarse deja de poder estar destacada.
+          isFeatured: false,
+        },
       });
     });
 
@@ -431,7 +448,17 @@ export async function findSimilar(
   return out.sort((a, b) => b.similarity - a.similarity);
 }
 
-/** Filtro SQL para acortar la ventana en consultas del panel. */
+/**
+ * Filtro SQL para el panel: oculta las noticias ya fusionadas en otra.
+ *
+ * Solo se ocultan las que NO estan publicadas.Motivo: su texto vive ya en la
+ * canonica, asi que mientras esten en revision son ruido en la cola y, peor,
+ * aprobables por error, que es como el mismo suceso acababa publicado dos
+ * veces. Las que ya estan publicadas se siguen viendo a proposito: son las
+ * que puede quedar de una fusion antigua, y el editor tiene que poder
+ * abrirlas para archivarlas. Si tambien se ocultaran, se quedaria sin manera
+ * de limpiarlas desde el panel.
+ */
 export function duplicateFilter(): Prisma.AccidentWhereInput {
-  return { duplicateOfId: null };
+  return { NOT: { duplicateOfId: { not: null }, status: { not: "PUBLISHED" } } };
 }

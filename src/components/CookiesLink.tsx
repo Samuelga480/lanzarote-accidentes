@@ -11,10 +11,16 @@
  * vez. La persona tiene que poder cambiarlo despues, y sin este enlace no hay
  * forma de retirarlo.
  *
- * openPreferences() viene documentado por iubenda. La comprobacion evita un
- * error en consola si alguien llega aqui con el script bloqueado o si iubenda
- * cambia el nombre: sin CMP no hay Preferences que abrir, y no merece la pena
- * romper la pagina por eso.
+ * ---------------------------------------------------------------------------
+ *  POR QUE PRUEBA VARIAS PUERTAS
+ * ---------------------------------------------------------------------------
+ *
+ * Cada CMP publica su ventana de preferencias con un nombre distinto, y las
+ * documentan por separado: InMobi Choice y iubenda no comparten metodo. En vez
+ * de atarse a una sola y romperse al cambiarla, se prueban las que existen. La
+ * comprobacion evita un error en consola si la CMP no ha cargado, que es lo que
+ * pasa si alguien bloquea el script: sin CMP no hay preferencias que abrir, y no
+ * merece la pena romper la pagina por eso.
  */
 export function CookiesLink() {
   return (
@@ -22,10 +28,14 @@ export function CookiesLink() {
       type="button"
       className="cookies-link"
       onClick={() => {
-        const g = window as unknown as {
-          __iubenda?: { openPreferences?: () => void };
-        };
-        g.__iubenda?.openPreferences?.();
+        const w = window as unknown as Record<string, unknown>;
+        for (const nombre of ["__iubenda", "InMobiPrivacy", "__inmobicmp", "cmplz", "klaro"]) {
+          const api = w[nombre] as { openPreferences?: () => void } | undefined;
+          if (typeof api?.openPreferences === "function") {
+            api.openPreferences();
+            return;
+          }
+        }
       }}
     >
       Cookies

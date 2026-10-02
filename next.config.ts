@@ -46,12 +46,30 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // Next inyecta scripts con nonce/hash; se permite 'unsafe-inline'
               // solo para estilos, que es lo unico que genera Tailwind.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
+              //
+              // Los dominios que se anaden son los que el sitio carga de fuera y
+              // que NECESITAN cargar para funcionar. Antes de anadirlos, la
+              // pagina pedia las tipografias a Google Fonts y la CMP de
+              // consentimiento a la red de anuncios, y las dos estaban
+              // bloqueadas por esta misma politica: el aviso de cookies no salia
+              // nunca y las tipografias caian a las del sistema.
+              //
+              //   cmp.inmobi.com         la CMP (gestor de consentimiento)
+              //   *.themoneytizer.com    la red de anuncios
+              //   fonts.googleapis/gstatic  las dos tipografias del diseno
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cmp.inmobi.com https://*.themoneytizer.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https:",
-              "font-src 'self' data:",
-              // El mapa usa Leaflet y sus teselas.
+              // Las tipografias vienen de Google.
+              "font-src 'self' data: https://fonts.gstatic.com",
+              // El mapa usa Leaflet y sus teselas; la CMP y los anuncios hacen
+              // peticiones de medicion a servidores propios de la red.
               "connect-src 'self' https:",
+              // La CMP y los anuncios van dentro de marcos de otros origenes, que
+              // es donde se sirven los creativos. frame-ancestors sigue en
+              // 'none': eso impide que METAN este sitio dentro de un marco, que
+              // es distinto de meter marcos aqui.
+              "frame-src https://cmp.inmobi.com https://*.themoneytizer.com https:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

@@ -4,6 +4,7 @@ import { FEED_PATH, webSiteSchema, organizationSchema, graphSchema } from "@/lib
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ConsentManager } from "@/components/ConsentManager";
 import "./globals.css";
 // site.css va DESPUES a proposito: es el diseño original del sitio y, al no
 // estar dentro de @layer, gana a las utilidades de Tailwind de globals.css.
@@ -102,6 +103,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap"
         />
+
+        {/*
+          CMP de InMobi Choice, la que exige la red de anuncios. Va en el head y
+          sincrona porque su stub tiene que existir antes de que la red pregunte
+          por el consentimiento: si llega tarde, la primera peticion se queda
+          sin respuesta y la sesion se marca como no consentida.
+        */}
+        <ConsentManager />
         {/*
           JSON-LD de la organizacion y del sitio, en el layout para que esten en
           todas las paginas. El <title> de la pagina anade el sufijo del sitio
@@ -131,22 +140,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
-        {/*
-          Aviso de cookies de iubenda (CMP certificada por TCF).
-
-          Va al final del body y no en el head a proposito: si se bloqueara, no
-          bloquea el pintado de la pagina. Ademas el RGPD lo obliga: el sitio
-          carga las tipografias desde Google Fonts, con lo que manda la IP del
-          visitante a un servidor de Estados Unidos, y en cuanto haya
-          publicidad hay que pedir consentimiento.
-
-          Este es el widget que creo el editor al darse de alta. El identificador
-          del script es su y solo suyo: no se cambia sin que lo cambie iubenda.
-        */}
-        <script
-          type="text/javascript"
-          src="https://embeds.iubenda.com/widgets/af364be1-097e-40bb-9aca-e6de358cd2b6.js"
-        />
       </body>
     </html>
   );

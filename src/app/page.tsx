@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AccidentCard } from "@/components/AccidentCard";
+import { AdSlot } from "@/components/AdSlot";
 import { FilterBar } from "@/components/FilterBar";
 import { MapLanzarote } from "@/components/MapLanzarote";
 import {
@@ -87,6 +88,9 @@ export default async function HomePage({ searchParams }: Props) {
             <h2 id="titulo-noticias">Noticias recientes</h2>
             <p>Últimos accidentes reportados en Lanzarote</p>
           </div>
+
+          {/* Un solo hueco en la portada, como pidio el editor. */}
+          <AdSlot position="portada" />
 
           {list.items.length > 0 ? (
             <div className="news-grid">

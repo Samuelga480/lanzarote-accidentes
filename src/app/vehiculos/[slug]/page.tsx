@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type { VehicleType } from "@/lib/types";
+import { Fragment } from "react";
 import { AccidentCard } from "@/components/AccidentCard";
+import { AdSlot } from "@/components/AdSlot";
 import { Pagination } from "@/components/Pagination";
 import { listAccidents } from "@/lib/queries";
 import { parseFilters, type RawSearchParams } from "@/lib/filters";
@@ -71,8 +73,12 @@ export default async function VehiclePage({ params, searchParams }: Props) {
       {items.length > 0 ? (
         <>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((a) => (
-              <AccidentCard key={a.id} accident={a} />
+            {items.map((a, i) => (
+              <Fragment key={a.id}>
+                <AccidentCard accident={a} />
+                {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
+                <AdSlot indice={i} position={`vehiculo-${i}`} />
+              </Fragment>
             ))}
           </div>
           <Pagination base={`/vehiculos/${slug}`} sp={sp} page={page} total={total} take={filters.take ?? 12} />

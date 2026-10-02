@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import { AccidentCard } from "@/components/AccidentCard";
+import { AdSlot } from "@/components/AdSlot";
 import { FilterBar } from "@/components/FilterBar";
 import { Pagination } from "@/components/Pagination";
 import { listAccidents } from "@/lib/queries";
@@ -99,8 +101,12 @@ export default async function SearchPage({ searchParams }: Props) {
               {total} {total === 1 ? "resultado" : "resultados"}
             </h2>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((a) => (
-                <AccidentCard key={a.id} accident={a} />
+              {items.map((a, i) => (
+                <Fragment key={a.id}>
+                  <AccidentCard accident={a} />
+                  {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
+                  <AdSlot indice={i} position={`buscar-${i}`} />
+                </Fragment>
               ))}
             </div>
             <Pagination base="/buscar" sp={sp} page={page} total={total} take={filters.take ?? 12} />

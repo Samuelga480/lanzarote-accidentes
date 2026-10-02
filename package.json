@@ -1,63 +1,63 @@
 {
-  "name": "lanzarote-accidentes",
-  "version": "2.0.0",
-  "description": "Plataforma de noticias de accidentes, emergencias y actuaciones de los servicios de emergencia en Lanzarote. Deteccion automatica 24/7, verificacion, reescritura con IA y panel de aprobacion manual. Nunca publica de forma automatica.",
-  "private": true,
-  "engines": {
-    "node": ">=20.11"
-  },
-  "scripts": {
-    "dev": "next dev",
-    "postinstall": "prisma generate",
-    "prebuild": "prisma generate",
-    "build": "next build",
-    "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "db:migrate": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev",
-    "db:seed": "prisma db seed",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force",
-    "setup": "prisma migrate deploy && prisma db seed",
-    "monitor:once": "tsx src/worker/run-cycle.ts",
-    "test": "tsx tests/logic.ts && tsx tests/endpoints.ts",
-    "test:logic": "tsx tests/logic.ts",
-    "test:endpoints": "tsx tests/endpoints.ts"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.mjs"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "@types/leaflet": "^1.9.12",
-    "cheerio": "^1.2.0",
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.5",
-    "fast-xml-parser": "^5.11.2",
-    "leaflet": "^1.9.4",
-    "next": "^15.5.26",
-    "nodemailer": "^10.0.13",
-    "prisma": "^6.19.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "sharp": "^0.35.5",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.12",
-    "@types/node": "^22.15.0",
-    "@types/nodemailer": "^7.0.9",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "tailwindcss": "^4.1.12",
-    "tsx": "^4.23.15",
-    "typescript": "^5.8.2"
-  },
-  "allowScripts": {
-    "@prisma/client@6.19.3": true,
-    "@prisma/engines@6.19.3": true,
-    "esbuild@0.28.2": true,
-    "prisma@6.19.3": true,
-    "sharp": true
-  }
+    "name":  "lanzarote-accidentes",
+    "version":  "2.0.0",
+    "description":  "Plataforma de noticias de accidentes, emergencias y actuaciones de los servicios de emergencia en Lanzarote. Deteccion automatica 24/7, verificacion, reescritura con IA y panel de aprobacion manual. Nunca publica de forma automatica.",
+    "private":  true,
+    "engines":  {
+                    "node":  "\u003e=20.11"
+                },
+    "scripts":  {
+                    "dev":  "next dev",
+                    "postinstall":  "prisma generate",
+                    "prebuild":  "prisma generate",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "typecheck":  "tsc --noEmit",
+                    "db:migrate":  "prisma migrate deploy",
+                    "db:migrate:dev":  "prisma migrate dev",
+                    "db:seed":  "prisma db seed",
+                    "db:studio":  "prisma studio",
+                    "db:reset":  "prisma migrate reset --force",
+                    "setup":  "prisma migrate deploy \u0026\u0026 prisma db seed",
+                    "monitor:once":  "tsx src/worker/run-cycle.ts",
+                    "test":  "tsx tests/logic.ts \u0026\u0026 tsx tests/endpoints.ts \u0026\u0026 tsx tests/ads.ts",
+                    "test:logic":  "tsx tests/logic.ts",
+                    "test:endpoints":  "tsx tests/endpoints.ts"
+                },
+    "prisma":  {
+                   "seed":  "node prisma/seed.mjs"
+               },
+    "dependencies":  {
+                         "@prisma/client":  "^6.19.3",
+                         "@types/leaflet":  "^1.9.12",
+                         "cheerio":  "^1.2.0",
+                         "cors":  "^2.8.6",
+                         "dotenv":  "^18.0.5",
+                         "fast-xml-parser":  "^5.11.2",
+                         "leaflet":  "^1.9.4",
+                         "next":  "^15.5.26",
+                         "nodemailer":  "^10.0.13",
+                         "prisma":  "^6.19.3",
+                         "react":  "^19.1.0",
+                         "react-dom":  "^19.1.0",
+                         "sharp":  "^0.35.5",
+                         "zod":  "^3.25.76"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/postcss":  "^4.1.12",
+                            "@types/node":  "^22.15.0",
+                            "@types/nodemailer":  "^7.0.9",
+                            "@types/react":  "^19.1.0",
+                            "@types/react-dom":  "^19.1.0",
+                            "tailwindcss":  "^4.1.12",
+                            "tsx":  "^4.23.15",
+                            "typescript":  "^5.8.2"
+                        },
+    "allowScripts":  {
+                         "@prisma/client@6.19.3":  true,
+                         "@prisma/engines@6.19.3":  true,
+                         "esbuild@0.28.2":  true,
+                         "prisma@6.19.3":  true,
+                         "sharp":  true
+                     }
 }

@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { FilterBar } from "@/components/FilterBar";
 import { MapLanzarote } from "@/components/MapLanzarote";
+import { Fragment } from "react";
 import { AccidentCard } from "@/components/AccidentCard";
+import { AdSlot } from "@/components/AdSlot";
 import { getAccidentsForMap, getPublicStats, listAccidents } from "@/lib/queries";
 import { parseFilters, type RawSearchParams } from "@/lib/filters";
 import { SITE } from "@/lib/constants";
@@ -58,8 +60,12 @@ export default async function MapaPage({ searchParams }: Props) {
 
           {list.items.length > 0 ? (
             <div className="news-grid">
-              {list.items.map((a) => (
-                <AccidentCard key={a.id} accident={a} />
+              {list.items.map((a, i) => (
+                <Fragment key={a.id}>
+                  <AccidentCard accident={a} />
+                  {/* Ritmo de publicidad: 2 de cada 3 noticias llevan hueco. */}
+                  <AdSlot indice={i} position={`mapa-${i}`} />
+                </Fragment>
               ))}
             </div>
           ) : (

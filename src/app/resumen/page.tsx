@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getWeeklySummary, listWeeksWithAccidents } from "@/lib/queries";
+import { WeekSelect } from "@/components/WeekSelect";
 import { formatDate } from "@/lib/format";
 import { SITE } from "@/lib/constants";
 
@@ -57,46 +58,17 @@ export default async function ResumenPage({ searchParams }: Props) {
         </div>
 
         {/*
-          Selector de semana. Es un formulario con GET: al cambiar el desplegable
-          se envia y la pagina se vuelve a renderizar en el servidor. Asi el
-          enlace a una semana concreta es compartible.
+          El desplegable es un componente de cliente porque necesita onChange
+          para navegar. El resto de la pagina se renderiza en el servidor, y la
+          semana queda en la URL para que el enlace sea compartible.
         */}
-        <form method="get" action="/resumen" className="resumen-filters">
-          <label htmlFor="resumen-semana" className="sr-only">
-            Selecciona una semana
-          </label>
-          <select
-            id="resumen-semana"
-            name="semana"
-            className="resumen-select"
-            defaultValue={summary.weekStart.toISOString().slice(0, 10)}
-            onChange={(e) => {
-              // formElement no esta en los tipos de React para select, pero es
-              // una propiedad estandar de HTMLSelectElement desde siempre.
-              const el = e.currentTarget as HTMLSelectElement;
-              el.form?.requestSubmit();
-            }}
-          >
-            {weeks.length > 0 ? (
-              weeks.map((w) => (
-                <option key={w.toISOString()} value={w.toISOString().slice(0, 10)}>
-                  {optionLabel(w)}
-                </option>
-              ))
-            ) : (
-              <option value="">Semana actual</option>
-            )}
-          </select>
-          {/*
-            Boton para navegadores o#__CLIENT_NAVIGATE____ no ejecutan el onChange de un
-            select. No se muestra; el desplegable ya hace el trabajo, pero sin
-            el boton el formulario no tendria forma de enviarse con teclado.
-          */}
-          {/* Boton de envio: el desplegable ya dispara el formulario al cambiar. */}
-          <button type="submit" className="sr-only">
-            Ver semana
-          </button>
-        </form>
+        <WeekSelect
+          weeks={weeks.map((w) => ({
+            value: w.toISOString().slice(0, 10),
+            label: optionLabel(w),
+          }))}
+          current={summary.weekStart.toISOString().slice(0, 10)}
+        />
 
         {summary.total === 0 ? (
           <p className="resumen-vacio">

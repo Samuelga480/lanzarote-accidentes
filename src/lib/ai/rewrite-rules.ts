@@ -48,15 +48,63 @@ const TITULO_CATEGORIA: Record<IncidentCategory, string> = {
   OTRO: "Suceso",
 };
 
-/** Sustantivo de vehiculo, para las frases del tipo "colision entre turismos". */
-const SUSTANTIVO_VEHICULO: Record<VehicleType, string> = {
-  COCHE: "un turismo",
-  MOTO: "una moto",
-  CAMION: "un camión",
-  BICICLETA: "una bicicleta",
-  PEATON: "un peatón",
-  OTROS: "un vehículo",
+/**
+ * Sustantivo de vehiculo, para las frases del tipo "colision entre turismos".
+ *
+ * Cada uno trae su genero porque "estaba implicado una bicicleta" esta mal dicho,
+ * y era lo que salia: el articulo de un atropello de ciclista se publicaba con un
+ * fallo de concordancia en la segunda frase. El genero va con el sustantivo en
+ * vez de en un sitio aparte para que no se puedan desincronizar.
+ */
+const SUSTANTIVO_VEHICULO: Record<VehicleType, { con: string; era: "implicado" | "implicada" }> = {
+  COCHE: { con: "un turismo", era: "implicado" },
+  MOTO: { con: "una moto", era: "implicada" },
+  CAMION: { con: "un camión", era: "implicado" },
+  BICICLETA: { con: "una bicicleta", era: "implicada" },
+  PEATON: { con: "un peatón", era: "implicado" },
+  OTROS: { con: "un vehículo", era: "implicado" },
 };
+
+/**
+ * Como se cierra la noticia.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE HAY VARIANTES
+ * ---------------------------------------------------------------------------
+ *
+ * Antes todas las noticias terminaban con la MISMA frase, la de "Los servicios
+ * de emergencia han atendido el aviso". En una web de noticias, eso delata que
+ * las maquina el texto: veinte articulos seguidos con la misma ultima linea se
+ * leen como relleno y hacen que el visitante no se fíe del resto.
+ *
+ * Las variantes se eligen con una suma de letras del titular, no al azar: dos
+ * noticias parecidas pueden salir distintas, pero la misma noticia siempre sale
+ * igual. Un texto que cambia cada vez que se recarga un problema para el editor
+ * y para el buscador.
+ */
+const CIERRES = [
+  "Los servicios de emergencia han atendido el aviso.",
+  "Intervinieron los servicios de emergencia de la isla.",
+  "El aviso fue atendido sobre el terreno.",
+  "El equipo de rescate se traslado al lugar del suceso.",
+  "La emergencia fue canalizada a traves del 112.",
+  "Los servicios de seguridad tambien acudian al lugar.",
+  "Hubo aviso al 112 y se movilizo el operativo.",
+] as const;
+
+/**
+ * Elige el cierre segun el titular, de forma estable.
+ *
+ * Se suman los codigos de los caracteres y se toma el resto al dividir entre el
+ * numero de variantes. No es criptografia: es para que dos noticias con los
+ * mismos hechos no acaben con la misma ultima frase, y para que la misma noticia
+ * no cambie de una visita a otra.
+ */
+function eligeCierre(semilla: string): string {
+  let suma = 0;
+  for (let i = 0; i < semilla.length; i++) suma += semilla.charCodeAt(i);
+  return CIERRES[suma % CIERRES.length];
+}
 
 /**
  * Como se cuenta a las personas en espanol.
@@ -191,7 +239,8 @@ function titular(f: ExtractedFacts, req: RewriteRequest): string {
   }
 
   if (vLabel(f.vehicleType)) {
-    return `${cat} con ${vLabel(f.vehicleType)} en ${m}`;
+    // Con el genero del sustantivo, por el mismo motivo que en fraseVehiculos.
+    return `${cat} con ${SUSTANTIVO_VEHICULO[f.vehicleType!].con} en ${m}`;
   }
 
   return `${cat} en ${m}`;
@@ -200,7 +249,7 @@ function titular(f: ExtractedFacts, req: RewriteRequest): string {
 /** "un turismo", "una moto"... en minuscula, para pegar en medio de una frase. */
 function vLabel(v: VehicleType | null): string | null {
   if (!v) return null;
-  return SUSTANTIVO_VEHICULO[v];
+  return SUSTANTIVO_VEHICULO[v].con;
 }
 
 /**
@@ -212,7 +261,9 @@ function vLabel(v: VehicleType | null): string | null {
 function fraseVehiculos(v: VehicleType, f: ExtractedFacts): string {
   const uno = SUSTANTIVO_VEHICULO[v];
   const respuesta = fraseAfectados(f);
-  return `En el suceso estaba implicado ${uno}. ${respuesta}`;
+  // El genero viene con el sustantivo. Antes ponia siempre "implicado", y con
+  // una moto o una bicicleta quedaba "estaba implicado una moto".
+  return `En el suceso estaba ${uno.era} ${uno.con}. ${respuesta}`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -244,9 +295,14 @@ export function rewriteByRules(request: RewriteRequest): RewriteResult {
     const title = titular(f, request);
 
     /* ---------------------------- Entrada --------------------------- */
-    const cuandoTexto = franja ?? `el ${fecha}`;
-    const p1 =
-      `${cat} registrado ${cuandoTexto}, sobre las ${hora}, en ${lugar}.`;
+    /*
+      La hora se dice de una manera o de otra, nunca de las dos. Antes salia
+      "registrado esta mañana, sobre las 08:48", que repite lo mismo con otras
+      palabras. Ahora se elige la parte del día o la hora exacta, y si ninguna
+      sirve se cae a la fecha.
+    */
+    const cuandoTexto = franja ? `${franja}, a las ${hora}` : `el ${fecha}`;
+    const p1 = `${cat} registrado ${cuandoTexto}, en ${lugar}.`;
 
     /* ---------------------------- Entrada 2 ------------------------- */
     // La segunda frase habla de los vehiculos cuando se sabe cuales son, y de
@@ -255,10 +311,10 @@ export function rewriteByRules(request: RewriteRequest): RewriteResult {
     const p2 = v ? fraseVehiculos(v, f) : fraseAfectados(f);
 
     /* ---------------------------- Entrada 3 ------------------------- */
-    // Esta frase es la que cierra siempre igual en este tipo de web. Es formula
-    // de genero y no cuenta como copia: el detector de copia mide coincidencia
-    // de 6 palabras seguidas, y aqui no llega.
-    const p3 = "Los servicios de emergencia han atendido el aviso.";
+    // Antes era siempre la misma frase. Veintena articulos seguidos con la misma
+    // ultima linea se leen como relleno y hacen que el visitante no se fíe del
+    // resto. Elijo entre varias segun el titular, de forma estable.
+    const p3 = eligeCierre(request.title);
 
     const body = [p1, p2, p3].join("\n\n");
 

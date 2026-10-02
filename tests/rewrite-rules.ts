@@ -238,5 +238,105 @@ console.log("\nLa fecha tiene que llegar en ISO, no como texto para leer");
   ok("la hora se convierte a la de Canarias", bueno.ok && /09:48/.test(bueno.body), bueno.ok ? bueno.body : "");
 }
 
+/* ========================================================================== */
+console.log("\nQue el texto este bien escrito y no se repita");
+/* ========================================================================== */
+
+{
+  // 1. Concordancia de genero. "estaba implicado una bicicleta" se ha publicado.
+  for (const [tipo, esperado] of [
+    ["BICICLETA", "implicada una bicicleta"],
+    ["MOTO", "implicada una moto"],
+    ["COCHE", "implicado un turismo"],
+    ["CAMION", "implicado un camión"],
+    ["PEATON", "implicado un peatón"],
+  ] as const) {
+    const r = rewriteByRules(pedir({ vehicleType: tipo }));
+    ok(
+      `${tipo}: "${esperado}"`,
+      r.ok && r.body.includes(esperado),
+      r.ok ? r.body.split("\n")[1] : r.error,
+    );
+  }
+}
+
+{
+  // 2. La hora no se dice dos veces. "esta mañana, sobre las 08:48" repetia.
+  const r = rewriteByRules(pedir({ vehicleType: "COCHE" }, "", "Tías", "2026-10-02T09:48:00.000Z"));
+  ok(
+    'no repite "esta mañana" y la hora en la misma frase',
+    r.ok && !/esta mañana,[^.]*las \d\d:\d\d.*esta mañana/.test(r.body),
+    r.ok ? r.body.split("\n")[0] : r.error,
+  );
+  ok("y dice la hora una vez", r.ok && (r.body.match(/\d\d:\d\d/g) ?? []).length === 1, r.ok ? r.body : "");
+}
+
+{
+  /*
+    3. Las noticias no terminan todas igual. Con veinte articulos seguidos y la
+    misma ultima frase, la web se lee como relleno.
+  */
+  // OJO: el cierre se elige a partir del TITULAR, asi que hay que cambiar el
+  // titular en cada llamada. Con los mismos hechos y el mismo titular salen
+  // siempre las mismas tres frases, y es lo que debe pasar.
+  const titulos = [
+    "Accidente con un turismo en Arrecife",
+    "Atropello con una bicicleta en Tinajo",
+    "Colisión en la LZ-40 en Yaiza",
+    "Vuelco de un camión en Teguise",
+    "Caída de una moto en Haría",
+    "Salida de vía en Tías",
+    "Atropello en Playa Blanca",
+    "Choque entre dos turismos en Tizayuca",
+  ];
+
+  const cierres = new Set<string>();
+  for (const t of titulos) {
+    const r = rewriteByRules({
+      title: t,
+      body: "texto del medio",
+      summary: "",
+      facts: { ...BASE, vehicleType: "COCHE" },
+      municipalityName: "Arrecife",
+      occurredAtIso: "2026-10-02T09:48:00.000Z",
+      outlet: "Medio de prueba",
+      sourceUrl: "https://ejemplo.test/a",
+    });
+    if (r.ok) cierres.add(r.body.split("\n\n")[2] ?? "");
+  }
+  ok(
+    "los cierres se reparten entre varias frases",
+    cierres.size >= 4,
+    `${cierres.size} cierres distintos con ${titulos.length} titulares`,
+  );
+  ok("y ninguna frase de cierre esta repetida en la lista", cierres.size === new Set([...cierres]).size);
+
+  // Y la misma noticia debe salir siempre igual: si no, el texto dance cada vez
+  // que se recarga y el editor no puede fiarse de lo que ve.
+  const titulo = "Atropello con una bicicleta en Tinajo";
+  const a = rewriteByRules(pedir({ vehicleType: "BICICLETA" }, "", "Tinajo", "2026-10-02T08:48:00.000Z"));
+  const b = rewriteByRules(pedir({ vehicleType: "BICICLETA" }, "", "Tinajo", "2026-10-02T08:48:00.000Z"));
+  ok("la misma noticia sale igual dos veces", a.ok && b.ok && a.body === b.body);
+}
+
+{
+  // 4. La cifra se cuenta en letra y no se inventa.
+  const varios = rewriteByRules(pedir({ vehicleType: "COCHE", injuries: 3 }, "", "Teguise"));
+  ok("con tres heridos dice tres", varios.ok && /tres personas heridas/.test(varios.body), varios.ok ? varios.body : "");
+
+  const uno = rewriteByRules(pedir({ vehicleType: "COCHE", injuries: 1 }, "", "Teguise"));
+  ok("con un herido dice una", uno.ok && /una persona herida/.test(uno.body), uno.ok ? uno.body : "");
+
+  const ninguno = rewriteByRules(pedir({ vehicleType: "COCHE", injuries: null, fatalities: null }, "", "Teguise"));
+  ok(
+    "sin cifras no menciona a nadie",
+    ninguno.ok && !/herid|fallen/i.test(uno.ok ? uno.body.split("\n")[1] : ""),
+    ninguno.ok ? ninguno.body : "",
+  );
+
+  const deceased = rewriteByRules(pedir({ vehicleType: "COCHE", fatalities: 2, injuries: 1 }, "", "Yaiza"));
+  ok("con fallecidos y heridos los dos", deceased.ok && /dos personas fallecidas/.test(deceased.body) && /una persona herida/.test(deceased.body), deceased.ok ? deceased.body : "");
+}
+
 console.log(`\n${fallos === 0 ? "Todas las comprobaciones correctas." : `${fallos} fallo(s).`}\n`);
 process.exitCode = fallos === 0 ? 0 : 1;

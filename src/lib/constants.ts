@@ -15,33 +15,43 @@ export type MunicipalitySeed = {
  * Los siete municipios de Lanzarote.
  *
  * ---------------------------------------------------------------------------
- *  LO QUE SE CORRIGIO
+ *  LO QUE SE CORRIGIO (y por que)
  * ---------------------------------------------------------------------------
  *
- * La lista anterior tenia nueve entradas y tres estaban mal:
+ * Este bloque estaba mal en dos cosas y las dos hacia el mismo sitio: que el
+ * mapa mintiera.
  *
- *   - "Tinaj" no existe. Es Tinajo, y el slug era `tinaj` mientras facts.ts
- *     generaba `tinajo`. Ninguna de las dos formas coincidia con la otra, asi que
- *     toda noticia de Tinajo salia con un municipio inexistente.
- *   - Betancuria es de Fuerteventura, no de Lanzarote.
- *   - Femés tambien: es un lugar de Pájara, tambien en Fuerteventura.
- *   - "San Bartolomé de Lanzarote" no es un municipio, es un pueblo de Haría.
- *     Sigue existiendo, pero como zona (ver ZONES), no como municipio.
+ * 1. LA LISTA. Decia que Tizayuca era municipio y que San Bartolome no. Es justo
+ *    al reves. Los siete municipios de Lanzarote son Arrecife, San Bartolome,
+ *    Tias, Yaiza, Tinajo, Teguise y Haria. Tizayuca no es un municipio: es una
+ *    demarcacion dentro de Teguise. Y San Bartolome si lo es, desde 1997, y es
+ *    donde esta el aeropuerto de la isla. Se ha comprobadocon tres fuentes
+ *    independientes: Wikipedia, las areas administrativas de OpenStreetMap
+ *    (admin_level=8) y la geocodificacion inversa de Nominatim.
  *
- * Y faltaba Tizayuca, que si es municipio de Lanzarote.
+ * 2. LAS COORDENADAS. Todas estaban desplazadas hacia el sur, entre 30 y 55 km.
+ *    Arrecife figuraba en 28.48, -13.78, que es MAR ABIERTO al sur de la isla:
+ *    al comprobarlo con las teselas del mapa, el punto cae en una tesela en
+ *    blanco de 103 bytes, que es como se ve una tesela sin tierra. Lo mismo
+ *    pasaba con Tinajo y con Tizayuca, que ademas estaba en Guime.
  *
- * Las coordenadas son del casco urbano y se usan como punto de referencia en el
- * mapa, nunca como ubicacion exacta de un accidente (eso va en approxLat/
- * approxLon y se desplaza de forma deliberada).
+ *    El error era dificil de ver porque la comprobacion de pines compara cada
+ *    marcador contra esta misma tabla, asi que daba "todo correcto" sobre unas
+ *    coordenadas que no eran de ningun sitio.
+ *
+ * Las de ahora son las del nodo `place` real de OpenStreetMap para cada
+ * localidad, no un punto de reserva ni un valor aproximado a ojo. Se usan como
+ * punto de referencia del municipio; la ubicacion de un accidente va aparte, en
+ * approxLat/approxLon, y se desplaza de forma deliberada.
  */
 export const MUNICIPALITIES: MunicipalitySeed[] = [
-  { slug: "arrecife", name: "Arrecife", lat: 28.4843, lon: -13.7845 },
-  { slug: "haria", name: "Haría", lat: 29.1150, lon: -13.4350 },
-  { slug: "teguise", name: "Teguise", lat: 28.5600, lon: -13.6500 },
-  { slug: "tinajo", name: "Tinajo", lat: 28.6833, lon: -13.6833 },
-  { slug: "tias", name: "Tías", lat: 28.7005, lon: -13.6330 },
-  { slug: "tizayuca", name: "Tizayuca", lat: 28.9900, lon: -13.6110 },
-  { slug: "yaiza", name: "Yaiza", lat: 28.8170, lon: -13.6330 },
+  { slug: "arrecife", name: "Arrecife", lat: 28.9640, lon: -13.5499 },
+  { slug: "san-bartolome", name: "San Bartolomé", lat: 29.0017, lon: -13.6139 },
+  { slug: "tias", name: "Tías", lat: 28.9543, lon: -13.6529 },
+  { slug: "yaiza", name: "Yaiza", lat: 28.9529, lon: -13.7642 },
+  { slug: "tinajo", name: "Tinajo", lat: 29.0666, lon: -13.6765 },
+  { slug: "teguise", name: "Teguise", lat: 29.0593, lon: -13.5602 },
+  { slug: "haria", name: "Haría", lat: 29.1459, lon: -13.5001 },
 ];
 
 export const MUNICIPALITY_BY_SLUG = new Map(MUNICIPALITIES.map((m) => [m.slug, m]));
@@ -68,21 +78,39 @@ export type ZoneSeed = {
  * Las localidades y zonas de la isla.
  *
  * ---------------------------------------------------------------------------
- *  POR QUE HACE FALTA ESTA LISTA
+ *  DE DONDE SALE ESTA LISTA
  * ---------------------------------------------------------------------------
  *
- * La prensa casi nunca dice "Teguise": dice "Costa Teguise", "Puerto del
- * Carmen" o "Playa San Juan". Sin esta tabla esas noticias se quedaban sin
- * municipio, y con el municipio mal atribuido el mapa mentia.
+ * Es la lista que dio el editor, en su orden, sin las repeticiones (Muñique
+ * venia dos veces). Cada una trae la coordenada del nodo `place` que tiene en
+ * OpenStreetMap, no un valor puesto a ojo: eso se ha contrasted con la
+ * geocodificacion inversa de Nominatim, que devuelve la calle y el municipio en
+ * el que cae el punto.
+ *
+ * El municipio de cada zona tambien viene de ahi, no de suposiciones. Salen
+ * algunos repartos que sorprende, y son los correctos:
+ *
+ *   - Guatiza, Los Valles, Caleta de Famara, Caleta de Caballo y Las
+ *     Caletas son de TEGUISE, no de Tinajo ni de Haría.
+ *   - La Vegueta es de TINAJO y Masdache es de TIAS, al reves de lo que
+ *     dicta el sentido comun.
+ *   - Mala es de HARIA.
+ *   - Playa Blanca es de YAIZA, no de Tizayuca.
  *
  * ---------------------------------------------------------------------------
- *  ZONAS QUE COMPARTEN MUNICIPIO
+ *  ZONAS QUE SON TAMBIEN MUNICIPIO
  * ---------------------------------------------------------------------------
  *
- * Playa Blanca y Caleta de Famara son nucleos turisticos que tocan mas de un
- * municipio. Se les ha asignado el que corresponde a su casco urbano, que es
- * por donde entran las noticias, pero conviene saberlo antes de usarlas para
- * estadistica oficial.
+ * Siete entradas comparten nombre con un municipio: Arrecife, Haría, Teguise,
+ * Tinajo, Tías, Yaiza y San Bartolomé. No es un error: son los mismos sitios y
+ * el editor los ha pedido los dos. Lo unico que cambia es el slug, que lleva el
+ * sufijo "-pueblo" para que /zonas/arrecife-pueblo y /municipios/arrecife no
+ * sean dos direcciones distintas con el mismo contenido. Es el mismo criterio
+ * que ya usaba la lista anterior ("tinajo-pueblo", "yaiza-pueblo").
+ *
+ * El extractor de topónimos resuelve esas palabras al municipio, no a la zona,
+ * porque la entrada del municipio va primero. Y da igual: el punto es el mismo
+ * y la ficha cuenta lo mismo.
  *
  * ---------------------------------------------------------------------------
  *  COORDENADAS
@@ -93,59 +121,71 @@ export type ZoneSeed = {
  * usan como ubicacion de un accidente.
  */
 export const ZONES: ZoneSeed[] = [
-  // ---- Arrecife -------------------------------------------------------
-  { slug: "puerto-de-naos", name: "Puerto de Naos", municipalitySlug: "arrecife", lat: 28.4770, lon: -13.7890, aliases: ["naos"] },
-  { slug: "los-marmoles", name: "Los Mármoles", municipalitySlug: "arrecife", lat: 28.4775, lon: -13.7810, aliases: ["marmoles"] },
-  { slug: "la-isleta", name: "La Isleta", municipalitySlug: "arrecife", lat: 28.4790, lon: -13.7810, aliases: ["isleta"] },
-  { slug: "san-francisco", name: "San Francisco", municipalitySlug: "arrecife", lat: 28.4820, lon: -13.7850 },
-  { slug: "las-canteras", name: "Las Canteras", municipalitySlug: "arrecife", lat: 28.4900, lon: -13.7880, aliases: ["canteras"] },
-  { slug: "el-charco", name: "El Charco", municipalitySlug: "arrecife", lat: 28.4905, lon: -13.7760, aliases: ["charco"] },
+  { slug: "arrecife-pueblo", name: "Arrecife", municipalitySlug: "arrecife", lat: 28.9640, lon: -13.5499 },
 
-  // ---- Haria ----------------------------------------------------------
-  { slug: "orzola", name: "Órzola", municipalitySlug: "haria", lat: 29.1300, lon: -13.4350 },
-  { slug: "las-brenas", name: "Las Breñas", municipalitySlug: "haria", lat: 29.0950, lon: -13.4350, aliases: ["brenas"] },
-  { slug: "arrieta", name: "Arrieta", municipalitySlug: "haria", lat: 29.1050, lon: -13.4280 },
-  { slug: "malpaso", name: "Malpaso", municipalitySlug: "haria", lat: 29.1150, lon: -13.4200 },
-  { slug: "san-bartolome", name: "San Bartolomé", municipalitySlug: "haria", lat: 29.0900, lon: -13.4400, aliases: ["san bartolome"] },
-  { slug: "temisas", name: "Temisas", municipalitySlug: "haria", lat: 29.1050, lon: -13.4600 },
-  { slug: "las-manras", name: "Las Manras", municipalitySlug: "haria", lat: 29.1200, lon: -13.4500, aliases: ["manras"] },
-  { slug: "el-jable", name: "El Jable", municipalitySlug: "haria", lat: 29.0500, lon: -13.4600, aliases: ["jable"] },
+  // ---- Teguise -----------------------------------------------------
+  { slug: "costa-teguise", name: "Costa Teguise", municipalitySlug: "teguise", lat: 28.9959, lon: -13.4972 },
+  { slug: "tahiche", name: "Tahíche", municipalitySlug: "teguise", lat: 29.0136, lon: -13.5431 },
+  { slug: "nazaret", name: "Nazaret", municipalitySlug: "teguise", lat: 29.0379, lon: -13.5608 },
+  { slug: "teseguite", name: "Teseguite", municipalitySlug: "teguise", lat: 29.0546, lon: -13.5318 },
+  { slug: "teguise-pueblo", name: "Teguise", municipalitySlug: "teguise", lat: 29.0593, lon: -13.5602 },
+  { slug: "soo", name: "Soo", municipalitySlug: "teguise", lat: 29.0993, lon: -13.6223 },
+  { slug: "munique", name: "Muñique", municipalitySlug: "teguise", lat: 29.0709, lon: -13.6345 },
+  { slug: "tiagua", name: "Tiagua", municipalitySlug: "teguise", lat: 29.0546, lon: -13.6336 },
+  { slug: "tao", name: "Tao", municipalitySlug: "teguise", lat: 29.0395, lon: -13.6245 },
+  { slug: "mozaga", name: "Mozaga", municipalitySlug: "teguise", lat: 29.0219, lon: -13.6126 },
+  { slug: "caleta-de-famara", name: "Caleta de Famara", municipalitySlug: "teguise", lat: 29.1188, lon: -13.5660, aliases: ["famara"] },
+  { slug: "las-caletas", name: "Las Caletas", municipalitySlug: "teguise", lat: 28.9820, lon: -13.5116 },
+  { slug: "guatiza", name: "Guatiza", municipalitySlug: "teguise", lat: 29.0738, lon: -13.4792 },
+  { slug: "los-valles", name: "Los Valles", municipalitySlug: "teguise", lat: 29.0840, lon: -13.5231 },
+  { slug: "el-mojon", name: "El Mojón", municipalitySlug: "teguise", lat: 29.0683, lon: -13.5178, aliases: ["mojon"] },
 
-  // ---- Teguise --------------------------------------------------------
-  { slug: "teguise-villa", name: "Teguise Villa", municipalitySlug: "teguise", lat: 28.5605, lon: -13.6500 },
-  { slug: "costa-teguise", name: "Costa Teguise", municipalitySlug: "teguise", lat: 28.5900, lon: -13.6700 },
-  { slug: "playa-san-juan", name: "Playa San Juan", municipalitySlug: "teguise", lat: 28.5900, lon: -13.6900, aliases: ["san juan"] },
-  { slug: "papagayo", name: "Papagayo", municipalitySlug: "teguise", lat: 28.6150, lon: -13.6950 },
-  { slug: "tahiche", name: "Tahíche", municipalitySlug: "teguise", lat: 28.5650, lon: -13.6620 },
-  { slug: "soo", name: "Soo", municipalitySlug: "teguise", lat: 28.5600, lon: -13.6250 },
-  { slug: "el-golfo", name: "El Golfo", municipalitySlug: "teguise", lat: 28.7800, lon: -13.7100, aliases: ["golfo"] },
-  { slug: "playa-honda", name: "Playa Honda", municipalitySlug: "teguise", lat: 28.7600, lon: -13.6800 },
-  { slug: "caleta-de-famara", name: "Caleta de Famara", municipalitySlug: "teguise", lat: 28.7400, lon: -13.6600, aliases: ["famara"] },
-  { slug: "la-graciosa", name: "La Graciosa", municipalitySlug: "teguise", lat: 29.0100, lon: -13.4900, aliases: ["graciosa"] },
+  // ---- Haria --------------------------------------------------------
+  { slug: "mala", name: "Mala", municipalitySlug: "haria", lat: 29.0983, lon: -13.4679 },
+  { slug: "haria-pueblo", name: "Haría", municipalitySlug: "haria", lat: 29.1459, lon: -13.5001 },
+  { slug: "maguez", name: "Máguez", municipalitySlug: "haria", lat: 29.1600, lon: -13.4951 },
+  { slug: "ye", name: "Yé", municipalitySlug: "haria", lat: 29.1949, lon: -13.4791 },
+  { slug: "orzola", name: "Órzola", municipalitySlug: "haria", lat: 29.2217, lon: -13.4519 },
+  { slug: "arrieta", name: "Arrieta", municipalitySlug: "haria", lat: 29.1318, lon: -13.4618 },
+  { slug: "punta-mujeres", name: "Punta Mujeres", municipalitySlug: "haria", lat: 29.1448, lon: -13.4476 },
+  { slug: "tabayesco", name: "Tabayesco", municipalitySlug: "haria", lat: 29.1274, lon: -13.4796 },
+  { slug: "charco-del-palo", name: "Charco del Palo", municipalitySlug: "haria", lat: 29.0841, lon: -13.4517 },
 
-  // ---- Tinajo ---------------------------------------------------------
-  { slug: "tinajo-pueblo", name: "Tinajo pueblo", municipalitySlug: "tinajo", lat: 28.6833, lon: -13.6833, aliases: ["tinajo"] },
-  { slug: "quemada-de-tinajo", name: "Quemada de Tinajo", municipalitySlug: "tinajo", lat: 28.6900, lon: -13.7000, aliases: ["quemada"] },
-  { slug: "famara-tinajo", name: "Famara (Tinajo)", municipalitySlug: "tinajo", lat: 28.7250, lon: -13.6550 },
+  // ---- San Bartolome ------------------------------------------------
+  { slug: "san-bartolome-pueblo", name: "San Bartolomé", municipalitySlug: "san-bartolome", lat: 29.0017, lon: -13.6139 },
+  { slug: "playa-honda", name: "Playa Honda", municipalitySlug: "san-bartolome", lat: 28.9551, lon: -13.5903 },
+  { slug: "guime", name: "Güime", municipalitySlug: "san-bartolome", lat: 28.9725, lon: -13.6140 },
+  { slug: "montana-blanca", name: "Montaña Blanca", municipalitySlug: "san-bartolome", lat: 28.9879, lon: -13.6374 },
 
-  // ---- Tias -----------------------------------------------------------
-  { slug: "puerto-del-carmen", name: "Puerto del Carmen", municipalitySlug: "tias", lat: 28.9400, lon: -13.6500, aliases: ["puerto carmen"] },
-  { slug: "playa-de-las-americas", name: "Playa de las Américas", municipalitySlug: "tias", lat: 28.7300, lon: -13.6850, aliases: ["americas"] },
-  { slug: "el-glan", name: "El Glan", municipalitySlug: "tias", lat: 28.7000, lon: -13.6200, aliases: ["glan"] },
-  { slug: "san-jose", name: "San José", municipalitySlug: "tias", lat: 28.6650, lon: -13.6700, aliases: ["san jose"] },
-  { slug: "morros", name: "Morros", municipalitySlug: "tias", lat: 28.7000, lon: -13.6400 },
+  // ---- Tias ---------------------------------------------------------
+  { slug: "tias-pueblo", name: "Tías", municipalitySlug: "tias", lat: 28.9543, lon: -13.6529 },
+  { slug: "puerto-del-carmen", name: "Puerto del Carmen", municipalitySlug: "tias", lat: 28.9204, lon: -13.6507, aliases: ["puerto carmen"] },
+  { slug: "macher", name: "Mácher", municipalitySlug: "tias", lat: 28.9484, lon: -13.6839 },
+  { slug: "la-asomada", name: "La Asomada", municipalitySlug: "tias", lat: 28.9611, lon: -13.6908 },
+  { slug: "conil", name: "Conil", municipalitySlug: "tias", lat: 28.9679, lon: -13.6680 },
+  { slug: "masdache", name: "Masdache", municipalitySlug: "tias", lat: 28.9973, lon: -13.6564 },
 
-  // ---- Tizayuca -------------------------------------------------------
-  { slug: "playa-blanca", name: "Playa Blanca", municipalitySlug: "tizayuca", lat: 28.9900, lon: -13.6300 },
-  { slug: "san-sebastian-de-la-gomera", name: "San Sebastián de La Gomera", municipalitySlug: "tizayuca", lat: 28.9910, lon: -13.6090, aliases: ["la gomera village"] },
-  { slug: "tizayuca-pueblo", name: "Tizayuca pueblo", municipalitySlug: "tizayuca", lat: 28.9900, lon: -13.6110, aliases: ["tizayuca"] },
+  // ---- Yaiza --------------------------------------------------------
+  { slug: "puerto-calero", name: "Puerto Calero", municipalitySlug: "yaiza", lat: 28.9210, lon: -13.7037 },
+  { slug: "yaiza-pueblo", name: "Yaiza", municipalitySlug: "yaiza", lat: 28.9529, lon: -13.7642 },
+  { slug: "playa-blanca", name: "Playa Blanca", municipalitySlug: "yaiza", lat: 28.8632, lon: -13.8299 },
+  { slug: "uga", name: "Uga", municipalitySlug: "yaiza", lat: 28.9502, lon: -13.7441 },
+  { slug: "femes", name: "Femés", municipalitySlug: "yaiza", lat: 28.9138, lon: -13.7789 },
+  { slug: "las-brenas", name: "Las Breñas", municipalitySlug: "yaiza", lat: 28.9199, lon: -13.8104 },
+  { slug: "playa-quemada", name: "Playa Quemada", municipalitySlug: "yaiza", lat: 28.9075, lon: -13.7322 },
+  { slug: "el-golfo", name: "El Golfo", municipalitySlug: "yaiza", lat: 28.9822, lon: -13.8314, aliases: ["golfo"] },
 
-  // ---- Yaiza ----------------------------------------------------------
-  { slug: "yaiza-pueblo", name: "Yaiza pueblo", municipalitySlug: "yaiza", lat: 28.8170, lon: -13.6330, aliases: ["yaiza"] },
-  { slug: "uga", name: "Uga", municipalitySlug: "yaiza", lat: 28.8000, lon: -13.6300 },
-  { slug: "playa-de-yaiza", name: "Playa de Yaiza", municipalitySlug: "yaiza", lat: 28.8100, lon: -13.6500 },
-  { slug: "la-geria", name: "La Geria", municipalitySlug: "yaiza", lat: 28.8000, lon: -13.6800, aliases: ["geria"] },
-  { slug: "puerto-calero", name: "Puerto Calero", municipalitySlug: "yaiza", lat: 28.7900, lon: -13.7200 },
+  // ---- Tinajo -------------------------------------------------------
+  { slug: "tinajo-pueblo", name: "Tinajo", municipalitySlug: "tinajo", lat: 29.0666, lon: -13.6765 },
+  { slug: "la-santa", name: "La Santa", municipalitySlug: "tinajo", lat: 29.1077, lon: -13.6657 },
+  { slug: "mancha-blanca", name: "Mancha Blanca", municipalitySlug: "tinajo", lat: 29.0430, lon: -13.6898 },
+  { slug: "la-vegueta", name: "La Vegueta", municipalitySlug: "tinajo", lat: 29.0474, lon: -13.6509 },
+  { slug: "el-cuchillo", name: "El Cuchillo", municipalitySlug: "tinajo", lat: 29.0819, lon: -13.6644 },
+  { slug: "los-dolores", name: "Los Dolores", municipalitySlug: "tinajo", lat: 29.0443, lon: -13.6816 },
+
+  { slug: "islote", name: "Islote", municipalitySlug: "san-bartolome", lat: 29.0180, lon: -13.6292, aliases: ["el islote"] },
+
+  { slug: "caleta-de-caballo", name: "Caleta de Caballo", municipalitySlug: "teguise", lat: 29.1165, lon: -13.6403 },
 ];
 
 export const ZONE_BY_SLUG = new Map(ZONES.map((z) => [z.slug, z]));

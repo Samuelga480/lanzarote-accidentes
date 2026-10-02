@@ -78,12 +78,13 @@ section("Extraccion de hechos: la regla es NO inventar");
 }
 
 {
-  // Playa Blanca no pertenece a Yaiza: es un nucleo turistico entre Tias y
-  // Tizayuca, y su casco urbano esta en Tizayuca. Antes resolvia a Yaiza.
+  // Playa Blanca no pertenece a Yaiza: es un nucleo turistico del sur de la isla
+  // y su casco urbano esta en el municipio de Yaiza. Se comprueba aqui porque
+  // durante mucho tiempo resolvia a Tizayuca, que no es un municipio.
   const f = extractFacts("Accidente en Playa Blanca", "Un coche choco en la LZ-20.");
   check(
-    "alias de localidad: Playa Blanca resuelve a Tizayuca",
-    f.municipalitySlug === "tizayuca",
+    "alias de localidad: Playa Blanca resuelve a Yaiza",
+    f.municipalitySlug === "yaiza",
     `obtenido: ${f.municipalitySlug}`,
   );
   check(
@@ -115,12 +116,24 @@ section("Extraccion de hechos: la regla es NO inventar");
 }
 
 {
-  // Betancuria y Femes son de Fuerteventura. Antes salian como si fueran
-  // municipios de Lanzarote y el mapa los colocaba en la isla equivocada.
-  for (const topónimo of ["Betancuria", "Femés"]) {
-    const f = extractFacts(`Accidente en ${topónimo}`, "Hubo un choque en la carretera.");
-    check(`${topónimo} no resuelve a ningun municipio de Lanzarote`, f.municipalitySlug === null, `obtenido: ${f.municipalitySlug}`);
-  }
+  // Betancuria es de Fuerteventura: tiene que quedar fuera.
+  const fuera = extractFacts("Accidente en Betancuria", "Hubo un choque en la carretera.");
+  check(
+    "Betancuria no resuelve a ningun municipio de Lanzarote",
+    fuera.municipalitySlug === null,
+    `obtenido: ${fuera.municipalitySlug}`,
+  );
+
+  /*
+    Femés aqui antes se daba por bueno que fuera de Fuerteventura, y no lo es:
+    está en Lanzarote, en el municipio de Yaiza, al sur de la isla, junto a
+    Femés y el barranco. Eso se ha comprobado contra el nodo de OpenStreetMap y
+    contra Nominatim, que lo devuelve dentro de Yaiza. Tratandolo como
+    Fuerteventura se descartaban noticias que si eran de aqui.
+  */
+  const f = extractFacts("Accidente en Femés", "Hubo un choque en la carretera.");
+  check("Femés resuelve a Yaiza", f.municipalitySlug === "yaiza", `obtenido: ${f.municipalitySlug}`);
+  check("y se identifica la zona", f.zoneSlug === "femes", `obtenido: ${f.zoneSlug}`);
 }
 
 {
@@ -138,18 +151,31 @@ section("Extraccion de hechos: la regla es NO inventar");
 }
 
 {
-  // Los siete municipios de verdad. Betancuria y Femes no estan: son de
-  // Fuerteventura. Y Tizayuca si, que antes faltaba.
+  // Los siete municipios de verdad. Antes esta lista llevaba Tizayuca en lugar
+  // de San Bartolome, y era justo al reves: Tizayuca no es un municipio (es una
+  // demarcacion de Teguise) y San Bartolome si lo es.
   const slugs = MUNICIPALITIES.map((m) => m.slug).sort();
   check(
     "son los siete municipios de Lanzarote",
-    JSON.stringify(slugs) === JSON.stringify(["arrecife", "haria", "teguise", "tias", "tinajo", "tizayuca", "yaiza"]),
+    JSON.stringify(slugs) === JSON.stringify(["arrecife", "haria", "san-bartolome", "teguise", "tias", "tinajo", "yaiza"]),
     `obtenido: ${slugs.join(", ")}`,
   );
   check("el nombre es Tinajo, no Tinaj", MUNICIPALITIES.some((m) => m.name === "Tinajo"));
   check("no queda ningun Tinaj", !MUNICIPALITIES.some((m) => m.name === "Tinaj"));
+
+  // Tizayuca no es municipio, asi que no puede quedar ni por slug ni por nombre.
+  check("Tizayuca no es municipio", !MUNICIPALITIES.some((m) => m.slug === "tizayuca" || m.name === "Tizayuca"));
+  check("San Bartolome si es municipio", MUNICIPALITIES.some((m) => m.slug === "san-bartolome"));
+
+  // Las coordenadas tienen que estar dentro de la isla. Antes varias estaban en
+  // mar abierto, entre 30 y 55 km al sur, y la comprobacion de pines no lo
+  // detectaba porque comparaba contra esta misma tabla equivocada.
+  const enLaIsla = MUNICIPALITIES.every((m) => m.lat > 28.8 && m.lat < 29.35 && m.lon > -13.95 && m.lon < -13.35);
+  check("todos los municipios caen dentro de Lanzarote", enLaIsla,
+    `obtenido: ${MUNICIPALITIES.map((m) => m.lat + ", " + m.lon).join(" | ")}`);
   check("no queda Betancuria", !MUNICIPALITIES.some((m) => /betancuria/i.test(m.name)));
-  check("no queda Femes", !MUNICIPALITIES.some((m) => /fem[eé]s/i.test(m.name)));
+  // Femes es de Lanzarote, pero no es municipio: es una localidad de Yaiza.
+  check("Femés no es municipio", !MUNICIPALITIES.some((m) => /fem[eé]s/i.test(m.name)));
 }
 
 {

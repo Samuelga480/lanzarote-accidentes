@@ -54,6 +54,7 @@
  */
 
 import { norm } from "@/lib/facts";
+import { MUNICIPALITIES, ZONES } from "@/lib/constants";
 
 /* -------------------------------------------------------------------------- */
 /*  Sucesos                                                                    */
@@ -236,46 +237,74 @@ const EXACTOS_VEHICULO = new Set([
  * El coste es que se pierde lo que sea de la isla pero no lo nombre, y eso es
  * aceptable: sin nombre no hay forma honesta de situarlo ni de comprobarlo.
  */
-const PALABRAS_DE_LANZAROTE = [
+/**
+ * Topónimos que demuestran que un articulo es de Lanzarote.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE SE GENERA Y NO SE ESCRIBE
+ * ---------------------------------------------------------------------------
+ *
+ * Antes era una lista escrita a mano con los nombres de las zonas, y por eso se
+ * quedo obsoleta en cuanto cambiaron las zonas: el filtro de isla seguia
+ * aceptando Papagayo y El Jable, que ya no estan en la tabla, y se le habian
+ * escapado las 51 zonas nuevas. Dos listas con el mismo contenido que se
+ * desincronizan solas. Ahora sale de constants.ts.
+ *
+ * ---------------------------------------------------------------------------
+ *  LOS NOMBRES MUY CORTOS NO ENTRAN
+ * ---------------------------------------------------------------------------
+ *
+ * Hay tres localidades de tres letras o menos: Tao, Soo y Yé. Con la
+ * comparacion por palabra completa (" la frase ".includes(" tao ")) no tienen
+ * ningun falso positivo tecnico, pero "tao" es tambien una interjeccion
+ * tipica y "soo" aparece al final de palabras compuestas. Este filtro existe
+ * para RECHAZAR articulos de peninsula, y un acierto aqui es un fallo grave: mete en
+ * el sitio un accidente que no ocurrio en Lanzarote. El coste de dejar fuera tres
+ * pueblos es mucho menor que el de colar uno equivocado, asi que se descartan.
+ * El resto de la isla sigue citandose con su nombre de municipio.
+ *
+ * ---------------------------------------------------------------------------
+ *  TOPONIMOS QUE NO SON ZONAS
+ * ---------------------------------------------------------------------------
+ *
+ * Esta ultima parte son nombres que la prensa usa mucho y que el editor no
+ * metio en la lista de zonas. Se dejan aqui a proposito: el filtro de isla
+ * tiene que reconocer la isla entera, no solo las localidades que publicamos.
+ */
+const TOPONIMOS_DE_LANZAROTE: string[] = (() => {
+  const MINIMO = 4;
+
+  const deMunicipios = MUNICIPALITIES.map((m) => norm(m.name));
+  const deZonas = ZONES.flatMap((z) => [norm(z.name), ...(z.aliases ?? []).map(norm)]);
+
+  return [...new Set(deMunicipios.concat(deZonas).filter((t) => t.length >= MINIMO))];
+})();
+
+const PALABRAS_DE_LANZAROTE: string[] = [
   // La isla y sus dos nombres
   "lanzarote",
   "la graciosa",
-  // Municipios
-  "arrecife",
-  "haria",
-  "teguise",
-  "tinajo",
-  "tias",
-  "tizayuca",
-  "yaiza",
-  // Localidades y zonas (las de constants.ts)
-  "costa teguise",
-  "puerto del carmen",
-  "playa blanca",
-  "playa de las americas",
-  "playa san juan",
-  "caleta de famara",
-  "el golfo",
-  "playa honda",
-  "el jable",
-  "la geria",
-  "malpaso",
-  "orzola",
-  "tahiche",
+  "la graciosa village",
+  // Municipios y zonas: se generan desde constants.ts
+  ...TOPONIMOS_DE_LANZAROTE,
+  // Localidades de sobra: se citan mucho en la prensa y son inequivocas
   "papagayo",
+  "el jable",
+  "jable",
+  "la geria",
+  "geria",
+  "malpaso",
   "puerto de naos",
+  "naos",
   "los marmoles",
+  "marmoles",
   "la isleta",
   "las canteras",
-  "san bartolome",
-  "las manras",
   "temisas",
-  "arrieta",
-  "las brenas",
-  "puerto calero",
-  "uga",
-  "la graciosa village",
+  "las manras",
+  "famara",
   "san sebastian de la gomera",
+  "el golfo",
   // El Patronato de Volcanes y el Cabildo, que aparecen en las notas oficiales
   "cabildo de lanzarote",
   "patronato de volcanes",

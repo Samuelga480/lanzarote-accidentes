@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Accidentes por municipio",
   description:
-    "Accidentes de tráfico registrados en cada uno de los siete municipios de Lanzarote: Arrecife, Haría, Teguise, Tinajo, Tías, Tizayuca y Yaiza.",
+    "Accidentes de tráfico registrados en cada uno de los siete municipios de Lanzarote: Arrecife, San Bartolomé, Teguise, Tinajo, Tías, Yaiza y Haría.",
   alternates: { canonical: "/municipios" },
 };
 

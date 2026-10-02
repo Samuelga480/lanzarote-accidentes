@@ -287,7 +287,7 @@ console.log("\nQue el texto este bien escrito y no se repita");
     "Caída de una moto en Haría",
     "Salida de vía en Tías",
     "Atropello en Playa Blanca",
-    "Choque entre dos turismos en Tizayuca",
+    "Choque entre dos turismos en San Bartolomé",
   ];
 
   const cierres = new Set<string>();

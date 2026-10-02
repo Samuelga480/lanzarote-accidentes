@@ -33,19 +33,21 @@ const prisma = new PrismaClient();
  * dependa del compilador de TypeScript ni de los alias de importacion, que es
  * lo que permite ejecutarlo dentro del contenedor de produccion.
  *
- * Los municipios vienen bien. Antes nueve: Betancuria y Femes son de
- * Fuerteventura, "San Bartolome de Lanzarote" es un pueblo de Haria y no un
- * municipio, y Tinajo aparecia con el slug "tinaj" mientras el extractor
- * generaba "tinajo". Ademas faltaba Tizayuca, que si es municipio.
+ * La lista se reviso contra tres fuentes independientes (Wikipedia, las areas
+ * administrativas de OpenStreetMap y Nominatim): los siete municipios de
+ * Lanzarote son Arrecife, San Bartolome, Teguise, Tinajo, Tias, Yaiza y Haria.
+ * Antes decia Tizayuca en lugar de San Bartolome. Tizayuca no es un municipio,
+ * es una demarcacion dentro de Teguise. Y las coordenadas de todos estaban
+ * desplazadas entre 30 y 55 km, dos de ellas en mar abierto.
  */
 const MUNICIPALITIES = [
-  { slug: "arrecife", name: "Arrecife", lat: 28.4843, lon: -13.7845 },
-  { slug: "haria", name: "Haría", lat: 29.115, lon: -13.435 },
-  { slug: "teguise", name: "Teguise", lat: 28.56, lon: -13.65 },
-  { slug: "tinajo", name: "Tinajo", lat: 28.6833, lon: -13.6833 },
-  { slug: "tias", name: "Tías", lat: 28.7005, lon: -13.633 },
-  { slug: "tizayuca", name: "Tizayuca", lat: 28.99, lon: -13.611 },
-  { slug: "yaiza", name: "Yaiza", lat: 28.817, lon: -13.633 },
+  { slug: "arrecife", name: "Arrecife", lat: 28.964, lon: -13.5499 },
+  { slug: "san-bartolome", name: "San Bartolomé", lat: 29.0017, lon: -13.6139 },
+  { slug: "teguise", name: "Teguise", lat: 29.0593, lon: -13.5602 },
+  { slug: "tinajo", name: "Tinajo", lat: 29.0666, lon: -13.6765 },
+  { slug: "tias", name: "Tías", lat: 28.9543, lon: -13.6529 },
+  { slug: "yaiza", name: "Yaiza", lat: 28.9529, lon: -13.7642 },
+  { slug: "haria", name: "Haría", lat: 29.1459, lon: -13.5001 },
 ];
 
 /**

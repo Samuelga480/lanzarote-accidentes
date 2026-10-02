@@ -117,7 +117,7 @@ export async function GET() {
       summary: "string (20-500)",
       body: "string (50-20000)",
       occurredAt: "ISO 8601, p. ej. 2026-09-30T14:30:00Z",
-      municipalitySlug: "arrecife | haria | teguise | tinajo | tias | tizayuca | yaiza",
+      municipalitySlug: "arrecife | san-bartolome | teguise | tinajo | tias | yaiza | haria",
       zoneSlug: "opcional. Slug de la zona dentro del municipio (p. ej. puerto-del-carmen)",
       vehicleType: "COCHE | MOTO | CAMION | BICICLETA | PEATON | OTROS",
       severity: "LEVE | MODERADO | GRAVE (opcional, por defecto MODERADO)",

@@ -150,8 +150,8 @@ function momento(horaLocal: string): string | null {
  * cuando no se ha podido determinar el municipio, y por eso aqui no se puede
  * decir "el municipio de Lanzarote", que seria mentira. Se dice la isla.
  *
- * Los siete municipios de verdad son Arrecife, Haria, Teguise, Tinajo, Tias,
- * Tizayuca y Yaiza (ver MUNICIPALITIES).
+ * Los siete municipios de verdad son Arrecife, San Bartolome, Teguise, Tinajo,
+ * Tias, Yaiza y Haria (ver MUNICIPALITIES).
  */
 function sinMunicipio(municipioNombre: string): boolean {
   const n = municipioNombre.trim();

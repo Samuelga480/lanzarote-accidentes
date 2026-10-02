@@ -40,16 +40,59 @@
  */
 
 import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
+import { esTierra } from "@/lib/tierra";
 
 export type PuntoAproximado = { lat: number; lon: number } | null;
 
-/** Desplazamiento aleatorio de 400 a 900 metros, para no dar el punto exacto. */
-export function desplazaPunto(punto: { lat: number; lon: number }): { lat: number; lon: number } {
-  const radioM = 400 + Math.random() * 500;
-  const angulo = Math.random() * 2 * Math.PI;
-  const dLat = (radioM * Math.cos(angulo)) / 111_320;
-  const dLon = (radioM * Math.sin(angulo)) / (111_320 * Math.cos((punto.lat * Math.PI) / 180));
-  return { lat: punto.lat + dLat, lon: punto.lon + dLon };
+/**
+ * Desplaza un punto entre 400 y 900 metros, para no dar el punto exacto.
+ *
+ * ---------------------------------------------------------------------------
+ *  EL DESPLAZAMIENTO NO ES A CIEGAS
+ * ---------------------------------------------------------------------------
+ *
+ * Antes tiraba un radio al azar y aceptaba lo que saliera. En un pueblo del
+ * interior eso no pasa nada, pero en la costa un empuje de 900 metros cae en el
+ * agua: Arrecife, Costa Teguise, Puerto del Carmen, Playa Blanca, El Golfo y
+ * Playa Quemada estan todos pegados al mar. El mapa acababa poniendo el punto en
+ * el oceano, que es peor que no ponerlo, porque el lector deduce una ubicacion
+ * que nadie ha dicho.
+ *
+ * Ahora se prueban varios desplazamientos y se queda con el primero que cae en
+ * tierra. Si a 400-900 metros no hay ninguno, se prueba con menos radio. El
+ * desplazamiento sigue siendo aleatorio y de cientos de metros, asi que la
+ * privacidad del accidente no se ve afectada.
+ *
+ * Si ni asi se encuentra, no se inventa: se devuelve null y no se coloca
+ * marcador.
+ */
+export function desplazaPunto(punto: { lat: number; lon: number }): { lat: number; lon: number } | null {
+  const probar = (min: number, max: number) => {
+    const radioM = min + Math.random() * (max - min);
+    const angulo = Math.random() * 2 * Math.PI;
+    const dLat = (radioM * Math.cos(angulo)) / 111_320;
+    const dLon = (radioM * Math.sin(angulo)) / (111_320 * Math.cos((punto.lat * Math.PI) / 180));
+    return { lat: punto.lat + dLat, lon: punto.lon + dLon };
+  };
+
+  // Radio normal de privacidad: 400-900 metros.
+  for (let i = 0; i < 60; i++) {
+    const c = probar(400, 900);
+    if (esTierra(c.lat, c.lon)) return c;
+  }
+
+  // reductions: la referencia esta pegada a la costa y no cabe el empuje entero.
+  for (let i = 0; i < 60; i++) {
+    const c = probar(120, 400);
+    if (esTierra(c.lat, c.lon)) return c;
+  }
+
+  // Ultimo recurso: el punto sin desplazar, y solo si es tierra de verdad.
+  if (esTierra(punto.lat, punto.lon)) {
+    return { lat: punto.lat, lon: punto.lon };
+  }
+
+  return null;
 }
 
 /**
@@ -85,13 +128,19 @@ export function puntoDeReferencia(
 /**
  * Punto aproximado para guardar en la noticia. Es el de referencia con el
  * desplazamiento de privacidad.
+ *
+ * Si el desplazamiento no encuentra ningun sitio en tierra, `desplazaPunto`
+ * devuelve null y aqui no hay punto. Es la decision correcta: un accidente en
+ * Arrecife sin pinpoint es mejor que un accidente en Arrecife dibujado en el
+ * mar.
  */
 export function puntoAproximado(
   municipalitySlug: string | null | undefined,
   zoneSlug: string | null | undefined,
 ): PuntoAproximado {
   const ref = puntoDeReferencia(municipalitySlug, zoneSlug);
-  return ref ? desplazaPunto(ref) : null;
+  if (!ref) return null;
+  return desplazaPunto(ref);
 }
 
 /** Distancia en kilometros entre dos puntos. Para comprobar que un pin cuadra. */

@@ -34,6 +34,9 @@ import { puntoAproximado, distanciaKm } from "../src/lib/map-point";
 
 const APLICAR = process.argv.includes("--aplicar");
 
+/* Con --todos se recalcula aunque el pin no se mueva mas de 500 m. */
+const TODOS = process.argv.includes("--todos");
+
 async function main() {
   const prisma = new PrismaClient();
 
@@ -85,7 +88,7 @@ async function main() {
         datos.approxLon = null;
       }
       if (pinViejo) console.log(`      ! el pin queda eliminado: no hay punto fiable`);
-    } else if (!pinViejo || movido > 0.5) {
+    } else if (TODOS || !pinViejo || movido > 0.5) {
       datos.approxLat = nuevo.lat;
       datos.approxLon = nuevo.lon;
       console.log(

@@ -54,3 +54,4 @@ desktop.ini
 
 # Copia del sitio original, conservada como referencia del diseno.
 legacy-site/
+scripts/.cache/

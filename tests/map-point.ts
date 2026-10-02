@@ -15,7 +15,7 @@
  *
  * Asi que se comprueban las tres cosas que pueden fallar: que el punto este
  * donde toca, que no se invente cuando no se sabe, y que el desplazamiento de
- * privacidad siga谛en lo que era.
+ * privacidad siga siendo lo que era.
  */
 
 import {
@@ -27,6 +27,7 @@ import {
   puntoDeReferencia,
 } from "@/lib/map-point";
 import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
+import { esTierra } from "@/lib/tierra";
 
 let passed = 0;
 let failed = 0;
@@ -126,7 +127,7 @@ section("El punto cae donde tiene que caer");
   );
 }
 
-/* ========================================================================== */
+/* =============/* ========================================================================== */
 section("El desplazamiento de privacidad se mantiene");
 
 {
@@ -134,23 +135,125 @@ section("El desplazamiento de privacidad se mantiene");
     El desplazamiento va de 400 a 900 metros a proposito: un accidente puede tener
     heridos que identificar y el marcador no puede ser el punto exacto. Si esto
     se toca sin querer, se esta publicando la ubicacion de un accidente.
+
+    La base es Tinajo, que esta en medio de la isla. Antes se usaba 28.7,-13.6,
+    unas coordenadas inventadas que caian en el mar: con el desplazamiento a
+    ciegas daba igual porque no se comprobaba nada. Ahora que si se comprueba, un
+    punto de partida inventado haria que la prueba no significase nada.
   */
-  const base = { lat: 28.7, lon: -13.6 };
+  const base = puntoDeReferencia("tinajo", null)!;
   const distancias: number[] = [];
+  let nulos = 0;
 
   for (let i = 0; i < 300; i++) {
-    distancias.push(distanciaKm(desplazaPunto(base), base) * 1000);
+    const p = desplazaPunto(base);
+    if (p === null) {
+      nulos++;
+      continue;
+    }
+    distancias.push(distanciaKm(p, base) * 1000);
   }
 
   const min = Math.min(...distancias);
   const max = Math.max(...distancias);
 
+  check("sale siempre un punto", nulos === 0, `${nulos} de 300 volvieron null`);
   check("nunca menos de 400 m", min >= 395, `minimo ${min.toFixed(0)} m`);
   check("nunca mas de 900 m", max <= 905, `maximo ${max.toFixed(0)} m`);
-  check("se mueve de verdad", max - min > 300, `rango ${(min).toFixed(0)}-${max.toFixed(0)} m`);
+  check("se mueve de verdad", max - min > 300, `rango ${min.toFixed(0)}-${max.toFixed(0)} m`);
   check("la media esta en el centro del rango", (min + max) / 2 > 600 && (min + max) / 2 < 700, `media ${((min + max) / 2).toFixed(0)} m`);
 }
 
+/* ========================================================================== */
+section("el marcador nunca cae en el mar");
+
+{
+  /*
+    Este es el fallo que se arrastro durante semanas: el desplazamiento se hacia
+    a ciegas y en los pueblos de la costa un empujon de 900 metros acababa en el
+    agua. El mapa ponia el punto en el oceano y el lector deducía una ubicacion
+    que nadie habia dicho.
+
+    Todos los sitios de la lista estan pegados al mar. 60 intentos cada uno,
+    porque el desplazamiento es aleatorio y hay que probarlo de verdad.
+  */
+  const costeras: Array<[string, string | null]> = [
+    ["arrecife", null],
+    ["arrecife", "arrecife-pueblo"],
+    ["san-bartolome", null],
+    ["san-bartolome", "playa-honda"],
+    ["san-bartolome", "guime"],
+    ["tias", "puerto-del-carmen"],
+    ["tias", "macher"],
+    ["yaiza", "playa-blanca"],
+    ["yaiza", "el-golfo"],
+    ["yaiza", "playa-quemada"],
+    ["teguise", "costa-teguise"],
+    ["teguise", "caleta-de-famara"],
+    ["haria", "orzola"],
+    ["haria", "punta-mujeres"],
+    ["tinajo", "la-santa"],
+  ];
+
+  let alMar = 0;
+  let sinPunto = 0;
+  let total = 0;
+  const culpables: string[] = [];
+
+  for (const [municipio, zona] of costeras) {
+    for (let i = 0; i < 60; i++) {
+      total++;
+      const p = puntoAproximado(municipio, zona);
+      if (p === null) {
+        sinPunto++;
+        continue;
+      }
+      if (!esTierra(p.lat, p.lon)) {
+        alMar++;
+        if (culpables.length < 6) {
+          culpables.push(`${zona ?? municipio} -> ${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`);
+        }
+      }
+    }
+  }
+
+  check("ningun marcador cae en el agua", alMar === 0, `${alMar} de ${total} en el mar: ${culpables.join(" | ")}`);
+  check("y sale punto en todos los sitios", sinPunto === 0, `${sinPunto} de ${total} sin punto`);
+}
+
+{
+  // El punto de referencia tambien tiene que estar en tierra, antes de moverlo.
+  const malas: string[] = [];
+  for (const m of MUNICIPALITY_BY_SLUG.values()) {
+    if (!esTierra(m.lat, m.lon)) malas.push(m.slug);
+  }
+  for (const z of ZONE_BY_SLUG.values()) {
+    if (!esTierra(z.lat, z.lon)) malas.push(z.slug);
+  }
+  check("ningun municipio ni zona esta en el mar", malas.length === 0, malas.slice(0, 8).join(", "));
+}
+
+{
+  /*
+    Lo que no se puede romper al buscar tierra: la privacidad. Aunque ahora se
+    busque un sitio en tierra, el marcador tiene que seguir a cientos de metros
+    del punto de referencia. Si esto bajara a cero, el mapa estaria dando la
+    ubicacion exacta del accidente.
+  */
+  const ref = puntoDeReferencia("arrecife", null)!;
+  let minimo = Infinity;
+  for (let i = 0; i < 150; i++) {
+    const p = puntoAproximado("arrecife", null);
+    if (p) minimo = Math.min(minimo, distanciaKm(p, ref) * 1000);
+  }
+  check("el desplazamiento minimo se mantiene", minimo >= 100, `minimo ${minimo.toFixed(0)} m`);
+}
+
+{
+  // Sin municipio no hay punto: no se inventa un sitio.
+  check("sin municipio no hay punto", puntoAproximado(null, null) === null);
+  check("con un municipio que no existe tampoco", puntoAproximado("no-existe", null) === null);
+}
 /* ========================================================================== */
 section("pinCuadra detecta los marcadores que mienten");
 

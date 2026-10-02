@@ -40,7 +40,7 @@
  */
 
 import { MUNICIPALITY_BY_SLUG, ZONE_BY_SLUG } from "@/lib/constants";
-import { esTierra } from "@/lib/tierra";
+import { sitioSeguro } from "@/lib/tierra";
 
 export type PuntoAproximado = { lat: number; lon: number } | null;
 
@@ -78,17 +78,17 @@ export function desplazaPunto(punto: { lat: number; lon: number }): { lat: numbe
   // Radio normal de privacidad: 400-900 metros.
   for (let i = 0; i < 60; i++) {
     const c = probar(400, 900);
-    if (esTierra(c.lat, c.lon)) return c;
+    if (sitioSeguro(c.lat, c.lon)) return c;
   }
 
   // reductions: la referencia esta pegada a la costa y no cabe el empuje entero.
   for (let i = 0; i < 60; i++) {
     const c = probar(120, 400);
-    if (esTierra(c.lat, c.lon)) return c;
+    if (sitioSeguro(c.lat, c.lon)) return c;
   }
 
   // Ultimo recurso: el punto sin desplazar, y solo si es tierra de verdad.
-  if (esTierra(punto.lat, punto.lon)) {
+  if (sitioSeguro(punto.lat, punto.lon)) {
     return { lat: punto.lat, lon: punto.lon };
   }
 

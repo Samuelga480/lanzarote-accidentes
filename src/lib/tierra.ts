@@ -95,3 +95,39 @@ export function esTierra(lat: number, lon: number): boolean {
   if (dentroDeLaIsla(lat, lon)) return true;
   return metrosAlBorde(lat, lon) <= MARGEN_TIERRA_M;
 }
+/**
+ * Minima distancia al borde que tiene que tener un punto para poder aceptarse
+ * como marcador, unos 200 metros.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE HACE FALTA
+ * ---------------------------------------------------------------------------
+ *
+ * El contorno de la isla sale de OpenStreetMap y es un dibujo aproximado: el
+ * del puerto de los Marmoles, en Arrecife, pasa por tierra firme en vez de
+ * rodear la darsena. Ese hueco mide unos 300 metros, de modo que un marcador
+ * caido dentro se dibujaba en el agua y la comprobacion lo daba por bueno,
+ * porque el poligono dice que es isla.
+ *
+ * No se ha parcheado el puerto a mano. Lo que se hace es una regla general: un
+ * marcador tiene que estar CLARAMENTE dentro de tierra, no en un rasante de la
+ * costa ni dentro de una darsena. Con 200 metros de margen los entrantes
+ * costeros se descartan solos, sin conocerlos uno a uno.
+ *
+ * El coste: en un pueblo muy abierto, como Puerto del Carmen o Playa Quemada,
+ * buscar tierra puede obligar a reducir el desplazamiento, y acaba siendo de
+ * 120-400 metros en vez de 400-900. Sigue siendo un desplazamiento y no el punto
+ * exacto, que es lo que importa para la privacidad.
+ */
+export const MIN_INTERIOR_M = 200;
+
+/**
+ * El punto vale para colocar un marcador: esta dentro de la isla y a al menos
+ * `MIN_INTERIOR_M` de cualquier borde.
+ *
+ * Esta es la que se usa al elegir la posicion. `esTierra` es mas laxa y sirve
+ * para diagnostico.
+ */
+export function sitioSeguro(lat: number, lon: number): boolean {
+  return dentroDeLaIsla(lat, lon) && metrosAlBorde(lat, lon) >= MIN_INTERIOR_M;
+}

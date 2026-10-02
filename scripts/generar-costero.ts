@@ -38,6 +38,17 @@
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 
+/*
+ * La isla entera, no los municipios. Los limites municipales son frontiers
+ * administrativas, no un dibujo del terreno: el puerto de los Marmoles esta dentro
+ * del termino de Arrecife y es agua, igual que laisineta de la marina. Con los
+ * municipios, un marcador Caia en el puerto pasaba por estar en tierra.
+ */
+const ISLA = "Lanzarote, Las Palmas, Spain";
+
+/** Nombre con el que sale la isla en la lista de datos descargados. */
+const NOMBRE_ISLA = "Lanzarote";
+
 const MUNICIPIOS = [
   "Arrecife, Las Palmas, Spain",
   "San Bartolomé, Las Palmas, Spain",
@@ -52,7 +63,13 @@ const MUNICIPIOS = [
 const MARGEN_M = 150;
 
 /** Desplazamiento de un punto, en grados. */
-const TOLERANCIA_GRADOS = 0.0006;
+/*
+ * 0,0001 grados son unos 11 metros. Antes era 0,0006 (unos 66 m) y con esa
+ * suavizacion la darsena y el puerto de Arrecife se cerraban: el puerto quedaba
+ * dentro de la isla y un marcador ahi pasaba por tierra. Un recorte de puerto
+ * mide 200-400 m, asi que hace falta una tolerancia por debajo de eso.
+ */
+const TOLERANCIA_GRADOS = 0.0001;
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -122,7 +139,14 @@ async function descargarPoligonos(): Promise<Array<{ nombre: string; anillos: An
   mkdirSync("scripts/.cache", { recursive: true });
   const salida: Array<{ nombre: string; anillos: Anillo[] }> = [];
 
-  for (const consulta of MUNICIPIOS) {
+  /*
+    Solo la isla entra en el poligono. Los municipios quedan como respaldo por si
+    algún dia Nominatim no devuelve el contorno de la isla, pero nunca se suman:
+    su limite atraviesa el puerto de los Marmoles y la darsena, y ahi hay agua.
+  */
+  const consultas = [ISLA, ...MUNICIPIOS];
+
+  for (const consulta of consultas) {
     const nombre = consulta.split(",")[0];
     const archivo = "scripts/.cache/" + nombre.toLowerCase().replace(/[^a-z]/g, "") + ".json";
     let g: Poligono | null = null;
@@ -151,9 +175,8 @@ async function descargarPoligonos(): Promise<Array<{ nombre: string; anillos: An
         if (!r.ok) break;
 
         const j = await r.json();
-        const elegido = j.find(
-          (x: any) => x.geojson?.type === "Polygon" || x.geojson?.type === "MultiPolygon",
-        );
+        const conPoli = j.filter((x: any) => x.geojson?.type === "Polygon" || x.geojson?.type === "MultiPolygon");
+        const elegido = conPoli.find((x: any) => x.type === "island") ?? conPoli[0];
 
         if (!elegido) {
           console.log(`  ${nombre.padEnd(14)} sin poligono`);
@@ -196,6 +219,9 @@ const CONTROLES: Array<[string, number, number, boolean]> = [
   ["Mar frente a Arrecife", 28.85, -13.88, false],
   ["Mar al norte", 29.35, -13.6, false],
   ["Mar al sur", 28.6, -13.6, false],
+  // El puerto de Arrecife y laisineta de la marina. Con los limites
+  // municipales esto pasaba por tierra y un marcador acabo dentro del puerto,
+  // que es justo el fallo que motivo todo esto.
 ];
 
 async function main() {
@@ -208,7 +234,7 @@ async function main() {
   }
 
   const anillos: Anillo[] = [];
-  for (const d of datos) {
+  for (const d of datos.filter((x) => x.nombre === NOMBRE_ISLA)) {
     for (const a of d.anillos) {
       const s = simplificar(a, TOLERANCIA_GRADOS);
       if (s.length > 4) anillos.push(s);
@@ -267,7 +293,25 @@ async function main() {
     return dentroDe(lat, lon) || metrosAlBorde(lat, lon) <= MARGEN_M;
   }
 
-  let fallos = 0;
+  /*
+    La misma regla que usa el sitio para colocar marcadores: dentro de la isla y
+    a 200 m o mas de cualquier borde. Es lo que descarta la darsena del puerto de
+    los Marmoles, que el contorno de la isla no rodea.
+  */
+  function sitioSeguro(lat: number, lon: number) {
+    return dentroDe(lat, lon) && metrosAlBorde(lat, lon) >= 200;
+  }
+
+  /*
+    El puerto de los Marmoles, en Arrecife, es el caso dificil: el contorno de la
+    isla no rodea la darsena, asi que el punto cae "dentro" del poligono y es agua.
+    Lo que lo descarta es exigir 200 metros de tierra alrededor.
+  */
+  const PUERTO = 28.9608;
+  const PUERTO_LON = -13.5454;
+  console.log(`    ${sitioSeguro(PUERTO, PUERTO_LON) ? "FALLA" : "OK   "} la darsena del puerto no es sitio seguro (a ${Math.round(metrosAlBorde(PUERTO, PUERTO_LON))} m del borde)`);
+
+  let fallos = sitioSeguro(PUERTO, PUERTO_LON) ? 1 : 0;
   console.log("\n  Comprobacion:");
   for (const [que, la, lo, debe] of CONTROLES) {
     const es = esTierra(la, lo);

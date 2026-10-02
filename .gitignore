@@ -51,3 +51,6 @@ desktop.ini
 
 # Fichero que genera ercel env pull: lleva la URL de la base con su contrasena.
 .env.production
+
+# Copia del sitio original, conservada como referencia del diseno.
+legacy-site/

@@ -3,7 +3,18 @@ import { SITE } from "@/lib/constants";
 import { FEED_PATH, webSiteSchema, organizationSchema, graphSchema } from "@/lib/jsonld";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
+
+// Merriweather para los titulares y Source Sans 3 para el texto: son las dos
+// tipografias del diseno original del sitio (legacy-site/styles.css).
+//
+// Este script va en el <head> y NO puede esperar a React: si el atributo
+// data-theme se pusiera despues, la pagina entera se pintaria en claro y luego
+// saltaria a oscuro en el sitio, que es justo el parpadeo que el diseno
+// original evitaba. El sitio viejo lo hacia con theme.js en el head; aqui se
+// replica el mismo comportamiento.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -59,8 +70,26 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
+        {/*
+          Se aplica el tema ANTES de que se pinte nada. Va como script suelto y
+          no como componente porque tiene que ejecutarse de forma sincrona
+          durante el parseo del HTML: cualquier otra cosa produce un parpadeo.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+
+        {/*
+          Merriweather para los titulares y Source Sans 3 para el texto.
+          selfFonts con display swap: la pagina se pinta de inmediato con la
+          tipografia de sistema y la buena sustituye al cargar.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+        />
         {/*
           JSON-LD de la organizacion y del sitio, en el layout para que esten en
           todas las paginas. El <title> de la pagina anade el sufijo del sitio

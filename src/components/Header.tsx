@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SITE } from "@/lib/constants";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV = [
   { href: "/", label: "Inicio" },
@@ -58,6 +59,9 @@ export function Header() {
               </Link>
             ))}
           </nav>
+
+          {/* Boton de tema claro/oscuro, como en el diseno original. */}
+          <ThemeToggle />
 
           <Link
             href="/admin"

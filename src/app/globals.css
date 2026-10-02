@@ -1,44 +1,94 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/*  Paleta: blanco de fondo, negro/gris para texto, rojo de alerta.            */
-/*  Estetica de periodico digital: mucho aire, reglas finas, titular en      */
-/*  serif y datos en sans.                                                    */
+/*  DISENO ORIGINAL DEL SITIO                                                  */
+/*                                                                            */
+/*  Estos valores NO son una decision estetica nueva: son los del diseno que   */
+/*  tenia el sitio antes (legacy-site/styles.css), reproducidos aqui para que  */
+/*  la aplicacion se vea igual.                                                */
+/*                                                                            */
+/*  Claro:  --accent #c92a2a (rojo), grises #212529 / #495057 / #6c757d         */
+/*  Oscuro: --accent #ff6b6b (rogo claro sobre fondo #121212)                 */
+/*  Titulares: Merriweather.  Texto: Source Sans 3.                            */
 /* -------------------------------------------------------------------------- */
 
 @theme {
+  /* Claro */
   --color-paper: #ffffff;
-  --color-canvas: #f6f7f8;
-  --color-ink: #101215;
-  --color-ink-soft: #3d4248;
-  --color-ink-mute: #6d737a;
-  --color-ink-faint: #9aa0a7;
-  --color-rule: #e3e6ea;
-  --color-rule-strong: #c9ced4;
+  --color-canvas: #f8f9fa;
+  --color-ink: #212529;
+  --color-ink-soft: #495057;
+  --color-ink-mute: #6c757d;
+  --color-ink-faint: #adb5bd;
+  --color-rule: #dee2e6;
+  --color-rule-strong: #ced4da;
 
-  --color-alert: #d3232f;
-  --color-alert-dark: #a81b25;
-  --color-alert-soft: #fdecec;
+  --color-alert: #c92a2a;
+  --color-alert-dark: #a61e1e;
+  --color-alert-soft: #f8d7d7;
 
-  --color-warn: #b26a00;
-  --color-warn-soft: #fff6e6;
-  --color-ok: #1c7a4a;
-  --color-ok-soft: #e8f5ee;
+  --color-warn: #e67700;
+  --color-warn-soft: #fff4e6;
+  --color-ok: #2b8a3e;
+  --color-ok-soft: #e6f4ea;
 
-  --font-serif: Georgia, "Times New Roman", "Nimbus Roman", serif;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius-DEFAULT: 6px;
+
+  --font-serif: "Merriweather", Georgia, "Times New Roman", serif;
+  --font-sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Modo oscuro                                                               */
+/*                                                                            */
+/*  El sitio original lo activaba con data-theme="dark" en <html> y lo         */
+/*  guardaba en localStorage. Se mantiene el mismo mecanismo para que el       */
+/*  boton de tema siga funcionando igual.                                      */
+/* -------------------------------------------------------------------------- */
+
+:root[data-theme="dark"] {
+  --color-paper: #1e1e1e;
+  --color-canvas: #121212;
+  --color-ink: #e0e0e0;
+  --color-ink-soft: #b0b0b0;
+  --color-ink-mute: #808080;
+  --color-ink-faint: #5a5a5a;
+  --color-rule: #333333;
+  --color-rule-strong: #444444;
+
+  --color-alert: #ff6b6b;
+  --color-alert-dark: #ff8787;
+  --color-alert-soft: #3d2222;
+
+  --color-warn: #ffa94d;
+  --color-warn-soft: #3d3020;
+  --color-ok: #51cf66;
+  --color-ok-soft: #1e3527;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    /* Sin transicion durante la carga inicial: si no, el cambio de tema al
+       entrar produce un parpadeo en toda la pagina. */
+    transition: none;
+  }
+
+  /* La transicion solo se aplica cuando el usuario cambia el tema a mano,
+     nunca en la carga. */
+  html.theme-switching,
+  html.theme-switching body,
+  html.theme-switching * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
   }
 
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -194,6 +244,48 @@
     color: var(--color-ink-soft);
   }
   .prose-news p:last-child { margin-bottom: 0; }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Boton de tema                                                            */
+/*                                                                            */
+/*  Estilos tomados del diseno original (legacy-site/styles.css), que usaba   */
+/*  un cuadrado con borde y las dos imagenes de sol y luna superpuestas.        */
+/* -------------------------------------------------------------------------- */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
+  background-color: var(--color-paper);
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-bg-hover, #f1f3f5);
+  border-color: var(--color-alert);
+  color: var(--color-alert);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-alert);
+  outline-offset: 2px;
+}
+
+/* Hueco del mismo tamano antes de hidratar, para que la cabecera no salte. */
+.theme-toggle-placeholder {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
 }
 
 /* Respeta la preferencia de menos animacion */

@@ -814,7 +814,14 @@ body {
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  transition: var(--transition);
+  /*
+    El diseño original ponía aquí "transition: all", pero eso incluye
+    visibility y el desplegable se queda invisible: la clase .active sí se
+    aplica, y aun así el navegador lo mantiene oculto porque visibility no se
+    interpola con "all". Es un bug que venía del CSS heredado.
+    Se transitiona solo lo que se puede interpolar; visibility cambia de golpe.
+  */
+  transition: opacity 0.2s ease, transform 0.2s ease;
   z-index: 1001;
 }
 

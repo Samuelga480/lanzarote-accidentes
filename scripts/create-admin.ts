@@ -2,18 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/user-auth";
 
 /**
- * Da de alta la cuenta de administrador del sitio.
+ * Da de alta una cuenta de administrador.
  *
- * El sitio original lo hacia a mano, en el fichero de servidor, con la
- * contrasena escrita en claro:
+ * El sitio original lo hacia a mano, dentro del fichero de servidor, con un
+ * mapa de correos y contrasenas escrito en claro. Eso no se recupera: aqui la
+ * contrasena se guarda hasheada con scrypt y con el rol ADMIN.
  *
- *   'samuelgarciagadanha4@gmail.com': { password: 'Estapaginaesmia', role: 'admin' }
+ * Para dejar el sitio con una unica cuenta de administrador, ver reset-admin.ts.
  *
- * Eso no se recupera. Aqui se crea la misma cuenta con la contrasena hasheada
- * con scrypt, y el rol ADMIN.
- *
- * El script es idempotente: si la cuenta ya existe, solo actualiza el hash si
- * se le pasa una contrasena nueva por consola. Sin eso no toca nada.
+ * El script es idempotente: si la cuenta ya existe, la actualiza con el correo
+ * y la contrasena que se le pasen por consola. Sin eso no toca nada.
  *
  * Uso:
  *   ADMIN_EMAIL=... ADMIN_PASSWORD=... npx tsx scripts/create-admin.ts

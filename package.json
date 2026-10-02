@@ -20,7 +20,7 @@
                     "db:reset":  "prisma migrate reset --force",
                     "setup":  "prisma migrate deploy \u0026\u0026 prisma db seed",
                     "monitor:once":  "tsx src/worker/run-cycle.ts",
-                    "test":  "tsx tests/logic.ts \u0026\u0026 tsx tests/endpoints.ts \u0026\u0026 tsx tests/ads.ts \u0026\u0026 tsx tests/rewrite-rules.ts",
+                    "test":  "tsx tests/logic.ts \u0026\u0026 tsx tests/endpoints.ts \u0026\u0026 tsx tests/ads.ts \u0026\u0026 tsx tests/rewrite-rules.ts \u0026\u0026 tsx tests/consent-manager.ts",
                     "test:logic":  "tsx tests/logic.ts",
                     "test:endpoints":  "tsx tests/endpoints.ts"
                 },

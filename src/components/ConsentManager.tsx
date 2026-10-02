@@ -198,14 +198,26 @@ const STUB = `
  * anuncios pregunte por el consentimiento. Si llega tarde, la primera peticion
  * se queda sin respuesta y la red marca la sesion como sin consentir.
  */
+/**
+ * Prepara el texto para meterlo dentro de un <script>.
+ *
+ * Solo se escapa la secuencia que puede romper el HTML, que es "</script".
+ * Ese "<\/script" dentro de una cadena de JavaScript vale exactamente lo mismo
+ * que "</script", pero no cierra la etiqueta del elemento.
+ *
+ * Lo que NO hay que hacer es escapar todos los "<" por el planeta a "\u003c":
+ * dentro de JavaScript "\u003c" no es el caracter "<", es un identificador
+ * roto. Con eso cualquier comparacion del stub ("a < b") deja de compilar, y la
+ * CMP entera se queda sin ejecutar sin decir nada. Ya paso: el aviso de cookies
+ * salia en blanco y el unico sintoma era un SyntaxError en la consola.
+ *
+ * tests/consent-manager.ts comprueba que el texto final se puede cargar como
+ * JavaScript, que es lo que habria pillado esto antes de desplegar.
+ */
+export function prepareStub(stub: string): string {
+  return stub.replace(/<\/(script)/gi, "<\\/$1");
+}
+
 export function ConsentManager() {
-  return (
-    <script
-      id="inmobi-choice-cmp"
-      // El "<" se escapa como \\u003c: sin esto, un "</script>" dentro del
-      // codigo cerraria la etiqueta. El codigo viene de la red de anuncios, no
-      // de este repositorio, asi que la comprobacion no es teorica.
-      dangerouslySetInnerHTML={{ __html: STUB.replace(/</g, "\\u003c") }}
-    />
-  );
+  return <script id="inmobi-choice-cmp" dangerouslySetInnerHTML={{ __html: prepareStub(STUB) }} />;
 }

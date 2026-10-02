@@ -118,10 +118,10 @@ section("El punto cae donde tiene que caer");
   // Una zona que no pertenece al municipio se descarta y cae al municipio. Puede
   // pasar si el editor cambia el municipio despues de elegir la zona.
   const pin = puntoDeReferencia("yaiza", "costa-teguise");
-  const yaiza = MUNICIPALITY_BY_SLUG.get("yaiza");
+  const yaiza = MUNICIPALITY_BY_SLUG.get("yaiza")!;
   check(
     "zona de otro municipio: se usa el municipio pedido",
-    pin !== null && yaiza !== null && Math.abs(pin.lat - yaiza.lat) < 0.0001,
+    pin !== null && Math.abs(pin.lat - yaiza.lat) < 0.0001,
     JSON.stringify(pin),
   );
 }

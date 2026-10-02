@@ -1,0 +1,126 @@
+/* ============================================================================
+ *  MAPA CON LEAFLET
+ *
+ *  El sitio original usaba Leaflet con teselas de OpenStreetMap. El SVG dibujado
+ *  a mano que hay ahora no es el mapa que conocias, asi que se vuelve a Leaflet
+ *  con la misma configuracion que usaba app.js:
+ *
+ *    centro  [29.05, -13.60]   zoom 10   minZoom 9   maxZoom 18
+ *    teselas tile.openstreetmap.org
+ *    escala metrica
+ *    marcadores circulos de radio 10 con borde blanco
+ *
+ *  Leaflet necesita el DOM, asi que se importa sin SSR (ssr: false) y el
+ *  contenedor se inicializa una vez montado. En modo oscuro se usa el filtro
+ *  CSS del propio Leaflet, que ya trae un contenedor para eso.
+ * ========================================================================= */
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--bg-secondary);
+}
+
+/* Teselas oscurecidas en tema oscuro. Leaflet trae .leaflet-tile-pane para eso. */
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+}
+
+[data-theme="dark"] .leaflet-control-attribution {
+  background: rgba(30, 30, 30, 0.85);
+  color: #b0b0b0;
+}
+
+[data-theme="dark"] .leaflet-control-attribution a {
+  color: #ff8787;
+}
+
+[data-theme="dark"] .leaflet-bar a {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border-color: #333333;
+}
+
+[data-theme="dark"] .leaflet-bar a:hover {
+  background: #2a2a2a;
+}
+
+/* Los controles de Leaflet no heredan la tipografia del sitio */
+.leaflet-control-zoom a,
+.leaflet-popup-content,
+.leaflet-popup-content-wrapper {
+  font-family: var(--font-sans);
+}
+
+/* La altura la fija el contenedor padre (#map o .map-container). */
+.leaflet-container {
+  width: 100%;
+}
+
+/* El mapa de la portada dentro del contenedor con borde del diseño */
+.map-container .leaflet-container {
+  border-radius: var(--radius);
+}
+
+/* Marcador de un accidente. */
+.accident-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.accident-marker.selected {
+  transform: scale(1.25);
+  z-index: 1000;
+}
+
+.accident-marker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* Globo del marcador */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-family: var(--font-sans);
+}
+
+.popup-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.popup-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.popup-info a {
+  color: var(--accent);
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.popup-info a:hover {
+  text-decoration: underline;
+}

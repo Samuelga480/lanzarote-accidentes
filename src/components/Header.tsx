@@ -10,9 +10,17 @@ import { MobileNav } from "@/components/MobileNav";
  * junto al nombre en Merriweather, navegacion a la derecha con enlaces de 8px
  * de relleno, boton de tema e "Acceder" en bloque oscuro.
  */
+/**
+ * Navegacion principal.
+ *
+ * La del sitio original era: Noticias, Mapa, Resumen Semanal, tema y Acceder.
+ * Se mantienen esos enlaces y se anaden los que la version con base de datos
+ * necesita (municipios, buscador, aviso legal), que no existian entonces.
+ */
 const NAV = [
   { href: "/", label: "Inicio" },
   { href: "/accidentes", label: "Noticias" },
+  { href: "/resumen", label: "Resumen Semanal" },
   { href: "/mapa", label: "Mapa" },
   { href: "/municipios", label: "Municipios" },
   { href: "/buscar", label: "Buscar" },

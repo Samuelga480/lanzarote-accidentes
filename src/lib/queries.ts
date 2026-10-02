@@ -10,6 +10,7 @@ import {
   type Origin,
   type VehicleType,
 } from "@/lib/types";
+import { CATEGORY_LABEL } from "@/lib/constants";
 
 /* -------------------------------------------------------------------------- */
 /*  REGLA CENTRAL DEL PROYECTO                                                 */
@@ -283,6 +284,114 @@ export async function getPublicStats(): Promise<{ total: number; last24h: number
   ]);
 
   return { total, last24h, municipalities };
+}
+
+/* ==========================================================================
+ *  Resumen semanal
+ *
+ *  Cubre la pagina /resumen del sitio original: los总数 de una semana,
+ *  el reparto por tipo de incidente y por municipio, y la lista de
+ *  accidentes de esa semana.
+ * ======================================================================== */
+
+export type WeeklySummary = {
+  /** Lunes de la semana, a las 00:00 en hora de Canarias. */
+  weekStart: Date;
+  total: number;
+  injuries: number;
+  fatalities: number;
+  byType: Array<{ label: string; count: number }>;
+  byMunicipality: Array<{ label: string; count: number }>;
+  accidents: AccidentWithMunicipality[];
+};
+
+/**
+ * Devuelve el lunes de la semana que contiene `ref`.
+ *
+ * Las semanas empiezan en lunes, como en el sitio original (que usaba
+ * `getDay()` y por tanto el domingo). Se devuelve en UTC porque las fechas se
+ * guardan en UTC; al pintarlas se convierten a hora de Canarias.
+ */
+function mondayOf(ref: Date): Date {
+  const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+  // getUTCDay(): 0 domingo, 1 lunes... La semana va de lunes a domingo, asi
+  // que el domingo retrocede 6 dias y los demas retroceden (dia - 1).
+  const dow = d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() - ((dow + 6) % 7));
+  return d;
+}
+
+/**
+ * Resumen de la semana que contiene `weekStart`, o de la semana actual si no
+ * se indica. Solo cuenta noticias publicadas, igual que el resto del sitio.
+ */
+export async function getWeeklySummary(weekStart?: Date): Promise<WeeklySummary> {
+  const start = weekStart ? mondayOf(weekStart) : mondayOf(new Date());
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 7); // intervalo [start, end)
+
+  const rows = await prisma.accident.findMany({
+    where: { AND: [ONLY_PUBLISHED, { occurredAt: { gte: start, lt: end } }] },
+    include: { municipality: true },
+    orderBy: { occurredAt: "desc" },
+  });
+
+  const accidents = rows.map(narrow);
+
+  // Recuento por tipo de incidente y por municipio. Se usa un Map para mantener
+  // el orden de aparicion y no el alfabetico del agrupado de SQL, que seria
+  // menos util al leer una lista corta.
+  const typeCounts = new Map<string, number>();
+  const muniCounts = new Map<string, number>();
+  let injuries = 0;
+  let fatalities = 0;
+
+  for (const a of accidents) {
+    const t = CATEGORY_LABEL[a.category] ?? "Otro";
+    typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1);
+
+    const m = a.municipality.name;
+    muniCounts.set(m, (muniCounts.get(m) ?? 0) + 1);
+
+    injuries += a.injuries;
+    fatalities += a.fatalities;
+  }
+
+  // De mayor a menor: el dato mas relevante primero.
+  const byType = [...typeCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+
+  const byMunicipality = [...muniCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "es"));
+
+  return { weekStart: start, total: accidents.length, injuries, fatalities, byType, byMunicipality, accidents };
+}
+
+/**
+ * Semanas con noticias publicadas, de la mas reciente a la mas antigua.
+ * Alimenta el desplegable de semanas de /resumen.
+ */
+export async function listWeeksWithAccidents(limit = 12): Promise<Date[]> {
+  const rows = await prisma.accident.findMany({
+    where: ONLY_PUBLISHED,
+    select: { occurredAt: true },
+    orderBy: { occurredAt: "desc" },
+  });
+
+  // mondayOf() ya normaliza a lunes, asi que dos Mondays seguidos detectan que
+  // son la misma semana y no se repiten en el desplegable.
+  const seen = new Set<number>();
+  const weeks: Date[] = [];
+  for (const r of rows) {
+    const m = mondayOf(r.occurredAt);
+    if (seen.has(m.getTime())) continue;
+    seen.add(m.getTime());
+    weeks.push(m);
+    if (weeks.length >= limit) break;
+  }
+  return weeks;
 }
 
 /** Entradas publicadas para el sitemap SEO. */

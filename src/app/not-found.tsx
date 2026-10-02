@@ -1,25 +1,20 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "No encontrado",
+  robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
   return (
-    <div className="container-page py-20 text-center">
-      <p className="font-serif text-7xl font-bold text-alert mb-4 leading-none">404</p>
-      <h1 className="font-serif text-2xl font-bold mb-3">Página no encontrada</h1>
-      <p className="text-ink-soft text-sm max-w-md mx-auto mb-8 leading-relaxed">
-        La página que buscas no existe o la noticia ya no está publicada. Si el enlace estaba en un borrador sin
-        revisar, es normal que aún no sea accesible.
-      </p>
-      <div className="flex flex-wrap gap-3 justify-center">
-        <Link href="/" className="btn btn-primary">
-          Ir a la portada
-        </Link>
-        <Link href="/accidentes" className="btn btn-ghost">
-          Ver todos los accidentes
-        </Link>
-        <Link href="/buscar" className="btn btn-ghost">
-          Buscar
-        </Link>
+    <main className="resumen-main">
+      <div className="resumen-container text-center">
+        <h1 className="resumen-header h2">Página no encontrada</h1>
+        <p className="login-header p mb-6">La página que buscas no existe o ha cambiado de dirección.</p>
+        <a href="/" className="nav-link nav-admin">
+          Volver a la portada
+        </a>
       </div>
-    </div>
+    </main>
   );
 }

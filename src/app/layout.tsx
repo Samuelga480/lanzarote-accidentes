@@ -8,6 +8,13 @@ import "./globals.css";
 // site.css va DESPUES a proposito: es el diseño original del sitio y, al no
 // estar dentro de @layer, gana a las utilidades de Tailwind de globals.css.
 import "./site.css";
+// Estilos de Leaflet: se importan aqui y no en el componente porque el CSS se
+// necesita tambien en el servidor, no solo cuando se monta el mapa.
+import "leaflet/dist/leaflet.css";
+import "./map.css";
+// Estilos de las paginas que tambien existian en el sitio original:
+// resumen semanal, login/registro, ficha de noticia y ficha de usuarios.
+import "./pages.css";
 
 // Merriweather para los titulares y Source Sans 3 para el texto: son las dos
 // tipografias del diseno original del sitio (legacy-site/styles.css).

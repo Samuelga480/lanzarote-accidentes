@@ -1,0 +1,773 @@
+/* ============================================================================
+ *  RESUMEN SEMANAL
+ *
+ *  Estilos de la pagina /resumen, que tambien existia en el sitio original
+ *  (legacy-site/resumen.css). Se mantienen las medidas y el aspecto: tarjeta
+ *  blanca centrada de 1000px, selector de semana, cuatro tarjetas de cifras,
+ *  dos gráficas de barras horizontales y la lista de accidentes de la semana.
+ * ========================================================================= */
+
+.resumen-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.resumen-container {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 32px;
+}
+
+.resumen-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.resumen-header h2 {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 900;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.resumen-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.resumen-filters {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.resumen-select {
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.resumen-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.resumen-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.resumen-stat-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.resumen-stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.1;
+}
+
+.resumen-stat-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.resumen-chart {
+  margin-bottom: 40px;
+}
+
+.resumen-chart h3 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-bar-label {
+  min-width: 100px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.chart-bar-track {
+  flex: 1;
+  height: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chart-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 12px;
+  transition: width 0.5s ease;
+}
+
+.chart-bar-value {
+  min-width: 30px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.resumen-accidentes h3 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.resumen-accidente-item {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  display: block;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.resumen-accidente-item:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--text-muted);
+}
+
+.resumen-accidente-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.resumen-accidente-item:hover .resumen-accidente-title {
+  color: var(--accent);
+}
+
+.resumen-accidente-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Estado sin datos */
+.resumen-vacio {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .resumen-main {
+    padding: 24px 16px;
+  }
+
+  .resumen-container {
+    padding: 20px;
+  }
+
+  .resumen-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .resumen-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-bar-label {
+    min-width: 80px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ============================================================================
+ *  LOGIN Y REGISTRO
+ *
+ *  Estilos de legacy-site/login.css: tarjeta de 420px centrada, marca en rojo,
+ *  campos con el borde gris y el foco en rojo, y boton de mostrar contrasena.
+ * ========================================================================= */
+
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  padding: 24px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 40px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-header .logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.login-header h1 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.login-header h1 span {
+  color: var(--accent);
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.login-form .form-group {
+  margin-bottom: 20px;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  transition: var(--transition);
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 42, 42, 0.12);
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 44px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.toggle-password:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.login-error {
+  color: var(--accent);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  text-align: center;
+  min-height: 20px;
+}
+
+.btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 14px;
+  font-size: 1rem;
+}
+
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.login-footer p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0 0 6px;
+}
+
+.login-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.login-footer a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 24px;
+  }
+}
+
+/* ============================================================================
+ *  PAGINA DE NOTICIA
+ *
+ *  Estilos de legacy-site/noticia.css: tarjeta de 900px, imagen de 400px,
+ *  cuerpo con 32px de relleno, globo de mapa de 400px y seccion de comentarios.
+ * ========================================================================= */
+
+.noticia-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+.noticia-article {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+
+.noticia-hero {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  background: var(--bg-secondary);
+  display: block;
+}
+
+.noticia-body {
+  padding: 32px;
+}
+
+.noticia-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.noticia-fecha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.noticia-zona {
+  padding: 6px 14px;
+  background: var(--bg-hover);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.noticia-zona:hover {
+  color: var(--text-primary);
+}
+
+.noticia-titulo {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 20px;
+}
+
+.noticia-descripcion {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Bloque de resumen destacado, con el filete rojo a la izquierda */
+.noticia-resumen-ia {
+  background: var(--bg-secondary);
+  border-left: 4px solid var(--accent);
+  padding: 20px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-bottom: 24px;
+}
+
+.noticia-resumen-ia h3 {
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.noticia-resumen-ia p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.noticia-fuente {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.noticia-fuente a {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.noticia-fuente a:hover {
+  text-decoration: underline;
+}
+
+.noticia-mapa {
+  margin-bottom: 40px;
+}
+
+.noticia-mapa h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.noticia-relacionadas h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.comentarios-section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.comentarios-section h2 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.comentarios-login {
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.comentarios-login p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.comentarios-login a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.comentarios-login a:hover {
+  text-decoration: underline;
+}
+
+.comentario-form {
+  margin-bottom: 24px;
+}
+
+.comentario-form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.comentario-form textarea:focus {
+  outline: none;
+  border-color: var(--text-muted);
+}
+
+.comentario-item {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+
+.comentario-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.comentario-usuario {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.comentario-usuario:hover {
+  color: var(--accent);
+}
+
+.comentario-fecha {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.comentario-texto {
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0 0 8px;
+}
+
+.comentario-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .noticia-main {
+    padding: 24px 16px 40px;
+  }
+
+  .noticia-hero {
+    height: 250px;
+  }
+
+  .noticia-body {
+    padding: 20px;
+  }
+
+  .comentario-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* ============================================================================
+ *  FICHA DE USUARIOS
+ *
+ *  Lista de personas registradas. Comparteodenominaciones con el panel:
+ *  tarjetas de cifras arriba y lista debajo.
+ * ========================================================================= */
+
+.usuarios-main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.usuarios-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.usuarios-filters input,
+.usuarios-filters select {
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+}
+
+.usuarios-filters input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.usuarios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.usuario-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+.usuario-card:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--text-muted);
+}
+
+.usuario-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.usuario-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.usuario-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.usuario-email {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.usuario-fecha {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.usuario-rol {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.usuario-rol.admin {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.usuario-rol.invitado {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .usuarios-main {
+    padding: 24px 16px;
+  }
+
+  .usuario-card {
+    flex-wrap: wrap;
+  }
+}

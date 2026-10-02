@@ -1,43 +1,86 @@
+import Link from "next/link";
 import type { Metadata } from "next";
+import { FilterBar } from "@/components/FilterBar";
 import { MapLanzarote } from "@/components/MapLanzarote";
-import { getAccidentsForMap } from "@/lib/queries";
-
-export const dynamic = "force-dynamic";
+import { AccidentCard } from "@/components/AccidentCard";
+import { getAccidentsForMap, getPublicStats, listAccidents } from "@/lib/queries";
+import { parseFilters, type RawSearchParams } from "@/lib/filters";
+import { SITE } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Mapa de accidentes en Lanzarote",
+  title: "Mapa de la isla",
   description:
-    "Mapa de la isla de Lanzarote con la ubicación aproximada de los accidentes de tráfico publicados. Las posiciones están desplazadas de forma deliberada para proteger la privacidad.",
+    "Mapa de los accidentes de tráfico registrados en Lanzarote. Las ubicaciones se muestran de forma aproximada.",
   alternates: { canonical: "/mapa" },
 };
 
-export default async function MapPage() {
-  const accidents = await getAccidentsForMap(200);
-  const points = accidents.map((a) => ({ ...a, occurredAt: a.occurredAt.toISOString() }));
+export const dynamic = "force-dynamic";
+
+type Props = { searchParams: Promise<RawSearchParams> };
+
+export default async function MapaPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const filters = parseFilters(sp);
+
+  const [stats, list, mapAccidents] = await Promise.all([
+    getPublicStats(),
+    listAccidents({ ...filters, take: 9 }),
+    getAccidentsForMap(200),
+  ]);
+
+  const plotted = mapAccidents.filter((a) => a.approxLat !== null && a.approxLon !== null);
+  const mapPoints = mapAccidents.map((a) => ({ ...a, occurredAt: a.occurredAt.toISOString() }));
 
   return (
-    <div className="container-page py-6">
-      <header className="mb-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-alert mb-2">
-          Cartografía
-        </p>
-        <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-2">
-          Mapa de accidentes en Lanzarote
-        </h1>
-        <p className="text-ink-soft text-sm md:text-base max-w-2xl leading-relaxed">
-          <span className="font-semibold text-ink-soft">{points.length}</span> siniestros publicados, situados en
-          su <strong className="text-ink-soft">ubicación aproximada</strong>. El color del marcador indica la
-          gravedad estimada.
-        </p>
-      </header>
+    <>
+      {/* Barra de buscador y filtros, igual que en la portada. */}
+      <FilterBar />
 
-      {points.length > 0 ? (
-        <MapLanzarote accidents={points} />
-      ) : (
-        <p className="card p-10 text-center text-sm text-ink-mute">
-          Todavía no hay noticias publicadas con coordenadas.
-        </p>
-      )}
-    </div>
+      <main>
+        <section className="site-section map-section" aria-labelledby="titulo-mapa">
+          <div className="section-header">
+            <h2 id="titulo-mapa">Mapa de accidentes</h2>
+            <p>Ubicación de los accidentes señalados en la isla</p>
+          </div>
+
+          <div className="map-container">
+            <MapLanzarote accidents={mapPoints} height="600px" />
+          </div>
+        </section>
+
+        <section className="site-section" aria-labelledby="titulo-mapa-lista">
+          <div className="section-header">
+            <h2 id="titulo-mapa-lista">Sobre el mapa</h2>
+            <p>
+              {plotted.length} de {stats.total} noticias publicadas tienen ubicación en el mapa
+            </p>
+          </div>
+
+          {list.items.length > 0 ? (
+            <div className="news-grid">
+              {list.items.map((a) => (
+                <AccidentCard key={a.id} accident={a} />
+              ))}
+            </div>
+          ) : (
+            <p className="news-description">
+              Todavía no hay noticias publicadas. Ninguna se publica sin que un editor la revise antes.
+            </p>
+          )}
+
+          <p className="mt-8">
+            <Link href="/" className="section-more">
+              ← Volver a la portada
+            </Link>
+            <span className="sr-only"> · {SITE.name}</span>
+          </p>
+        </section>
+      </main>
+    </>
   );
 }
+
+/**
+ * El mapa se monta en el cliente porque Leaflet necesita el DOM. Se envuelve en
+ * Suspense para que el resto de la pagina pueda renderizarse en el servidor.
+ */

@@ -32,13 +32,17 @@ const BASE: ExtractedFacts = {
   matchedTerms: ["accidente"],
 };
 
-function pedir(facts: Partial<ExtractedFacts>, original = "texto de ejemplo"): RewriteRequest {
+function pedir(
+  facts: Partial<ExtractedFacts>,
+  original = "texto de ejemplo",
+  municipalityName = "Tías",
+): RewriteRequest {
   return {
     title: "Titular del medio original",
     body: original,
     summary: "Resumen del medio",
     facts: { ...BASE, ...facts },
-    municipalityName: "Tías",
+    municipalityName,
     occurredAtIso: "2026-10-02T09:30:00.000Z",
     outlet: "Medio de prueba",
     sourceUrl: "https://ejemplo.test/a",
@@ -160,6 +164,39 @@ console.log("\n7. VARIAS CATEGORIAS\n");
     ok(`${cat} sale como "${etiqueta}"`, r.ok && r.title.startsWith(etiqueta),
        r.ok ? r.title : "");
   }
+}
+
+/* ========================================================================== */
+console.log("\nCuando no se sabe el municipio, no se inventa uno");
+/* ========================================================================== */
+
+{
+  // "Lanzarote" es el nombre que pasa quien llama cuando extractFacts no ha
+  // podido determinar el municipio. No existe ningun municipio con ese nombre:
+  // es la isla. Decirlo como municipio seria publicar un dato falso, y este
+  // modulo no los publica.
+  const r = rewriteByRules(pedir({ municipalitySlug: null, road: null, areaLabel: null }, "", "Lanzarote"));
+  ok('no escribe "el municipio de Lanzarote"', r.ok && !/municipio de Lanzarote/.test(r.body),
+     r.ok ? r.body : "");
+  ok("dice la isla", r.ok && /isla/.test(r.body), r.ok ? r.body : "");
+  ok("y el titular no promete un municipio", r.ok && !/municipio/i.test(r.title), r.ok ? r.title : "");
+}
+
+{
+  // Con municipio conocido, el "de" si aparece: es lo que se busca cuando
+  // alguien teclea "accidentes Tias".
+  const r = rewriteByRules(pedir({ municipalitySlug: "tinajo", road: null, areaLabel: null }, "", "Tinajo"));
+  ok("con municipio conocido si dice el municipio", r.ok && /el municipio de Tinajo/.test(r.body),
+     r.ok ? r.body : "");
+  ok("y el titular lo lleva", r.ok && /Tinajo/.test(r.title), r.ok ? r.title : "");
+}
+
+{
+  // Con carretera y sin municipio, la carretera ya sitúa: no hace falta inventar
+  // nada mas.
+  const r = rewriteByRules(pedir({ municipalitySlug: null, road: "LZ-40", areaLabel: null }, "", "Lanzarote"));
+  ok("carretera sin municipio: solo la carretera", r.ok && /carretera LZ-40/.test(r.body) && !/municipio/.test(r.body),
+     r.ok ? r.body : "");
 }
 
 console.log(`\n${fallos === 0 ? "Todas las comprobaciones correctas." : `${fallos} fallo(s).`}\n`);

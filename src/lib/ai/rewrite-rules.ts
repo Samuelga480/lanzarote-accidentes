@@ -98,6 +98,19 @@ function momento(horaLocal: string): string | null {
 }
 
 /**
+ * El nombre "Lanzarote" no es un municipio: es la isla. Quien llama lo pasa
+ * cuando no se ha podido determinar el municipio, y por eso aqui no se puede
+ * decir "el municipio de Lanzarote", que seria mentira. Se dice la isla.
+ *
+ * Los siete municipios de verdad son Arrecife, Haria, Teguise, Tinajo, Tias,
+ * Tizayuca y Yaiza (ver MUNICIPALITIES).
+ */
+function sinMunicipio(municipioNombre: string): boolean {
+  const n = municipioNombre.trim();
+  return n === "" || n === "Lanzarote";
+}
+
+/**
  * Donde ha ocurrido.
  *
  * La combinacion con "a la altura de" es formula del genero: va a aparecer en
@@ -109,6 +122,7 @@ function donde(facts: ExtractedFacts, municipioNombre: string): string {
   if (facts.road && zona) return `la carretera ${facts.road}, a la altura de ${zona}`;
   if (facts.road) return `la carretera ${facts.road}, en ${municipioNombre}`;
   if (zona) return `la zona de ${zona}, en ${municipioNombre}`;
+  if (sinMunicipio(municipioNombre)) return `la isla de Lanzarote`;
   return `el municipio de ${municipioNombre}`;
 }
 

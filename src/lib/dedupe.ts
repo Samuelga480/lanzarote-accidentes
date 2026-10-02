@@ -70,6 +70,14 @@ export function normalizeUrl(url: string): string {
     if ((u.protocol === "https:" && u.port === "443") || (u.protocol === "http:" && u.port === "80")) {
       u.port = "";
     }
+    /*
+      El esquema NO se unifica a proposito. Un sitio puede servir distinto
+      contenido por http y por https, y forzar https daria por hecho que no lo
+      hace. El coste de equivocarse es bajo (el mismo articulo se descargaria dos
+      veces y la deduplicacion por contenido lo fusionaria), mientras que el
+      riesgo de unificar a ciegas es willingly fusionar dos paginas distintas.
+      Por eso el test "no unifica http con https a ciegas" existe y no se quita.
+    */
     return u.toString().toLowerCase();
   } catch {
     return url.trim().toLowerCase();

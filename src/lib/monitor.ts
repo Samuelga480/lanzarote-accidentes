@@ -91,6 +91,87 @@ async function acquireLock(trigger: "CRON" | "MANUAL" | "STARTUP"): Promise<bool
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Cadencia: cada cuanto se pasa                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cada cuanto se admite una pasada, en ms.
+ *
+ * Una hora. El plan Hobby de Vercel deja dos cron al dia, asi que el ritmo se
+ * consigue con `runCycleIfDue`, que dispara un ciclo desde el propio trafico del
+ * sitio. El cron de Vercel queda como suelo para cuando no entra nadie.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE UNA HORA Y NO MENOS
+ * ---------------------------------------------------------------------------
+ *
+ * Los feeds guardan entre 2 y 17 dias de noticias, asi que la ventana de "esto es
+ * nuevo" no es el problema: un articulo de hace veinte minutos sigue ahi dentro
+ * de una semana. El problema es el coste, y aqui no hay cron de pago con el que
+ * pagarlo. Una hora por visita es lo que aguanta el plan gratis sin castigar la
+ * latencia.
+ *
+ * La ventana de 90 minutos que se mira en `monitorConfig.lookbackMinutes()` es
+ * MAYOR que la cadencia a proposito: si una pasada se salta o se retrasa, la
+ * siguiente sigue cubriendo lo que se le habia escapado. Con una ventana igual
+ * que la cadencia, el retraso de una pasada equivaldria a perder noticias.
+ */
+export const CADENCIA_MS = 60 * 60_000;
+
+/**
+ * Ultima vez que este proceso comprobó que tocaba. Solo en memoria.
+ *
+ * Sirve para no pegarle una consulta a la base de datos en cada peticion: tras la
+ * primera comprobacion se sabe que no toca hasta dentro de 15 minutos y se
+ * contesta sin tocar la base de datos. En una instancia de serverless esto
+ * significa una consulta por arranque en frio, no una por visita.
+ */
+let proximaPasadaAdmitida = 0;
+
+/**
+ * Si toca pasar, ejecuta un ciclo. Si no toca, no hace nada y se responde casi
+ * al instante.
+ *
+ * El cerrojo de `acquireLock` sigue siendo la garantía de que no haya dos ciclos
+ * a la vez: esto solo evita el trabajo duplicado.
+ */
+export async function runCycleIfDue(
+  trigger: "CRON" | "MANUAL" | "STARTUP",
+  ahora: number = Date.now(),
+): Promise<{ ejecutado: boolean; motivo: string }> {
+  if (ahora < proximaPasadaAdmitida) {
+    return {
+      ejecutado: false,
+      motivo: `Todavia no toca: quedan ${Math.ceil((proximaPasadaAdmitida - ahora) / 60_000)} min.`,
+    };
+  }
+
+  // Se reserva ANTES de ir a la base de datos. Aunque el ciclo falle o la pagina
+  // no llegue a terminar, no se reintenta en cada peticion.
+  proximaPasadaAdmitida = ahora + CADENCIA_MS;
+
+  try {
+    const r = await runCycle(trigger);
+    return {
+      ejecutado: true,
+      motivo: `Ciclo ejecutado en ${Math.round(r.durationMs / 1000)} s: ${r.draftsCreated} borrador(es) nuevo(s), ${r.itemsFound} item(s) leido(s).`,
+    };
+  } catch (err) {
+    log.error("El ciclo disparado desde el trafico fallo", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { ejecutado: true, motivo: "El ciclo fallo. Se reintentara en la siguiente ventana." };
+  }
+}
+
+/**
+ * Solo para pruebas: olvida la reserva en memoria.
+ */
+export function olvidarCadencia(): void {
+  proximaPasadaAdmitida = 0;
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Sincronizacion de fuentes                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -299,7 +380,7 @@ async function processFeed(
 
   // --- 4. Limitar y ordenar por fecha descendente ---
   const maxItems = monitorConfig.maxArticlesPerFeed();
-  const lookbackMs = monitorConfig.lookbackHours() * 3_600_000;
+  const lookbackMs = monitorConfig.lookbackMinutes() * 60_000;
   const now = Date.now();
 
   const candidates = [...parsed.items]

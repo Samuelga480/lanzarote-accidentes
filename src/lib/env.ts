@@ -157,9 +157,20 @@ export const monitorConfig = {
   missingThreshold(): number {
     return int("MONITOR_MISSING_THRESHOLD", 6);
   },
-  /** Horas hacia atras que se consideran "noticia nueva" en cada pasada. */
-  lookbackHours(): number {
-    return int("MONITOR_LOOKBACK_HOURS", 48);
+  /**
+   * Minutos hacia atras que se consideran "noticia nueva" en cada pasada.
+   *
+   * 90 minutos, y no 60 a proposito: es MAYOR que la cadencia de una hora. Con
+   * una ventana igual que la cadencia, el retraso de una pasada equivaldria a
+   * perder para siempre lo que se publico durante ese retraso. Con media hora de
+   * margen, la siguiente pasada sigue cubriéndolo.
+   *
+   * Se mide en minutos y no en horas porque hora y media no se expresa en horas
+   * enteras, y redondear a "2 horas" seria 30 minutos de mas o media hora
+   * de menos.
+   */
+  lookbackMinutes(): number {
+    return int("MONITOR_LOOKBACK_MINUTES", 90);
   },
   /** Corte de antiguedad: nada de mas de N dias entra al sistema. */
   maxAgeDays(): number {

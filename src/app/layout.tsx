@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/constants";
+import { disparaCiclo } from "@/lib/auto-ciclo";
 import { FEED_PATH, webSiteSchema, organizationSchema, graphSchema } from "@/lib/jsonld";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -82,6 +83,15 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  /*
+    El plan Hobby de Vercel solo deja dos cron al dia, y con eso una noticia de
+    hace veinte minutos se enteraria al dia siguiente. Aqui se lanza una pasada
+    cada hora desde el propio trafico de visitas, DESPUES de enviar la
+    respuesta: el visitante no espera nada y el ciclo corre igual. El cron de
+    Vercel sigue puesto como suelo para los dias sin visitas.
+  */
+  disparaCiclo();
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>

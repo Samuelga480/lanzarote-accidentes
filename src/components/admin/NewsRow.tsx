@@ -25,6 +25,34 @@ export function NewsRow({ row }: { row: AdminRow }) {
     form.submit();
   }
 
+  /*
+    Rechazar es la accion de la que mas se duda en un panel: casi nadie la pulsa
+    sin querer, pero pulsarla por error desde un boton de un solo clic es facil.
+    Pide confirmacion en el navegador, antes de que salga nada de la pestana.
+  */
+  function rechazar() {
+    if (!window.confirm(`¿Rechazar "${row.title}"?\n\nLa noticia no se publica, pero se queda en el historico.`)) return;
+
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/admin/aprobar";
+
+    const id = document.createElement("input");
+    id.type = "hidden";
+    id.name = "id";
+    id.value = row.id;
+
+    const estado = document.createElement("input");
+    estado.type = "hidden";
+    estado.name = "estado";
+    estado.value = "REJECTED";
+
+    form.appendChild(id);
+    form.appendChild(estado);
+    document.body.appendChild(form);
+    form.submit();
+  }
+
   return (
     <div className="admin-news-item" data-id={row.id}>
       <div className="admin-news-info">
@@ -71,25 +99,51 @@ export function NewsRow({ row }: { row: AdminRow }) {
               </dl>
 
               <div className="modal-actions">
-                <a href={`/accidentes/${row.slug}`} className="btn btn-secondary">
-                  Ver en la web
-                </a>
+                {row.status === "aprobada" ? (
+                  <a href={`/accidentes/${row.slug}`} className="btn btn-secondary">
+                    Ver en la web
+                  </a>
+                ) : (
+                  <span className="admin-news-meta">
+                    Aun no esta publicada, asi que no tiene ficha pública.
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </details>
 
-        <a href={`/accidentes/${row.slug}`} className="btn btn-primary btn-small">
-          Editar
-        </a>
+        {/*
+          "Editar" lleva a la ficha de la noticia, pero solo se ofrece si ya esta
+          publicada: la pagina publica filtra por `status = PUBLISHED`, asi que un
+          borrador da 404 y el boton parece roto sin serlo.
+        */}
+        {row.status === "aprobada" ? (
+          <a href={`/accidentes/${row.slug}`} className="btn btn-primary btn-small">
+            Ver
+          </a>
+        ) : null}
 
-        {row.status !== "aprobada" ? (
-          <form action="/admin/aprobar" method="post">
-            <input type="hidden" name="id" value={row.id} />
-            <button type="submit" className="btn btn-success btn-small">
-              Aprobar
-            </button>
-          </form>
+        {/*
+          Aprobar y Rechazar van a la misma ruta y se distinguen por `estado`.
+
+          Rechazar y Eliminar no son lo mismo: rechazar deja la noticia en el
+          historico con su motivo para poder consultarla, y eliminar la borra. Sin
+          el boton de rechazar solo se podia aprobar o borrar, y no habia forma de
+          decir "esta no entra" sin perderla.
+        */}
+        <form action="/admin/aprobar" method="post">
+          <input type="hidden" name="id" value={row.id} />
+          <input type="hidden" name="estado" value="PUBLISHED" />
+          <button type="submit" className="btn btn-success btn-small">
+            Aprobar
+          </button>
+        </form>
+
+        {row.status !== "rechazada" ? (
+          <button type="button" className="btn btn-warning btn-small" onClick={rechazar}>
+            Rechazar
+          </button>
         ) : null}
 
         <button type="button" className="btn btn-danger btn-small" onClick={borrar}>

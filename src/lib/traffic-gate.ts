@@ -205,6 +205,136 @@ const EXACTOS_VEHICULO = new Set([
 ]);
 
 /* -------------------------------------------------------------------------- */
+/*  La isla                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Palabras que dicen que la noticia es de Lanzarote.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE HACE FALTA, CUANDO YA HAY `outsideLanzarote`
+ * ---------------------------------------------------------------------------
+ *
+ * `outsideLanzarote` (en facts.ts) descarta menciones de OTRAS ISLAS: Fuerteventura,
+ * Tenerife, La Palma. Ese filtro no sabe nada de la Peninsula, y se colaba de todo:
+ *
+ *   "Cortada la AP-9 en Pontevedra tras volcar un camion"   -> guardado como Arrecife
+ *   "Dos guardias civiles tiroteados en Terrassa"           -> guardado como Arrecife
+ *   "Temporal en Espana, en directo"                         -> guardado como Arrecife
+ *
+ * Tres noticias de peninsula archivadas como si fueran de Arrecife. Es peor que
+ * no publicarlas: es publicar informacion falsa con la marca del sitio encima.
+ *
+ * ---------------------------------------------------------------------------
+ *  LA REGLA ES AL REVES
+ * ---------------------------------------------------------------------------
+ *
+ * No se pregunta "no es de otro sitio?", sino "es de Lanzarote?". Se exige una
+ * mencion positiva. Es mas estricta y por eso no se cuela nada: si el articulo
+ * no dice ni Lanzarote ni un municipio ni una zona nuestra, no es nuestro.
+ *
+ * El coste es que se pierde lo que sea de la isla pero no lo nombre, y eso es
+ * aceptable: sin nombre no hay forma honesta de situarlo ni de comprobarlo.
+ */
+const PALABRAS_DE_LANZAROTE = [
+  // La isla y sus dos nombres
+  "lanzarote",
+  "la graciosa",
+  // Municipios
+  "arrecife",
+  "haria",
+  "teguise",
+  "tinajo",
+  "tias",
+  "tizayuca",
+  "yaiza",
+  // Localidades y zonas (las de constants.ts)
+  "costa teguise",
+  "puerto del carmen",
+  "playa blanca",
+  "playa de las americas",
+  "playa san juan",
+  "caleta de famara",
+  "el golfo",
+  "playa honda",
+  "el jable",
+  "la geria",
+  "malpaso",
+  "orzola",
+  "tahiche",
+  "papagayo",
+  "puerto de naos",
+  "los marmoles",
+  "la isleta",
+  "las canteras",
+  "san bartolome",
+  "las manras",
+  "temisas",
+  "arrieta",
+  "las brenas",
+  "puerto calero",
+  "uga",
+  "la graciosa village",
+  "san sebastian de la gomera",
+  // El Patronato de Volcanes y el Cabildo, que aparecen en las notas oficiales
+  "cabildo de lanzarote",
+  "patronato de volcanes",
+  "consejo insular",
+  "ayuntamiento de teguise",
+];
+
+/** Carreteras de la isla: LZ-1 a LZ-67. */
+const RE_CARRETERA_LZ = /\blz\s?-?\d{1,2}\b/;
+
+/** Toponimos de la Peninsula y de Baleares, para avisar con un motivo claro. */
+const FUERA_DE_LA_ISLA = [
+  "madrid", "barcelona", "valencia", "sevilla", "granada", "bilbao", "vizcaya",
+  "pontevedra", "vigo", "ourense", "a coruna", "santander", "asturias",
+  "gijon", "oviedo", "burgos", "valladolid", "salamanca", "zamora", "leon",
+  "palencia", "toledo", "ciudad real", "cuenca", "guadalajara", "albacete",
+  "alicante", "murcia", "cartagena", "almeria", "huelva", "cadiz", "malaga",
+  "cordoba", "jaen", "granada", "tarragona", "girona", "lerida", "terrassa",
+  "sabadell", "badalona", "mataro", "reus", "girona", "mallorca", "ibiza",
+  "palma", "menorca", "ciudad real", "merida", "salamanca", "burgos",
+];
+
+/**
+ * Si el articulo es de Lanzarote.
+ *
+ * Devuelve tambien el motivo, porque "no parece de Lanzarote" no sirve de nada
+ * en el panel: hay que poder distinguir "menciona Barcelona" de "no menciona
+ * ningun sitio".
+ */
+export type IslaVeredicto = {
+  deLanzarote: boolean;
+  motivo: string;
+};
+
+export function evaluaIsla(titulo: string, cuerpo = ""): IslaVeredicto {
+  const frases = `${norm(titulo)} ${norm(cuerpo)}`;
+
+  for (const palabra of PALABRAS_DE_LANZAROTE) {
+    if (` ${frases} `.includes(` ${palabra} `)) {
+      return { deLanzarote: true, motivo: `menciona "${palabra}"` };
+    }
+  }
+
+  if (RE_CARRETERA_LZ.test(frases)) {
+    return { deLanzarote: true, motivo: "menciona una carretera de la isla" };
+  }
+
+  const fuera = FUERA_DE_LA_ISLA.find((p) => ` ${frases} `.includes(` ${p} `));
+  if (fuera) {
+    return { deLanzarote: false, motivo: `menciona "${fuera}", que no está en Lanzarote` };
+  }
+
+  return {
+    deLanzarote: false,
+    motivo: "no menciona Lanzarote ni ningún municipio, zona o carretera de la isla",
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Emparejado                                                                 */
 /* -------------------------------------------------------------------------- */
 

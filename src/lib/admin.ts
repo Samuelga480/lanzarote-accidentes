@@ -110,6 +110,36 @@ async function slugTaken(candidate: string, exceptId?: string): Promise<boolean>
   return found !== null && found.id !== exceptId;
 }
 
+/**
+ * Fecha de publicacion que corresponde a un estado.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE ESTA FUNCION EXISTE
+ * ---------------------------------------------------------------------------
+ *
+ * El esquema tiene esta comprobacion en la base de datos:
+ *
+ *   CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL)
+ *
+ * Una noticia publicada tiene que tener fecha de publicacion, porque el RSS y el
+ * JSON-LD la emiten y una fecha vacia rompe ambos.
+ *
+ * El campo no se rellenaba en NINGUN sitio del codigo: ni en el alta, ni en la
+ * edicion, ni en `changeStatus`. Como la comprobacion es de la base de datos, no
+ * de la aplicacion, no habia ninguna pista: el boton "Aprobar" devolvia un 500
+ * y la unica forma de publicar era meter la fecha a mano por consola.
+ *
+ * Se calcula aqui una sola vez y se usa en los tres caminos que escriben el
+ * estado, para que no pueda volver a olvidarse uno.
+ *
+ * La fecha se conserva cuando la noticia deja de estar publicada (rechazada o
+ * archivada): es el historico de cuando estuvo visible, y volver a publicarla
+ * mas adelante debe mantener la original en vez de inventar otra.
+ */
+export function publishedAtPara(status: AccidentStatus, actual: Date | null, now = new Date()): Date | null {
+  return status === "PUBLISHED" ? (actual ?? now) : actual;
+}
+
 /** Instantanea del registro, para el historial de cambios. */
 async function snapshot(accidentId: string, editor: string, note: string | null) {
   const acc = await prisma.accident.findUnique({
@@ -238,6 +268,7 @@ export async function createAccident(input: AccidentFormInput, editor: string) {
       // Si se publica al crear, la revisión queda registrada desde el primer momento.
       reviewedAt: data.status === "PUBLISHED" ? new Date() : null,
       reviewedBy: data.status === "PUBLISHED" ? editor : null,
+      publishedAt: publishedAtPara(data.status, null),
       sources: {
         create: sources.map((s) => ({
           outlet: s.outlet,
@@ -271,6 +302,7 @@ export async function updateAccident(id: string, input: AccidentFormInput, edito
       municipality: { connect: { slug: municipality.slug } },
       reviewedAt: isNowPublished ? new Date() : data.status === "PUBLISHED" ? existing.reviewedAt : null,
       reviewedBy: isNowPublished ? editor : data.status === "PUBLISHED" ? existing.reviewedBy : null,
+      publishedAt: publishedAtPara(data.status, existing.publishedAt),
       // El slug y el origen no se tocan en una edicion.
       // Las fuentes se reemplazan por completo con la lista del formulario.
       sources: {
@@ -298,16 +330,26 @@ export async function changeStatus(
 ) {
   const existing = await prisma.accident.findUnique({
     where: { id },
-    select: { status: true, origin: true },
+    select: { status: true, origin: true, publishedAt: true },
   });
   if (!existing) throw new Error("La noticia no existe");
 
   const published = status === "PUBLISHED";
 
+  /*
+    `publishedAt` es OBLIGATORIO al publicar, y no es una opinion: hay una
+    restriccion en la base de datos (`Accident_published_needs_date`) que rechaza
+    la fila si una noticia publicada no tiene fecha de publicacion. Es tambien el
+    campo que leen el RSS y el JSON-LD.
+
+    El calculo vive en `publishedAtPara`, no aqui, para que el alta, la edicion y
+    el cambio de estado no puedan olvidarse por separado.
+  */
   await prisma.accident.update({
     where: { id },
     data: {
       status,
+      publishedAt: publishedAtPara(status, existing.publishedAt),
       reviewedAt: published ? new Date() : null,
       reviewedBy: published ? editor : null,
       // Al dejar de estar publicada se quita tambien el destaque.

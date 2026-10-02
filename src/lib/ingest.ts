@@ -25,8 +25,8 @@ import { prisma } from "@/lib/prisma";
 import { safeFetch } from "@/lib/net";
 import { extractArticle } from "@/lib/extract";
 import { extractFacts, relevanceScore, type ExtractedFacts } from "@/lib/facts";
-import { evaluaAccidenteTrafico } from "@/lib/traffic-gate";
-import { parseSourceDate, resolveOccurredAt, validateDate, localDayKey, formatLocal } from "@/lib/dates";
+import { evaluaAccidenteTrafico, evaluaIsla } from "@/lib/traffic-gate";
+import { parseSourceDate, resolveOccurredAt, validateDate, localDayKey } from "@/lib/dates";
 import { verifyArticle, type VerificationResult } from "@/lib/verify";
 import { checkDuplicate, urlHashOf, mergeIntoCanonical } from "@/lib/dedupe";
 import { rewriteArticle, embedArticle } from "@/lib/ai/rewrite";
@@ -152,12 +152,27 @@ export async function ingestArticle(params: {
 
   const facts: ExtractedFacts = extractFacts(title, fullText);
 
-  if (facts.outsideLanzarote) {
+  /*
+    La isla se comprueba DESPUES de la puerta de trafico, porque la mayoria de lo
+    que no es de Lanzarote ni siquiera es de trafico y ya ha caído antes. Aqui solo
+    llegan los que son accidentes de verdad, y de esos hay que descartar los que
+    no son nuestros.
+
+    `outsideLanzarote` no alcanza: mira si el articulo nombra OTRAS ISLAS, y una
+    colision en Pontevedra no nombra ninguna. Por eso se exige una mencion
+    positiva de Lanzarote.
+  */
+  const isla = evaluaIsla(title, fullText);
+  if (!isla.deLanzarote || facts.outsideLanzarote) {
     await recordSeen({
       url: page.url, urlHash, title, contentHash: contentHashOf(title, fullText),
       state: "PRESENT", sourceUrl: source.url,
     });
-    return { kind: "rejected", reason: "El articulo menciona otra isla." };
+    const motivo = facts.outsideLanzarote
+      ? "El articulo menciona otra isla."
+      : `No es de Lanzarote: ${isla.motivo}.`;
+    log.debug("Descartado por no ser de la isla", { title, motivo });
+    return { kind: "rejected", reason: motivo };
   }
 
   // Sin municipio no se descarta: puede ser un accidente en una carretera
@@ -290,7 +305,7 @@ export async function ingestArticle(params: {
     summary,
     facts,
     municipalityName,
-    occurredAtIso: formatLocal(occurredAt),
+    occurredAtIso: occurredAt.toISOString(),
     outlet: source.name,
     sourceUrl: url,
   };
@@ -546,7 +561,7 @@ export async function ingestArticle(params: {
     excerpt,
     municipality: municipalityName,
     road: facts.road,
-    occurredAtIso: formatLocal(occurredAt),
+    occurredAtIso: occurredAt.toISOString(),
     confidenceScore: verification.confidenceScore,
     sourceScore: verification.sourceScore,
     verificationStatus: verification.verificationStatus,

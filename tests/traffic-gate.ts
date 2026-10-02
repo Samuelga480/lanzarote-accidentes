@@ -8,7 +8,7 @@
  *   npx tsx tests/traffic-gate.ts
  */
 
-import { evaluaAccidenteTrafico, esAccidenteDeTrafico } from "@/lib/traffic-gate";
+import { evaluaAccidenteTrafico, esAccidenteDeTrafico, evaluaIsla } from "@/lib/traffic-gate";
 
 let passed = 0;
 let failed = 0;
@@ -203,5 +203,65 @@ section("Casos limite que tienen que resolverse bien");
 }
 
 /* ========================================================================== */
+/* ========================================================================== */
+section("Lo de fuera de la isla se queda fuera");
+
+{
+  /*
+    Estos cuatro SIEMPRE pasaron la puerta de trafico, porque son accidentes de
+    verdad: volcaron un camion, tirotearon a unos guardias. Lo unico que los
+    separa es DONDE pasaron, y esa comprobacion no existia. Se acabado de meter
+    en la base de datos con Arrecife como municipio.
+  */
+  const fuera = [
+    ["Cortada la AP-9 en Pontevedra en dirección a Tui tras volcar y arder un camión que transportaba cerveza", "Pontevedra"],
+    ["Dos guardias civiles de paisano tiroteados en Terrassa: uno ha recibido cuatro impactos de bala", "Terrassa"],
+    ["Temporal en España, en directo: Tarragona envía un nuevo ES-Alert", "Tarragona"],
+    ["Accidente grave en la A-6 a la altura de Madrid", "Madrid"],
+  ];
+
+  for (const [titulo] of fuera) {
+    // Primero se comprueba que la puerta los deja pasar, que es el problema.
+    const puerta = evaluaAccidenteTrafico(titulo, "Hubo heridos y la Guardia Civil corto el trafico.");
+    const isla = evaluaIsla(titulo, "Hubo heridos y la Guardia Civil corto el trafico.");
+
+    check(
+      `${titulo.slice(0, 44)}... -> fuera de la isla`,
+      !isla.deLanzarote,
+      `deLanzarote=${isla.deLanzarote} motivo=${isla.motivo}`,
+    );
+    // Y el motivo tiene que ser concreto: "no parece de Lanzarote" no sirve.
+    check(
+      `${titulo.slice(0, 44)}... -> el motivo es concreto`,
+      isla.motivo.length > 15,
+      isla.motivo,
+    );
+  }
+}
+
+{
+  // Lo nuestro entra. Estos son los casos que se han guardado de verdad.
+  const dentro: Array<[string, string]> = [
+    ["Un ciclista herido de carácter grave al sufrir una caída en Tinajo (Lanzarote)", ""],
+    ["Accidente en la carretera LZ-2 a su paso por Tinajo", ""],
+    ["Colisión en Costa Teguise", "Varios heridos. Acudieron los bomberos de Teguise."],
+    ["Atropello en Playa Blanca", "El peatón fue atropellado en la avenida."],
+    ["Un Pineda volcó en la LZ-40", "Volcó un coche en Tías."],
+  ];
+
+  for (const [titulo, cuerpo] of dentro) {
+    const v = evaluaIsla(titulo, cuerpo);
+    check(`${titulo.slice(0, 48)} -> de Lanzarote`, v.deLanzarote, v.motivo);
+  }
+}
+
+{
+  // El silencio no vale como prueba. Un articulo que no nombra ningun sitio no
+  // entra, ni aunque sea un accidente perfecto.
+  const v = evaluaIsla("Accidente grave con dos heridos", "Hubo un choque y dos personasxylocsp。结果 Result。 multiple injuries");
+  check("sin toponimo no entra", !v.deLanzarote, v.motivo);
+  check("y el motivo lo explica", /no menciona/.test(v.motivo), v.motivo);
+}
+
 console.log(`\n${passed} correctas, ${failed} fallidas`);
 if (failed > 0) process.exit(1);

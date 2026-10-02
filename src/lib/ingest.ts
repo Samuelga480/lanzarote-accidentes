@@ -29,6 +29,7 @@ import { parseSourceDate, resolveOccurredAt, validateDate, localDayKey, formatLo
 import { verifyArticle, type VerificationResult } from "@/lib/verify";
 import { checkDuplicate, urlHashOf, mergeIntoCanonical } from "@/lib/dedupe";
 import { rewriteArticle, embedArticle } from "@/lib/ai/rewrite";
+import { rewriteByRules } from "@/lib/ai/rewrite-rules";
 import { aiConfig, monitorConfig, siteUrl } from "@/lib/env";
 import { processImage } from "@/lib/images";
 import { imageConfig } from "@/lib/env";
@@ -260,7 +261,10 @@ export async function ingestArticle(params: {
   let aiModel: string | null = null;
   let rewritten = false;
 
-  const rewrite = await rewriteArticle({
+  // Primero la IA, si hay llave. Sin ella, o si falla, se redacta por reglas:
+  // un texto propio construido con los datos extraidos es siempre mejor que
+  // copiar el del medio, y no depende de ninguna cuenta ni de ser mayor de edad.
+  const peticion = {
     title,
     body: fullText,
     summary,
@@ -269,24 +273,47 @@ export async function ingestArticle(params: {
     occurredAtIso: formatLocal(occurredAt),
     outlet: source.name,
     sourceUrl: url,
-  });
+  };
 
-  if (rewrite.ok) {
-    finalTitle = rewrite.title!;
-    finalSummary = rewrite.summary!;
-    finalBody = rewrite.body!;
+  const rewrite = aiConfig.enabled()
+    ? await rewriteArticle(peticion)
+    : { ok: false as const, error: "OPENROUTER_API_KEY no esta definido.", overlap: null };
+
+  if (!rewrite.ok) {
+    // Camino de reserva: reglas. Si esto tampoco sale, se guarda el texto
+    // original y lo indica el log, porque perder la noticia es peor.
+    const porReglas = rewriteByRules(peticion);
+
+    if (porReglas.ok) {
+      finalTitle = porReglas.title;
+      finalSummary = porReglas.summary;
+      finalBody = porReglas.body;
+      seoTitle = porReglas.seoTitle;
+      metaDescription = porReglas.metaDescription;
+      excerpt = porReglas.excerpt;
+      aiModel = null;
+      rewritten = true;
+      log.info("Noticia redactada por reglas", {
+        motivo: rewrite.error,
+        title: truncate(finalTitle, 80),
+      });
+    } else {
+      // Ultimo recurso: el texto tal cual. El editor lo vera en el panel y
+      // decidira si se publica.
+      log.warn("No se pudo reescribir la noticia; se guarda el texto original", {
+        title: truncate(title, 80),
+        error: porReglas.error,
+      });
+    }
+  } else {
+    finalTitle = rewrite.title;
+    finalSummary = rewrite.summary;
+    finalBody = rewrite.body;
     seoTitle = rewrite.seoTitle;
     metaDescription = rewrite.metaDescription;
     excerpt = rewrite.excerpt;
     aiModel = rewrite.model;
     rewritten = true;
-  } else {
-    // Se guarda igualmente, con el texto original y la nota de que la IA no
-    // pudo reescribir. Perder la noticia es peor que guardarla sin pulir.
-    log.warn("No se pudo reescribir la noticia; se guarda el texto original", {
-      title: truncate(title, 80),
-      error: rewrite.error,
-    });
   }
 
   // --- Privacidad: ultima barrera antes de la base de datos ---

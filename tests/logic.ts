@@ -19,6 +19,9 @@ import { verifyArticle } from "@/lib/verify";
 import { isBlockedIp, assertFetchable } from "@/lib/net";
 import { normalizeUrl, urlHashOf } from "@/lib/dedupe";
 import { sanitizeText } from "@/lib/privacy";
+// publishedAtPara vive en admin.ts, que importa Prisma: se importa aqui solo su
+// parte pura, que es la que decide la fecha que la base de datos exige.
+import { publishedAtPara } from "@/lib/admin";
 import { MUNICIPALITIES, MUNICIPALITY_BY_SLUG, ZONES } from "@/lib/constants";
 
 let passed = 0;
@@ -373,6 +376,40 @@ section("Reescritura: control de copia");
 
   const kept = lostNumbers(original, "El accidente dejo 23 heridos y 4 fallecidos en la LZ-2.");
   check("no pierde cifras si se repiten todas", kept.length === 0, `perdidos: ${kept}`);
+}
+
+/* ========================================================================== */
+section("Publicacion: la fecha que exige la base de datos");
+
+{
+  /*
+    El boton "Aprobar" del panel devolvia 500 en todas las publicaciones. La causa
+    era una comprobacion del esquema que no se ve en ningun sitio del codigo:
+
+      CHECK ("status" <> 'PUBLISHED' OR "publishedAt" IS NOT NULL)
+
+    Publicar exige `publishedAt` y ningun camino lo rellenaba. Como el error sale
+    de la base de datos y no de la aplicacion, el boton no dejaba ni rastro: en
+    el panel no pasaba nada y en la web no aparecia ninguna noticia.
+
+    Estos casos cubren la regla que hay que respetar al escribir el estado.
+  */
+  const t0 = new Date("2026-10-01T12:00:00Z");
+
+  check("publicar sin fecha previa la pone", publishedAtPara("PUBLISHED", null, t0)?.getTime() === t0.getTime());
+  check("no publicar no inventa fecha", publishedAtPara("PENDING_REVIEW", null, t0) === null);
+  check("no publicar tampoco", publishedAtPara("REJECTED", null, t0) === null);
+  check("ni archivar", publishedAtPara("ARCHIVED", null, t0) === null);
+
+  const previa = new Date("2026-09-01T08:30:00Z");
+  check(
+    "republicar conserva la fecha original",
+    publishedAtPara("PUBLISHED", previa, t0)?.getTime() === previa.getTime(),
+  );
+  check(
+    "rechazar despues conserva la fecha de cuando estuvo publicada",
+    publishedAtPara("REJECTED", previa, t0)?.getTime() === previa.getTime(),
+  );
 }
 
 /* ========================================================================== */

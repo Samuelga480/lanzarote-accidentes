@@ -263,5 +263,55 @@ section("Lo de fuera de la isla se queda fuera");
   check("y el motivo lo explica", /no menciona/.test(v.motivo), v.motivo);
 }
 
+{
+  /*
+    Los partes de incidente del Gobierno de Canarias (fuente "incidentes 112")
+    cubren TODAS las islas y son, con diferencia, la fuente que mas noticias
+    traia de fuera.
+
+    El fallo era sutil y por eso se colaba tanto: el titular de esas paginas llega
+    truncado por el medio. "Un hombre herido de caracter moderado en un atropello
+    en Tenerife" se guardaba como "...en un atropello en Te...". La palabra
+    Tenerife ya no estaba, asi que ninguna comprobacion de isla la veia, y la
+    noticia entraba como si fuera de aqui.
+
+    Y lo que entra sin municipio se pincha en Arrecife: no es solo una noticia de
+    mas, es una noticia de otra isla con nuestro nombre encima.
+  */
+  const truncados: Array<[string, string]> = [
+    [
+      "Un hombre herido de car├ícter moderado en un atropello en Te...",
+      "Avenida Ernesto Sarti, municipio de Adeje. El 112 recibio el aviso.",
+    ],
+    [
+      "Un ciclista herido de car├ícter moderado en una colisi├│n en Ti...",
+      "Carretera TF-28, municipio de Granadilla de Abona. Acudi├│n los bomberos.",
+    ],
+    [
+      "Los dos ocupantes de una motocicleta heridos tras un accidente de tr├섭fico en T...",
+      "Carretera del Rosario, municipio de San Crist├│bal de La Laguna.",
+    ],
+    [
+      "Herido en el choque de un autom├│vil contra un muro en Tener...",
+      "Carretera TF-28, kil├│metro 29, municipio de G├ímar.",
+    ],
+  ];
+
+  for (const [titulo, cuerpo] of truncados) {
+    const v = evaluaIsla(titulo, cuerpo);
+    check(`${titulo.slice(0, 46)}... -> fuera, aun truncado`, !v.deLanzarote, v.motivo);
+  }
+
+  // Y el caso limite: el titular se ha comido hasta el toponimo y el cuerpo no
+  // lo trae. Sin una carretera ni un municipio de la isla no se puede dar por
+  // nuestra, y el toponimo mas generico (municipio de Adeje) no cuenta como
+  // prueba de que sea de aqui.
+  const sinPistas = evaluaIsla(
+    "Un motorista resulta herido en un accidente de tr├ífico en T...",
+    "A la hora arriba indicada el 112 recibio el aviso sobre la colisi├│n.",
+  );
+  check("titular truncado y cuerpo sin toponimo -> fuera", !sinPistas.deLanzarote, sinPistas.motivo);
+}
+
 console.log(`\n${passed} correctas, ${failed} fallidas`);
 if (failed > 0) process.exit(1);

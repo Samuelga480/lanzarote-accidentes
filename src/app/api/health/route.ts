@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { validateEnvironment, aiConfig, notifyConfig, monitorConfig, siteUrl } from "@/lib/env";
+import { validateEnvironment, aiConfig, notifyConfig, monitorConfig, siteUrl, emailVerifyConfig } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -107,6 +107,13 @@ export async function GET(): Promise<NextResponse> {
       site: siteUrl(),
       pendingNews: pendingCount,
       lastCycleAt: lastRunAt,
+      /*
+        Si esto es false, la verificacion del correo esta apagada: las cuentas
+        nuevas nacen verificadas sin comprobar nada. No es un fallo del sitio,
+        asi que va como dato y no dentro de `checks` (que decide el 503), pero
+        tiene que verse para no creer que el correo se esta comprobando.
+      */
+      verificacionCorreo: emailVerifyConfig.exigeConfirmacion,
       checks,
       warnings: env.warnings,
     },

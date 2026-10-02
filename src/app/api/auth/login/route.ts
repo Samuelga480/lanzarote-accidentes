@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   const emailNorm = normalizeEmail(email ?? "");
   const user = await prisma.user.findUnique({
     where: { email: emailNorm },
-    select: { id: true, passwordHash: true, role: true },
+    select: { id: true, passwordHash: true, role: true, emailVerifiedAt: true },
   });
 
   if (!user) {
@@ -51,6 +51,22 @@ export async function POST(request: Request) {
 
   if (!verifyPassword(password ?? "", user.passwordHash)) {
     return NextResponse.json({ error: "Correo o contrasena incorrectos." }, { status: 401 });
+  }
+
+  /*
+    Cuenta sin confirmar el correo: la contrasena es correcta pero todavia no
+    ha pulsado el enlace de confirmacion. Se responde con 403 y un codigo
+    propio para que la pantalla de acceso ofrezca reenviar el correo en vez de
+    un error generico, que no le diria que hacer.
+  */
+  if (!user.emailVerifiedAt) {
+    return NextResponse.json(
+      {
+        error: "Confirma tu correo antes de entrar. Te lo enviamos al darte de alta.",
+        codigo: "correo-sin-confirmar",
+      },
+      { status: 403 },
+    );
   }
 
   await setUserSession(user.id);

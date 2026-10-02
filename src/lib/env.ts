@@ -194,6 +194,65 @@ export const monitorConfig = {
 /*  Notificaciones                                                             */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Verificacion del correo en el alta de cuenta.
+ *
+ * Son dos cosas separadas y conviene no confundirlas:
+ *
+ *   1. `dominioAceptaCorreo`: mira en DNS si el dominio tiene servidor de
+ *      correo. Es una comprobacion de verdad y no falla nunca con un correo
+ *      bueno. Detecta el error tipografico, que es el caso frecuente.
+ *
+ *   2. `exigirConfirmacion`: si hay SMTP, la cuenta nace sin verificar y hasta
+ *      que no pulse el enlace no puede entrar. Si no hay SMTP, nace verificada.
+ *
+ * Lo segundo es una degradacion deliberada. Si se exigiera confirmar sin poder
+ * enviar el correo, nadie podria registrarse nunca y el sitio se quedaria sin
+ * altas. Es peor que no verificar. El estado real se ve en /api/health, asi que
+ * la falta de SMTP no queda oculta.
+ */
+export const emailVerifyConfig = {
+  /** Cuanto se espera al servidor de DNS del dominio, en milisegundos. */
+  dnsTimeoutMs(): number {
+    return int("VERIFY_DNS_TIMEOUT_MS", 3000);
+  },
+  /** Cuanto puede tardar el envio del correo de confirmacion, en milisegundos. */
+  envioTimeoutMs(): number {
+    return int("VERIFY_ENVIO_TIMEOUT_MS", 8000);
+  },
+  /** Horas que sigue valido un enlace de confirmacion. */
+  validoHoras(): number {
+    return int("VERIFY_TOKEN_HORAS", 48);
+  },
+  /**
+   * Minutos entre dos correos de confirmacion a la misma cuenta. Sin esto,
+   * alguien puede pedir el reenvio en bucle y usar tu SMTP para mandar spam.
+   */
+  reenvioMinutos(): number {
+    return int("VERIFY_REENVIO_MINUTOS", 10);
+  },
+  /**
+   * Comprobar el dominio antes de dar de alta la cuenta. Se puede apagar
+   * porque el DNS es una llamada a otro servidor: si falla, no debe tumbar el
+   * registro entero.
+   */
+  comprobarDominio(): boolean {
+    return optional("VERIFY_COMPROBAR_DOMINIO") !== "false";
+  },
+  /**
+   * Hay SMTP y hay remitente, entonces se puede enviar correo. Exigir la
+   * confirmacion depende de esto: sin correo no hay confirmacion posible.
+   */
+  puedeEnviar(): boolean {
+    return Boolean(optional("SMTP_HOST") && (optional("SMTP_USER") || optional("NOTIFY_FROM")));
+  },
+  get exigeConfirmacion(): boolean {
+    return emailVerifyConfig.puedeEnviar();
+  },
+};
+
+/* -------------------------------------------------------------------------- */
+
 export const notifyConfig = {
   email: {
     host(): string | undefined {

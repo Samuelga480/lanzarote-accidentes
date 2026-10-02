@@ -394,6 +394,18 @@
   min-height: 20px;
 }
 
+/*
+  Aviso que no es un error: "te hemos enviado el correo", "revisa el spam".
+  Comparte forma con .login-error pero va en el color de texto normal y sin
+ inventarse un borde rojo, porque pintar de error algo que va bien confunde.
+*/
+.login-aviso {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
 .btn-full {
   width: 100%;
   justify-content: center;

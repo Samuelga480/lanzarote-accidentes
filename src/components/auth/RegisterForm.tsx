@@ -39,12 +39,24 @@ export function RegisterForm() {
         return;
       }
 
+      const body = (await res.json().catch(() => null)) as { requiereConfirmacion?: boolean } | null;
+
       /*
+        Dos finales distintos. Con SMTP hay que confirmar el correo antes de
+        entrar, asi que se manda a la pantalla de acceso avisando. Sin SMTP la
+        cuenta nace verificada y hay sesion abierta: se va al perfil, como
+        siempre.
+
         Igual que en LoginForm: la cabecera se dibuja en el servidor leyendo la
         cookie de sesion, asi que despues del alta hay que pedir la pagina de
         nuevo. Con `router.refresh()` + `router.push()` el menu seguia
         enseñando "Acceder" hasta recargar a mano.
       */
+      if (body?.requiereConfirmacion) {
+        window.location.assign("/entrar?confirmado=1");
+        return;
+      }
+
       window.location.assign("/perfil");
     } catch {
       setError("No se ha podido conectar con el servidor.");

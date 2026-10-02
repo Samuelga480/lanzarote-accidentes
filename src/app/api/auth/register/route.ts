@@ -7,16 +7,23 @@ import {
   setUserSession,
   validatePassword,
 } from "@/lib/user-auth";
+import { dominioAceptaCorreo, prepararYConfirmar } from "@/lib/email-verificacion";
+import { emailVerifyConfig } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Alta de cuenta de invitado.
  *
- * Equivale al `register.html` del sitio original, con las dos diferencias que
+ * Equivale al `register.html` del sitio original, con las diferencias que
  * importan: la contrasena se guarda hasheada y no se devuelve ningun token en
  * la respuesta (la sesion va en cookie httpOnly, que el JavaScript del navegador
  * no puede leer).
+ *
+ * Antes de crear la cuenta se comprueba que el dominio del correo acepte
+ * correo. Es la unica comprobacion que se puede hacer en el momento sin
+ * falsos negativos: no demuestra que la bandeja exista, pero detecta el
+ * dominio mal escrito, que es el error de lejos mas frecuente.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -43,6 +50,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Las contrasenas no coinciden." }, { status: 400 });
   }
 
+  // Antes de tocar la base de datos: si el dominio no recibe correo, no hay
+  // cuenta que crear.
+  if (emailVerifyConfig.comprobarDominio()) {
+    const dominio = await dominioAceptaCorreo(emailNorm);
+    if (!dominio.ok) {
+      return NextResponse.json({ error: dominio.motivo ?? "Ese correo no se encuentra." }, { status: 400 });
+    }
+  }
+
   const existing = await prisma.user.findUnique({ where: { email: emailNorm }, select: { id: true } });
   if (existing) {
     return NextResponse.json({ error: "Este correo ya esta registrado." }, { status: 400 });
@@ -57,7 +73,17 @@ export async function POST(request: Request) {
     select: { id: true },
   });
 
-  await setUserSession(user.id);
+  // Manda el correo de confirmacion y deja la cuenta verificada o pendiente.
+  const { verificado } = await prepararYConfirmar(user.id, emailNorm);
 
-  return NextResponse.json({ ok: true, role: "INVITADO" }, { status: 201 });
+  // Una cuenta sin verificar no puede entrar, asi que no se abre sesion: se deja
+  // que confirme primero.
+  if (verificado) {
+    await setUserSession(user.id);
+  }
+
+  return NextResponse.json(
+    { ok: true, role: "INVITADO", requiereConfirmacion: !verificado },
+    { status: 201 },
+  );
 }

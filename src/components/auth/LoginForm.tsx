@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 /**
  * Formulario de acceso.
@@ -8,11 +9,40 @@ import { useState } from "react";
  * Es el de login.html del sitio original: correo, contrasena con boton para
  * voirla, mensaje de error en rojo y enlace al registro. Lo que cambia es el
  * destino: cuando hay exito se sale de la pagina de acceso y se vuelve al sitio.
+ *
+ * Ademas hay tres estados que la pagina de entrada avisa con parametros:
+ *
+ *   ?confirmado=1   se acaba de dar de alta y hay que confirmar el correo
+ *   ?reenviar=1     el enlace de confirmacion caducado o no vale
+ *   ?reenviado=1    el correo de confirmacion se ha vuelto a mandar
+ *
+ * Y una respuesta 403 con `codigo: "correo-sin-confirmar"`, que es la cuenta
+ * cuya contrasena es correcta pero que todavia no ha confirmado. Ahi se
+ * ofrece reenviar el correo en vez de dejar a alguien atascado con un error.
  */
 export function LoginForm() {
+  const params = useSearchParams();
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const [emailSinConfirmar, setEmailSinConfirmar] = useState("");
+  const [reenviando, setReenviando] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  /*
+    Los avisos de la URL se vacian en cuanto se escribe en el formulario: si
+    alguien corrige el correo tras ver "esa cuenta no existe", el mensaje viejo
+    ya no describe lo que esta pasando y confunde mas que ayudar.
+  */
+  useEffect(() => {
+    if (params.get("confirmado")) {
+      setAviso("Te hemos enviado un correo para confirmar la direccion. Confirma y ya podras entrar.");
+    } else if (params.get("reenviar")) {
+      setAviso("Escribe tu correo y te lo enviamos otra vez.");
+    } else if (params.get("reenviado")) {
+      setAviso("Correo de confirmacion enviado. Revisa tambien la carpeta de spam.");
+    }
+  }, [params]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,8 +63,18 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        const body = (await res.json().catch(() => null)) as
+          | { error?: string; codigo?: string }
+          | null;
         setError(body?.error ?? "No se ha podido iniciar sesion.");
+
+        // La contrasena era correcta pero falta confirmar el correo: se recuerda
+        // el correo para poder ofrecer el reenvio sin volver a escribirlo.
+        if (body?.codigo === "correo-sin-confirmar") {
+          setEmailSinConfirmar(String(data.get("email") ?? ""));
+          setAviso("");
+        }
+
         setBusy(false);
         return;
       }
@@ -52,6 +92,34 @@ export function LoginForm() {
     } catch {
       setError("No se ha podido conectar con el servidor.");
       setBusy(false);
+    }
+  }
+
+  /** Vuelve a mandar el correo de confirmacion. */
+  async function reenviar() {
+    setAviso("");
+    setError("");
+    setReenviando(true);
+
+    try {
+      const res = await fetch("/api/auth/reenviar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email: emailSinConfirmar }),
+      });
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+
+      if (!res.ok) {
+        setError(body?.error ?? "No se ha podido reenviar el correo.");
+      } else {
+        setAviso("Correo de confirmacion enviado. Revisa tambien la carpeta de spam.");
+        setEmailSinConfirmar("");
+      }
+    } catch {
+      setError("No se ha podido conectar con el servidor.");
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -101,6 +169,28 @@ export function LoginForm() {
       <div className="login-error" role="alert">
         {error}
       </div>
+
+      {aviso ? (
+        <p className="login-aviso" role="status">
+          {aviso}
+        </p>
+      ) : null}
+
+      {/*
+        Salen juntos: el error de confirmacion pendiente y el boton de reenviar.
+        Es el unico caso en que el error dice que hacer, y por eso lleva su
+        propio boton y no solo texto.
+      */}
+      {emailSinConfirmar ? (
+        <button
+          type="button"
+          className="btn btn-secondary btn-full"
+          onClick={reenviar}
+          disabled={reenviando}
+        >
+          {reenviando ? "Enviando..." : "Reenviar el correo de confirmacion"}
+        </button>
+      ) : null}
 
       <button type="submit" className="btn btn-primary btn-full" disabled={busy}>
         {busy ? "Comprobando..." : "Iniciar sesion"}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SITE } from "@/lib/constants";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileNav } from "@/components/MobileNav";
+import { ResumenMenu } from "@/components/ResumenMenu";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { getSessionUser } from "@/lib/user-auth";
 
@@ -9,8 +10,12 @@ import { getSessionUser } from "@/lib/user-auth";
  * Cabecera del sitio.
  *
  * Reproduce la del diseno original: 60px de alto, marca con el icono de capas
- * junto al nombre en Merriweather, y a la derecha Inicio, Mapa, Resumen
- * Semanal, el boton de tema y Acceder. Nada mas.
+ * junto al nombre en Merriweather, y a la derecha Inicio, Mapa, Resumen, el
+ * boton de tema y Acceder. Nada mas.
+ *
+ * "Resumen" es una sola entrada con desplegable: al pulsarla se elige entre la
+ * semanal y la anual. Dos entradas fijas en la barra se multiplicarian cada vez
+ * que se anadiera un periodo nuevo.
  *
  * El boton de tema va DENTRO de .nav a proposito: .nav se oculta por debajo de
  * 768px, asi que en movil aparece el de MobileNav y no se ven los dos.
@@ -18,7 +23,12 @@ import { getSessionUser } from "@/lib/user-auth";
 const NAV = [
   { href: "/", label: "Inicio" },
   { href: "/mapa", label: "Mapa" },
-  { href: "/resumen", label: "Resumen Semanal" },
+];
+
+/** Los dos periodos de resumen, que en escritorio viven dentro del desplegable. */
+const RESUMEN = [
+  { href: "/resumen", label: "Resumen semanal" },
+  { href: "/resumen-anual", label: "Resumen anual" },
 ];
 
 export async function Header() {
@@ -57,13 +67,15 @@ export async function Header() {
             </Link>
           ))}
 
+          <ResumenMenu />
+
           <ThemeToggle />
 
           <UserMenu user={user} />
         </nav>
 
         {/* Solo en movil: boton de menu */}
-        <MobileNav links={NAV} />
+        <MobileNav links={NAV} group={{ title: "Resúmenes", links: RESUMEN }} />
       </div>
     </header>
   );

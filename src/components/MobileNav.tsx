@@ -11,7 +11,18 @@ import { useEffect, useRef, useState } from "react";
  * moviles, asi que se mantiene la ocultacion pero se añade este boton para
  * poder llegar a las secciones.
  */
-export function MobileNav({ links }: { links: Array<{ href: string; label: string }> }) {
+export function MobileNav({
+  links,
+  group,
+}: {
+  links: Array<{ href: string; label: string }>;
+  /**
+   * Grupo con titulo que se dibuja aparte. En escritorio son entradas del
+   * desplegable "Resumen"; en movil no cabe un desplegable dentro de otro
+   * desplegable, asi que se listan planas bajo un encabezado.
+   */
+  group?: { title: string; links: Array<{ href: string; label: string }> };
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -68,6 +79,18 @@ export function MobileNav({ links }: { links: Array<{ href: string; label: strin
             {l.label}
           </Link>
         ))}
+
+        {group ? (
+          <>
+            <p className="nav-drawer-title">{group.title}</p>
+            {group.links.map((l) => (
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)}>
+                {l.label}
+              </Link>
+            ))}
+          </>
+        ) : null}
+
         <Link href="/admin" onClick={() => setOpen(false)} className="nav-admin">
           Acceder
         </Link>

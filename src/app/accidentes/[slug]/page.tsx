@@ -9,6 +9,7 @@ import { formatDate, formatDateTime, formatRelative, formatTime } from "@/lib/fo
 import { SEVERITY_LABEL, SITE, VEHICLE_LABEL } from "@/lib/constants";
 import { newsArticleSchema, breadcrumbSchema, graphSchema, organizationSchema, webSiteSchema } from "@/lib/jsonld";
 import { Comments } from "@/components/Comments";
+import { AdSlot } from "@/components/AdSlot";
 import { getSessionUser } from "@/lib/user-auth";
 import { prisma } from "@/lib/prisma";
 import { siteUrl as getSiteUrl } from "@/lib/env";
@@ -308,6 +309,15 @@ export default async function AccidentPage({ params }: Props) {
           </div>
         </section>
       ) : null}
+
+      {/*
+        Publicidad en la ficha de noticia.
+
+        Va DESPUES del cuerpo y antes de los comentarios: dentro del texto
+        molesta a quien esta leyendo, y entre los comentarios parece un
+        comentario mas.
+      */}
+      <AdSlot position="noticia" />
 
       {/* ------------------------- Comentarios ------------------------- */}
       <Comments

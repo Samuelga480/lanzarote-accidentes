@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getWeeklySummary, listWeeksWithAccidents } from "@/lib/queries";
 import { WeekSelect } from "@/components/WeekSelect";
+import { AdSlot } from "@/components/AdSlot";
 import { formatDate } from "@/lib/format";
 import { SITE } from "@/lib/constants";
 
@@ -156,6 +157,8 @@ export default async function ResumenPage({ searchParams }: Props) {
             </section>
           </>
         )}
+
+        <AdSlot position="resumen" />
 
         <p className="mt-8">
           <Link href="/" className="section-more">

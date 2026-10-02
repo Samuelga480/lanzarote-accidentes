@@ -25,6 +25,27 @@ const nextConfig: NextConfig = {
     imageSizes: [96, 128, 256, 384],
   },
 
+  async redirects() {
+    return [
+      {
+        /*
+          Todo el sitio tiene que ir por HTTPS, y no solo por buena costumbre: las
+          redes de anuncios rechazan los sitios que sirven contenido en HTTP. El
+          usuario que llega por http:// esvisitor de la red, y si recibe una
+          pagina sin cifrar la revision se queda en el camino.
+
+          Se manda a la variante con www, que es la que devuelve el certificado.
+          El canonical del sitio ya apunta a https:// sin www, asi que de ahi se
+          quita la www en una regla aparte para no dejar dos rutas al mismo sitio.
+        */
+        source: "/:path*",
+        has: [{ type: "host", value: "(www\\.)?accidenteslanzarote\\.com" }],
+        destination: "https://accidenteslanzarote.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

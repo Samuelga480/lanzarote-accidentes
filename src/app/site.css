@@ -759,6 +759,24 @@ body {
   color: var(--accent);
 }
 
+/*
+  Boton de cookies. Hereda el aspecto de los enlaces del pie, asi que solo se
+  quita el fondo y el borde que el navegador pone por defecto en un button.
+*/
+.cookies-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cookies-link:hover {
+  color: var(--accent);
+}
+
 .footer-links {
   display: flex;
   justify-content: center;

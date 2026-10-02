@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MUNICIPALITIES, SITE } from "@/lib/constants";
+import { CookiesLink } from "@/components/CookiesLink";
 
 /**
  * Pie del sitio.
@@ -21,6 +22,9 @@ export function Footer() {
         ))}
         <Link href="/privacidad">Aviso legal y privacidad</Link>
         <Link href="/admin">Acceder</Link>
+
+        {/* En su propio componente de cliente: necesita onClick. */}
+        <CookiesLink />
       </div>
 
       <p>

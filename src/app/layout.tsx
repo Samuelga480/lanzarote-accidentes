@@ -131,6 +131,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
+        {/*
+          Aviso de cookies de iubenda (CMP certificada por TCF).
+
+          Va al final del body y no en el head a proposito: si se bloqueara, no
+          bloquea el pintado de la pagina. Ademas el RGPD lo obliga: el sitio
+          carga las tipografias desde Google Fonts, con lo que manda la IP del
+          visitante a un servidor de Estados Unidos, y en cuanto haya
+          publicidad hay que pedir consentimiento.
+
+          Este es el widget que creo el editor al darse de alta. El identificador
+          del script es su y solo suyo: no se cambia sin que lo cambie iubenda.
+        */}
+        <script
+          type="text/javascript"
+          src="https://embeds.iubenda.com/widgets/af364be1-097e-40bb-9aca-e6de358cd2b6.js"
+        />
       </body>
     </html>
   );

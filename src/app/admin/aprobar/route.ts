@@ -5,13 +5,26 @@ import { changeStatus } from "@/lib/admin";
 import type { AccidentStatus } from "@/lib/types";
 
 /**
- * Publica un borrador.
+ * Publica o rechaza un borrador.
  *
  * Equivale al boton "Aprobar" del panel original. Es el unico camino por el que
  * una noticia pasa a PUBLISHED: no hay ninguna ruta automatica que lo haga.
  *
  * Se acepta POST con id en el cuerpo y, por comodidad, tambien ?id= en la URL,
  * que es como lo enlazaba el JavaScript del sitio antiguo.
+ *
+ * ---------------------------------------------------------------------------
+ *  EL PARAMETRO `volver`
+ * ---------------------------------------------------------------------------
+ *
+ * La ficha de una sola noticia, `/admin/<id>`, es adonde llega el enlace del
+ * correo de aviso. Antes, al aprobar desde ahi, la respuesta saltaba al panel
+ * entero: habia que volver a buscar la noticia en la lista, que es justo lo que
+ * el enlace pretendia evitar.
+ *
+ * Con `volver` se queda en la ficha. Solo se acepta una ruta interna que empiece
+ * por `/admin`, para que el parametro no sirva de redireccion abierta a un sitio
+ * de fuera.
  */
 export async function POST(request: Request) {
   await requireAuth();
@@ -32,5 +45,9 @@ export async function POST(request: Request) {
   revalidatePath("/admin");
   revalidatePath("/", "layout");
 
-  redirect("/admin?publicada=1");
+  const pedido = (form?.get("volver")?.toString() || "").trim();
+  const volver = pedido.startsWith("/admin") && !pedido.startsWith("//") ? pedido : "";
+  const aviso = destino === "PUBLISHED" ? "publicada=1" : "rechazada=1";
+
+  redirect(volver ? `${volver}?${aviso}` : `/admin?${aviso}`);
 }

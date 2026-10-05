@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { AccidentWithMunicipality } from "@/lib/queries";
 import { AccidentImage } from "@/components/AccidentImage";
-import { CategoryBadge, SeverityBadge } from "@/components/Badges";
+import { CategoryBadge, SeverityBadge, VehicleBadge } from "@/components/Badges";
+import { esSuceso } from "@/lib/categorias";
 import { formatDateShort, formatTime } from "@/lib/format";
 import { ZONE_BY_SLUG } from "@/lib/constants";
 
@@ -24,7 +25,7 @@ type Props = {
 };
 
 export function AccidentCard({ accident, variant = "normal" }: Props) {
-  const { municipality, occurredAt, severity, category } = accident;
+  const { municipality, occurredAt, severity, category, vehicleType } = accident;
   const href = `/noticias/${accident.slug}`;
 
   // La zona solo aparece si el medio la nombro. Un null en la base de datos es
@@ -95,7 +96,23 @@ export function AccidentCard({ accident, variant = "normal" }: Props) {
           </Link>
 
           <CategoryBadge category={category} />
-          <SeverityBadge severity={severity} />
+
+          {/*
+            La gravedad y el vehiculo solo se muestran si la noticia es un suceso.
+
+            No es una cuestion de estetica. "Una colision entre dos turismos,
+            leve" es un dato. "Moderado" al lado de una nota del Cabildo no
+            significa nada: el campo se rellena con MODERADO por defecto porque en
+            el esquema es obligatorio, y al pintarlo el sitio afirmaba que una
+            noticia politica era un accidente moderado. Era el mismo fallo del
+            que trata este commit, pero visible en la tarjeta.
+          */}
+          {esSuceso(category) ? (
+            <>
+              <SeverityBadge severity={severity} />
+              {vehicleType !== "OTROS" ? <VehicleBadge type={vehicleType} /> : null}
+            </>
+          ) : null}
         </div>
 
         <h3 className="news-title">

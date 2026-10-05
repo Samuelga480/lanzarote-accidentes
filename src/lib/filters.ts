@@ -1,6 +1,7 @@
 import type { VehicleType } from "@/lib/types";
 import type { AccidentFilters } from "@/lib/queries";
 import { MUNICIPALITIES, CATEGORY_LABEL } from "@/lib/constants";
+import { CATEGORIAS_SUCESO } from "@/lib/categorias";
 
 /** Forma de los searchParams tal y como llegan desde Next.js (string | string[]). */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -66,7 +67,16 @@ export function describeFilters(
     if (m) parts.push(m.name);
   }
   if (f.q) parts.push(`"${f.q}"`);
-  if (f.category) parts.push(CATEGORY_LABEL[f.category] ?? f.category);
+  // El filtro de la URL siempre trae un solo tipo, pero el tipo admite lista
+  // para lo que el reparto en familias fija en codigo (el mapa pide los siete
+  // sucesos). Un titulo no puede nombrar 34 temas, asi que si llega una lista se
+  // describe por su nombre de familia.
+  if (typeof f.category === "string") {
+    parts.push(CATEGORY_LABEL[f.category] ?? f.category);
+  } else if (Array.isArray(f.category) && f.category.length > 0) {
+    const todosSucesos = CATEGORIAS_SUCESO.every((c) => f.category!.includes(c));
+    parts.push(todosSucesos ? "Sucesos" : `Tecnica (${f.category.length} tipos)`);
+  }
 
   return {
     title: parts.length ? parts.join(" · ") : "Todas las noticias",

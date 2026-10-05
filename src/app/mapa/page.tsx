@@ -8,6 +8,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { getAccidentsForMap, getPublicStats, listAccidents } from "@/lib/queries";
 import { parseFilters, type RawSearchParams } from "@/lib/filters";
 import { SITE } from "@/lib/constants";
+import { CATEGORIAS_SUCESO } from "@/lib/categorias";
 
 export const metadata: Metadata = {
   title: "Mapa de la isla",
@@ -26,7 +27,10 @@ export default async function MapaPage({ searchParams }: Props) {
 
   const [stats, list, mapAccidents] = await Promise.all([
     getPublicStats(),
-    listAccidents({ ...filters, take: 9 }),
+    // Solo sucesos. El mapa enseña donde han pasado accidentes, asi que una
+    // lista con una nota del Cabildo debajo era una contradiccion. Antes esta
+    // consulta no llevaba filtro y salian las dos familias mezcladas.
+    listAccidents({ ...filters, take: 9, category: [...CATEGORIAS_SUCESO] }),
     getAccidentsForMap(200),
   ]);
 

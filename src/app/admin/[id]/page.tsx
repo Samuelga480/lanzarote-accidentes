@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-guard";
 import { formatDate } from "@/lib/format";
 import { CATEGORY_LABEL, STATUS_LABEL, VEHICLE_LABEL, SEVERITY_LABEL } from "@/lib/constants";
+import {
+  CATEGORIAS_SUCESO,
+  CATEGORIAS_INFORMACION,
+  etiquetaDe,
+} from "@/lib/categorias";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { VehicleType } from "@/lib/types";
 
@@ -66,7 +71,10 @@ export default async function RevisarNoticia({
   const sp1 = sp.ok ? "Noticia aprobada y publicada." : null;
   const sp2 = sp.rechazada ? "Noticia rechazada. Se queda en el historial." : null;
   const sp3 = sp.eliminada ? "Noticia eliminada." : null;
-  const avisos = [sp1, sp2, sp3].filter(Boolean) as string[];
+  const sp4 = sp.categoria ? "Tipo de noticia corregido." : null;
+  const sp5 = sp.categoria === "igual" ? "El tipo ya era ese, no se ha cambiado nada." : null;
+  const sp6 = sp.categoria === "error" ? "Ese tipo no existe." : null;
+  const avisos = [sp1, sp2, sp3, sp4, sp5, sp6].filter(Boolean) as string[];
 
   // Comprobaciones de coherencia entre lo detectado y lo escrito.
   const resumenCuerpo = `${a.title} ${a.summary ?? ""} ${a.body ?? ""}`;
@@ -202,7 +210,14 @@ export default async function RevisarNoticia({
             ) : null}
 
             <dt className="resumen-stat-label">Categoria</dt>
-            <dd style={{ margin: 0 }}>{CATEGORY_LABEL[a.category ?? ""] ?? a.category ?? "-"}</dd>
+            <dd style={{ margin: 0 }}>
+              {CATEGORY_LABEL[a.category ?? ""] ?? a.category ?? "-"}
+              {a.category && CATEGORIAS_SUCESO.includes(a.category as never) ? (
+                <span style={{ color: "var(--ink-mute)" }}> · va al mapa</span>
+              ) : (
+                <span style={{ color: "var(--ink-mute)" }}> · no va al mapa</span>
+              )}
+            </dd>
 
             <dt className="resumen-stat-label">Vehiculo</dt>
             <dd style={{ margin: 0 }}>
@@ -250,6 +265,44 @@ export default async function RevisarNoticia({
             </ul>
           </section>
         ) : null}
+
+        {/* ---------------- Corregir el tipo ---------------- */}
+        <section className="admin-stat-card" style={{ padding: "20px", marginBottom: 24 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: "1rem" }}>Tipo de noticia</h2>
+          <p style={{ margin: "0 0 14px", fontSize: "0.85rem", color: "var(--ink-mute)" }}>
+            El sistema lo decidio solo y puede equivocarse. Los sucesos van al mapa y a los
+            resumenes de accidentes; la informacion no. Elegir aqui es lo que decide donde
+            aparece la noticia.
+          </p>
+
+          <form action="/admin/categoria" method="post" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <input type="hidden" name="id" value={a.id} />
+            <select
+              name="categoria"
+              defaultValue={a.category ?? "OTRO"}
+              style={{ padding: "8px 10px", fontSize: "0.9rem", borderRadius: 6, border: "1px solid var(--ink-line)" }}
+            >
+              <optgroup label="Sucesos (van al mapa)">
+                {CATEGORIAS_SUCESO.map((c) => (
+                  <option key={c} value={c}>
+                    {etiquetaDe(c)}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Informacion (no van al mapa)">
+                {CATEGORIAS_INFORMACION.map((c) => (
+                  <option key={c} value={c}>
+                    {etiquetaDe(c)}
+                  </option>
+                ))}
+                <option value="OTRO">Sin clasificar</option>
+              </optgroup>
+            </select>
+            <button type="submit" className="btn btn-secondary">
+              Guardar tipo
+            </button>
+          </form>
+        </section>
 
         {/* ---------------- Decidir ---------------- */}
         <section className="admin-stat-card" style={{ padding: "20px" }}>

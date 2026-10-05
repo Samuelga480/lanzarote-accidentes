@@ -142,9 +142,9 @@ export default async function AdminPage({
 
           <nav className="admin-nav">
             <ThemeToggle />
-            <a href="/" className="admin-nav-link">
+            <Link href="/" className="admin-nav-link">
               Ver Web
-            </a>
+            </Link>
             <form action={cerrarSesionAdminAction}>
               <button type="submit" className="btn btn-secondary">
                 Cerrar Sesion

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,9 +12,9 @@ export default function NotFound() {
       <div className="resumen-container text-center">
         <h1 className="resumen-header h2">Página no encontrada</h1>
         <p className="login-header p mb-6">La página que buscas no existe o ha cambiado de dirección.</p>
-        <a href="/" className="nav-link nav-admin">
+        <Link href="/" className="nav-link nav-admin">
           Volver a la portada
-        </a>
+        </Link>
       </div>
     </main>
   );

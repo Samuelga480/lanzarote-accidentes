@@ -12,6 +12,11 @@
  */
 
 import { mkdir, writeFile, unlink } from "node:fs/promises";
+// Se importa estatico y no con `require` dentro de la funcion. Este modulo ya
+// depende de `node:fs/promises` y de `node:path` en la cabecera, asi que el
+// `require` no evitaba meter ningun builtin: solo incumplia la regla de ESLint
+// que hace fallar el build.
+import fs from "node:fs";
 import path from "node:path";
 
 /** Se cachea el resultado: comprobarlo en cada imagen seria absurdo. */
@@ -64,7 +69,6 @@ export function isWritable(dir: string): boolean {
     // en el propio mkdir/write, no en access. Por eso se comprueba tambien
     // contra el directorio padre, que es el que no existe en un despliegue de
     // Vercel limpio.
-    const fs = require("node:fs") as typeof import("node:fs");
     fs.accessSync(target, fs.constants.W_OK);
     cache.set(dir, true);
     return true;

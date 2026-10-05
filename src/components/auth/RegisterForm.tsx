@@ -1,71 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { registerAction } from "@/app/registro/actions";
+import { REGISTRO_INICIAL, type RegisterState } from "@/app/registro/state";
 
 /**
  * Formulario de alta de cuenta de invitado.
  *
- * El de register.html del sitio original, mas el campo de confirmacion que
- * tambien estaba ahi. Los requisitos de la contrasena se avisan antes de
- * enviar, no despues: el backend los vuelve a comprobar.
+ * El de register.html del sitio original, mas el campo de confirmacion que tambien
+ * estaba ahi. Los requisitos de la contrasena se avisan antes de enviar, no
+ * despues: el backend los vuelve a comprobar.
+ *
+ * ---------------------------------------------------------------------------
+ *  SIN PETICIONES DESDE EL NAVEGADOR
+ * ---------------------------------------------------------------------------
+ *
+ * No hay ningun `fetch`: el formulario llama a la Server Action `registerAction`
+ * con `<form action={...}>`. El exito lo resuelve un `redirect()` dentro de la
+ * accion, de modo que la cabecera se vuelve a pintar en el servidor con la cookie
+ * nueva y ya sale con la sesion abierta.
  */
 export function RegisterForm() {
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [state, formAction, pending] = useActionState<RegisterState, FormData>(
+    registerAction,
+    REGISTRO_INICIAL,
+  );
   const [show, setShow] = useState(false);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-
-    const data = new FormData(e.currentTarget);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          email: String(data.get("email") ?? ""),
-          password: String(data.get("password") ?? ""),
-          confirmPassword: String(data.get("confirmPassword") ?? ""),
-        }),
-      });
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "No se ha podido crear la cuenta.");
-        setBusy(false);
-        return;
-      }
-
-      const body = (await res.json().catch(() => null)) as { requiereConfirmacion?: boolean } | null;
-
-      /*
-        Dos finales distintos. Con SMTP hay que confirmar el correo antes de
-        entrar, asi que se manda a la pantalla de acceso avisando. Sin SMTP la
-        cuenta nace verificada y hay sesion abierta: se va al perfil, como
-        siempre.
-
-        Igual que en LoginForm: la cabecera se dibuja en el servidor leyendo la
-        cookie de sesion, asi que despues del alta hay que pedir la pagina de
-        nuevo. Con `router.refresh()` + `router.push()` el menu seguia
-        enseñando "Acceder" hasta recargar a mano.
-      */
-      if (body?.requiereConfirmacion) {
-        window.location.assign("/entrar?confirmado=1");
-        return;
-      }
-
-      window.location.assign("/perfil");
-    } catch {
-      setError("No se ha podido conectar con el servidor.");
-      setBusy(false);
-    }
-  }
-
   return (
-    <form id="register-form" className="login-form" onSubmit={onSubmit}>
+    <form id="register-form" className="login-form" action={formAction}>
       <div className="form-group">
         <label htmlFor="reg-email">Correo electronico</label>
         <input
@@ -75,6 +38,7 @@ export function RegisterForm() {
           placeholder="tu@email.com"
           required
           autoComplete="email"
+          defaultValue={state.email}
         />
       </div>
 
@@ -129,11 +93,11 @@ export function RegisterForm() {
       </div>
 
       <div className="login-error" role="alert">
-        {error}
+        {state.error}
       </div>
 
-      <button type="submit" className="btn btn-primary btn-full" disabled={busy}>
-        {busy ? "Creando cuenta..." : "Crear cuenta"}
+      <button type="submit" className="btn btn-primary btn-full" disabled={pending}>
+        {pending ? "Creando cuenta..." : "Crear cuenta"}
       </button>
     </form>
   );

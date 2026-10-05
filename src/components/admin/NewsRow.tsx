@@ -1,56 +1,35 @@
 "use client";
 
+import { deleteAccidentAction, setStatusAction } from "@/app/admin/actions";
+
 /**
  * Fila de noticia con los botones del panel.
  *
- * Envia a las rutas /admin/aprobar y /admin/borrar. El borrado pide
- * confirmacion en el propio boton, antes de que nada salga del navegador: es la
- * unica accion del panel que no se puede deshacer.
+ * ---------------------------------------------------------------------------
+ *  SIN PETICIONES DESDE EL NAVEGADOR
+ * ---------------------------------------------------------------------------
+ *
+ * Antes cada boton montaba un formulario a mano con `document.createElement` y lo
+ * enviaba con `form.submit()` a las rutas `/admin/aprobar` y `/admin/borrar`: tres
+ * POST del navegador a endpoints propios, uno de ellos construido por codigo. Ahora
+ * son formularios de verdad con `<form action={setStatusAction}>` y
+ * `<form action={deleteAccidentAction}>`, que apuntan a Server Actions. La
+ * confirmacion se sigue pidiendo en el navegador antes de que salga nada de la
+ * pestana, porque eliminar y rechazar no se pueden deshacer.
+ *
+ * Sin JavaScript los formularios siguen funcionando; lo unico que se pierde es la
+ * confirmacion, por eso se pide en `onSubmit` y no con una pantalla intermedia.
  */
 export function NewsRow({ row }: { row: AdminRow }) {
-  async function borrar() {
-    if (!window.confirm(`¿Eliminar "${row.title}"?\n\nEsta accion no se puede deshacer.`)) return;
-
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = "/admin/borrar";
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "id";
-    input.value = row.id;
-
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-  }
-
-  /*
-    Rechazar es la accion de la que mas se duda en un panel: casi nadie la pulsa
-    sin querer, pero pulsarla por error desde un boton de un solo clic es facil.
-    Pide confirmacion en el navegador, antes de que salga nada de la pestana.
-  */
-  function rechazar() {
-    if (!window.confirm(`¿Rechazar "${row.title}"?\n\nLa noticia no se publica, pero se queda en el historico.`)) return;
-
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = "/admin/aprobar";
-
-    const id = document.createElement("input");
-    id.type = "hidden";
-    id.name = "id";
-    id.value = row.id;
-
-    const estado = document.createElement("input");
-    estado.type = "hidden";
-    estado.name = "estado";
-    estado.value = "REJECTED";
-
-    form.appendChild(id);
-    form.appendChild(estado);
-    document.body.appendChild(form);
-    form.submit();
+  /**
+   * Bloquea el envio si el editor no confirma.
+   *
+   * Devolver `false` en `onSubmit` cancela el envio y deja el formulario intacto,
+   * que es justo lo que se quiere: si se acepta, el formulario sigue su curso
+   * normal y lo llama la Server Action.
+   */
+  function confirmar(mensaje: string): boolean {
+    return window.confirm(mensaje);
   }
 
   return (
@@ -125,30 +104,53 @@ export function NewsRow({ row }: { row: AdminRow }) {
         ) : null}
 
         {/*
-          Aprobar y Rechazar van a la misma ruta y se distinguen por `estado`.
+          Aprobar y Rechazar van a la misma accion y se distinguen por `status`.
 
           Rechazar y Eliminar no son lo mismo: rechazar deja la noticia en el
-          historico con su motivo para poder consultarla, y eliminar la borra. Sin
-          el boton de rechazar solo se podia aprobar o borrar, y no habia forma de
-          decir "esta no entra" sin perderla.
+          historico con su motivo para poder consultarla, y eliminar la borra.
         */}
-        <form action="/admin/aprobar" method="post">
+        <form action={setStatusAction}>
           <input type="hidden" name="id" value={row.id} />
-          <input type="hidden" name="estado" value="PUBLISHED" />
+          <input type="hidden" name="status" value="PUBLISHED" />
           <button type="submit" className="btn btn-success btn-small">
             Aprobar
           </button>
         </form>
 
         {row.status !== "rechazada" ? (
-          <button type="button" className="btn btn-warning btn-small" onClick={rechazar}>
-            Rechazar
-          </button>
+          <form
+            action={setStatusAction}
+            onSubmit={(e) => {
+              // Rechazar es la accion de la que mas se duda: casi nadie la pulsa
+              // sin querer, pero pulsar por error un boton de un solo clic es
+              // facil. Se pregunta antes de que salga nada de la pestana.
+              if (!confirmar(`¿Rechazar "${row.title}"?\n\nLa noticia no se publica, pero se queda en el historico.`)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="id" value={row.id} />
+            <input type="hidden" name="status" value="REJECTED" />
+            <button type="submit" className="btn btn-warning btn-small">
+              Rechazar
+            </button>
+          </form>
         ) : null}
 
-        <button type="button" className="btn btn-danger btn-small" onClick={borrar}>
-          Eliminar
-        </button>
+        <form
+          action={deleteAccidentAction}
+          onSubmit={(e) => {
+            // Unico caso irreversible: no hay forma de recuperarlo.
+            if (!confirmar(`¿Eliminar "${row.title}"?\n\nEsta accion no se puede deshacer.`)) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <input type="hidden" name="id" value={row.id} />
+          <button type="submit" className="btn btn-danger btn-small">
+            Eliminar
+          </button>
+        </form>
       </div>
     </div>
   );

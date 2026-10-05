@@ -472,10 +472,18 @@ WebP en disco y el ciclo de detección puede usar los 55 segundos completos.
 | `/api/cron/monitor` | GET, POST | Dispara un ciclo. Requiere `CRON_SECRET` |
 | `/api/ingest` | POST | Ingesta manual. Requiere `CRON_SECRET` |
 | `/api/health` | GET | Sonda de salud. 503 si la base de datos no responde |
+| `/api/auth/verificar` | GET | Enlace del correo de confirmación |
 | `/feed.xml` | GET | RSS de las noticias publicadas |
 | `/sitemap.xml` | GET | Sitemap |
 | `/robots.txt` | GET | Reglas para buscadores |
 | `/api/accidents` | GET | API pública, solo publicadas |
+
+Las cuatro primeras rutas son para **programas**: el ciclo de detección, la ingesta
+manual, la sonda de despliegue y el enlace del correo. **Ninguna la llama el
+navegador.** Entrar, registrarse, comentar, aprobar, borrar, editar el perfil y
+cerrar sesión van por Server Actions (`src/app/<ruta>/actions.ts`), que se invocan
+con `<form action={...}>`; ver la nota de mantenimiento "Sin peticiones desde el
+navegador".
 
 ---
 
@@ -488,10 +496,16 @@ prisma/
   seed.ts                    Solo municipios, no noticias
 src/
   app/
-    admin/                   Panel de administración
+    entrar/actions.ts        Server Actions: acceso y reenvío
+    registro/actions.ts      Server Action: alta de cuenta
+    sesion/actions.ts        Server Actions: cierre de sesión
+    noticias/actions.ts      Server Action: comentar
+    perfil/actions.ts        Server Action: editar perfil
+    admin/actions.ts         Server Actions del panel
     api/cron/monitor/        Endpoint del ciclo
     api/ingest/              Endpoint de ingesta
     api/health/              Sonda de salud
+    api/auth/verificar/      Enlace de confirmación del correo
     feed.xml/                RSS
   lib/
     env.ts                   Configuración validada
@@ -516,6 +530,7 @@ src/
 tests/
   logic.ts                   Pruebas de la lógica del pipeline
   endpoints.ts               Pruebas de seguridad de los endpoints
+  sin-peticiones.ts          Comprueba que el navegador no llama a ninguna API
 ```
 
 ---
@@ -532,3 +547,27 @@ insegura.
 
 **Verificado no es publicado.** Cualquier vía que publique sin intervención
 humana es un error de diseño, no una funcionalidad.
+
+**Sin peticiones desde el navegador.** Todo lo que hace el visitante va por
+Server Actions, nunca por un `fetch` a `/api/...`. La regla se comprueba sola:
+`npm run test:sin-peticiones` falla si aparece un `fetch`, un `XMLHttpRequest`,
+un `sendBeacon`, un `EventSource` o un `WebSocket` en un archivo `"use client"`.
+
+El motivo no es la velocidad:
+
+- **Sin JavaScript el sitio sigue funcionando.** Un `fetch` en el `onSubmit`
+  significa que sin JS el formulario no hace nada. Un `<form action={...}>`
+  funciona siempre.
+- **Un solo camino por dato.** Con endpoint y acción a la vez, basta con que uno
+  de los dos se quede sin actualizar para que la validación sea la incorrecta.
+- **Los errores no hay que traducirlos** de HTTP a texto para el usuario.
+
+El éxito se resuelve con `redirect()` **dentro de la acción**, no con
+`window.location.assign` ni con `router.refresh()` al volver. La cabecera se
+dibuja en el servidor leyendo la cookie httpOnly: con `router.refresh()` el menú
+seguía mostrando "Acceder" hasta que se recargaba la página a mano.
+
+Las rutas `/api/auth/*` (salvo `verificar`), `/api/comments`, `/admin/aprobar` y
+`/admin/borrar` se borraron al aplicar esto: las consumía el navegador y ya no las
+usa nadie. `/api/auth/verificar` se queda porque a quien llega por ahí ha pulsado
+un enlace del correo: es una persona, no un programa.

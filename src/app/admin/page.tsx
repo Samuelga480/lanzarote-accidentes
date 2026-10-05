@@ -8,6 +8,7 @@ import { duplicateFilter } from "@/lib/dedupe";
 import { RunCycleButton } from "@/components/admin/RunCycleButton";
 import { NewsRow, type AdminRow } from "@/components/admin/NewsRow";
 import { AdminPasswordForm } from "@/components/admin/AdminPasswordForm";
+import { cerrarSesionAdminAction } from "@/app/sesion/actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
@@ -101,10 +102,18 @@ export default async function AdminPage({
     slug: a.slug,
   }));
 
+  /*
+    Los errores llegan en `?error=` con el motivo ya escrito. El caso de
+    "falta-id" es el unico con texto propio; el resto lo pone `changeStatus` o
+    `removeAccident`, que lanzan con un mensaje que el editor necesita leer (por
+    ejemplo, que la noticia ya esta fusionada en otra).
+  */
   const avisos = [
     sp.publicada ? "Noticia aprobada y publicada." : null,
+    sp.rechazada ? "Noticia rechazada." : null,
     sp.borrada ? "Noticia eliminada." : null,
     sp.error === "falta-id" ? "Falta el identificador de la noticia." : null,
+    sp.error && sp.error !== "falta-id" ? `No se pudo hacer: ${sp.error}` : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -136,7 +145,7 @@ export default async function AdminPage({
             <a href="/" className="admin-nav-link">
               Ver Web
             </a>
-            <form action="/api/auth/logout" method="post">
+            <form action={cerrarSesionAdminAction}>
               <button type="submit" className="btn btn-secondary">
                 Cerrar Sesion
               </button>

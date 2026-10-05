@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { updateProfileAction, type ProfileActionState } from "@/app/perfil/actions";
 
 /**
@@ -13,6 +13,15 @@ import { updateProfileAction, type ProfileActionState } from "@/app/perfil/actio
  * El formulario se abre y se cierra con la clase `active` sobre
  * `.perfil-editar`, igual que entonces, en vez de con el atributo `hidden`: el
  * CSS del sitio ya define ese par de clases y asi el comportamiento se ve igual.
+ *
+ * ---------------------------------------------------------------------------
+ *  SIN PETICIONES DESDE EL NAVEGADOR
+ * ---------------------------------------------------------------------------
+ *
+ * El guardado va por Server Action (`updateProfileAction`), sin `fetch` ni
+ * `window.location.reload()`. Al guardar bien, la accion hace `revalidatePath` y el
+ * formulario se cierra solo; al cancelar se vacia con `reset()`, que es lo mismo
+ * que hacia la recarga pero sin volver a pedir la pagina entera.
  */
 export function ProfileEditor({ name, bio }: { name: string; bio: string | null }) {
   const [editando, setEditando] = useState(false);
@@ -20,6 +29,12 @@ export function ProfileEditor({ name, bio }: { name: string; bio: string | null 
     updateProfileAction,
     { ok: false, message: "" },
   );
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Guardado bien: el formulario se cierra y el texto nuevo ya esta en la pagina.
+  useEffect(() => {
+    if (state.ok) setEditando(false);
+  }, [state]);
 
   return (
     <div className="perfil-seccion">
@@ -46,7 +61,7 @@ export function ProfileEditor({ name, bio }: { name: string; bio: string | null 
 
       {/* Formulario */}
       <div className={`perfil-editar${editando ? " active" : ""}`}>
-        <form action={formAction}>
+        <form action={formAction} ref={formRef}>
           <div className="form-group">
             <label htmlFor="edit-nombre">Nombre</label>
             <input
@@ -79,8 +94,10 @@ export function ProfileEditor({ name, bio }: { name: string; bio: string | null 
               className="btn btn-secondary"
               onClick={() => {
                 setEditando(false);
-                // Se recarga para descartar lo que se habia escrito sin guardar.
-                window.location.reload();
+                // Descarta lo escrito sin guardar. Antes esto era
+                // `window.location.reload()`; `reset()` hace lo mismo sin pedir la
+                // pagina entera otra vez.
+                formRef.current?.reset();
               }}
               disabled={pending}
             >

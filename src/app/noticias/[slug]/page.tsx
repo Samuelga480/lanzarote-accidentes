@@ -312,6 +312,7 @@ export default async function AccidentPage({ params }: Props) {
       {/* ------------------------- Comentarios ------------------------- */}
       <Comments
         accidentId={accident.id}
+        slug={accident.slug}
         loggedIn={Boolean(sessionUser)}
         comments={rows.map((c) => ({
           id: c.id,

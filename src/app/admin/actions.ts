@@ -2,12 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  clearSessionCookie,
-  isAuthenticated,
-  setSessionCookie,
-  verifyPassword,
-} from "@/lib/auth";
+import { clearSessionCookie, setSessionCookie, verifyPassword } from "@/lib/auth";
 import {
   changeStatus,
   createAccident,
@@ -16,18 +11,28 @@ import {
   toggleFeatured,
   updateAccident,
 } from "@/lib/admin";
+import { requireAuth } from "@/lib/auth-guard";
 import { runCycle } from "@/lib/monitor";
+import { prisma } from "@/lib/prisma";
+import { audit } from "@/lib/logger";
+import { TODAS_LAS_CATEGORIAS } from "@/lib/categorias";
 import type { AccidentStatus } from "@/lib/types";
+import type { IncidentCategory } from "@prisma/client";
 import type { ActionState } from "./action-state";
 import type { CycleActionState } from "./actions-cycle";
 
-/** Todas las acciones cuelgan de la sesion del panel. */
-async function requireAuth(): Promise<string> {
-  if (!(await isAuthenticated())) {
-    throw new Error("Sesión no válida. Vuelve a iniciar sesión.");
-  }
-  return "editor";
-}
+/*
+  Todas las acciones cuelgan de `requireAuth` de `@/lib/auth-guard`, que acepta
+  las dos vias de entrada (cuenta ADMIN de /entrar y cookie del panel) y redirige
+  a /entrar si no hay ninguna.
+
+  Antes este archivo traia su propio `requireAuth`, que solo miraba la cookie del
+  panel y ademas fallaba con una excepcion. Los botones de la lista de noticias
+  llaman ahora a estas acciones en vez de a las rutas /admin/aprobar y
+  /admin/borrar, asi que un editor que entro por /entrar se habria encontrado con
+  un "sesion no valida" sin motivo: la cuenta es valida, lo que no existe es la
+  cookie del panel.
+*/
 
 /* -------------------------------------------------------------------------- */
 /*  Sesion                                                                    */
@@ -80,11 +85,7 @@ export async function createAccidentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  try {
-    await requireAuth();
-  } catch {
-    redirect("/admin/login");
-  }
+  await requireAuth();
 
   const parsed = parseForm(formData);
   if (!parsed.ok) {
@@ -106,11 +107,7 @@ export async function updateAccidentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  try {
-    await requireAuth();
-  } catch {
-    redirect("/admin/login");
-  }
+  await requireAuth();
 
   const id = formData.get("id")?.toString();
   if (!id) return { ok: false, message: "Falta el identificador de la noticia." };
@@ -131,18 +128,142 @@ export async function updateAccidentAction(
   }
 }
 
+/**
+ * Adonde se vuelve tras cambiar el estado.
+ *
+ * La ficha de una sola noticia, `/admin/<id>`, es adonde llega el enlace del
+ * correo de aviso. Antes, al aprobar desde ahi, la respuesta saltaba al panel
+ * entero: habia que volver a buscar la noticia en la lista, que es justo lo que
+ * el enlace pretendia evitar. Con `volver` se queda en la ficha.
+ *
+ * Solo se acepta una ruta interna que empiece por `/admin` y que no empiece por
+ * `//`, para que el parametro no sirva de redireccion abierta a un sitio de fuera.
+ */
+function destinoTrasCambio(volver: string, destino: AccidentStatus): string {
+  const pedido = volver.trim();
+  const seguro = pedido.startsWith("/admin") && !pedido.startsWith("//");
+  const aviso = destino === "PUBLISHED" ? "publicada=1" : "rechazada=1";
+  return seguro ? `${pedido}?${aviso}` : `/admin?${aviso}`;
+}
+
+/**
+ * Cambia el estado de una noticia desde el panel.
+ *
+ * Aprobar y Rechazar van por la misma accion y se distinguen por el campo
+ * `status` (que la ficha de una noticia envia como `estado`). Rechazar deja la
+ * noticia en el historico con su motivo para poder consultarla, y eliminar la
+ * borra: sin la accion de rechazar no habia forma de decir "esta no entra" sin
+ * perderla.
+ *
+ * `changeStatus` puede lanzar, y lanza con un mensaje que el editor necesita leer:
+ * por ejemplo, al intentar publicar una noticia ya fusionada en otra. Sin el
+ * `try`, ese mensaje se perderia en una pagina de error en vez de volver al
+ * panel con la explicacion.
+ */
 export async function setStatusAction(formData: FormData): Promise<void> {
   await requireAuth();
 
   const id = formData.get("id")?.toString();
-  const status = formData.get("status")?.toString() as AccidentStatus;
+  // Se aceptan los dos nombres porque la ficha de una noticia y la lista no
+  // tienen por que usar el mismo.
+  const status = (
+    formData.get("status")?.toString() ??
+    formData.get("estado")?.toString() ??
+    ""
+  ) as AccidentStatus;
   const note = formData.get("note")?.toString() || null;
+  const volver = formData.get("volver")?.toString() ?? "";
 
-  if (!id || !status) return;
+  if (!id || !status) redirect("/admin?error=falta-id");
   if (!["PENDING_REVIEW", "PUBLISHED", "REJECTED", "ARCHIVED"].includes(status)) return;
 
-  await changeStatus(id, status, "editor", note);
+  try {
+    await changeStatus(id, status, "editor", note);
+  } catch (e) {
+    redirect(`/admin?error=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+
+  revalidatePath("/admin");
   revalidatePath("/", "layout");
+
+  redirect(destinoTrasCambio(volver, status));
+}
+
+/**
+ * Corrige el tipo de una noticia.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE EXISTE
+ * ---------------------------------------------------------------------------
+ *
+ * El sistema decide la categoria solo y se equivoca a menudo: hay 34 temas de
+ * informacion ademas de los sucesos. Marcar como OTRO saca la noticia del mapa y
+ * de los resumenes de accidentes; marcarla como ATROPELLO la mete. Sin poder
+ * corregirla, la unica salida era tirar el trabajo y volver a detectarlo.
+ *
+ * ---------------------------------------------------------------------------
+ *  QUE SE ACEPTA Y QUE NO
+ * ---------------------------------------------------------------------------
+ *
+ * Solo valores que esten de verdad en la lista. Se valida contra
+ * TODAS_LAS_CATEGORIAS y no contra lo que llegue: el parametro viene de un
+ * formulario, y escribir a la enum una cadena inventada es un error de Postgres
+ * que tumba la peticion.
+ *
+ * ---------------------------------------------------------------------------
+ *  AUDITORIA
+ * ---------------------------------------------------------------------------
+ *
+ * Se guarda el antes y el despues en reviewNotes. Una reclasificacion es una
+ * decision editorial y tiene que poder explicarse despues, igual que una
+ * aprobacion.
+ */
+export async function setCategoryAction(formData: FormData): Promise<void> {
+  await requireAuth();
+
+  const id = (formData.get("id")?.toString() || "").trim();
+  const pedida = (formData.get("categoria")?.toString() || "").trim();
+
+  const volver = `/admin/${id}`;
+
+  if (!id) redirect("/admin?error=falta-id");
+  if (!TODAS_LAS_CATEGORIAS.includes(pedida)) redirect(`${volver}?categoria=error`);
+
+  const actual = await prisma.accident.findUnique({
+    where: { id },
+    select: { id: true, category: true, status: true },
+  });
+
+  if (!actual) redirect("/admin?error=no-existe");
+
+  // No se toca nada si el valor es el mismo: escribir la misma categoria borra
+  // la nota de revision anterior sin motivo.
+  if (actual.category === pedida) redirect(`${volver}?categoria=igual`);
+
+  await prisma.accident.update({
+    where: { id },
+    data: {
+      category: pedida as IncidentCategory,
+      reviewedAt: new Date(),
+      reviewedBy: "editor",
+      reviewNotes: `Categoria corregida a mano: ${actual.category} -> ${pedida}.`,
+    },
+  });
+
+  await audit({
+    actor: "editor",
+    action: "UPDATE",
+    entity: "accident",
+    entityId: id,
+    detail: { campo: "category", de: actual.category, a: pedida, estado: actual.status },
+  });
+
+  // El mapa, los resumenes y la portada dependen de la familia, asi que hay que
+  // revalidar por el layout entero.
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+
+  redirect(`${volver}?categoria=1`);
 }
 
 /** Publica un borrador de IA. Exige confirmacion explicita del editor. */
@@ -173,11 +294,21 @@ export async function toggleFeaturedAction(formData: FormData): Promise<void> {
 export async function deleteAccidentAction(formData: FormData): Promise<void> {
   await requireAuth();
   const id = formData.get("id")?.toString();
-  if (!id) return;
+  const volver = formData.get("volver")?.toString() ?? "";
+  if (!id) redirect("/admin?error=falta-id");
 
-  await removeAccident(id, "editor");
+  try {
+    await removeAccident(id, "editor");
+  } catch (e) {
+    redirect(`/admin?error=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+
+  revalidatePath("/admin");
   revalidatePath("/", "layout");
-  redirect("/admin?borrada=1");
+
+  // Borrar no tiene aviso: la ficha de la noticia ya no existe a donde volver.
+  const pedido = volver.trim();
+  redirect(pedido.startsWith("/admin") && !pedido.startsWith("//") ? pedido : "/admin?borrada=1");
 }
 
 /* -------------------------------------------------------------------------- */

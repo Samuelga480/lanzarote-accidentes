@@ -11,6 +11,8 @@ import {
   etiquetaDe,
 } from "@/lib/categorias";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { cerrarSesionAdminAction } from "@/app/sesion/actions";
+import { setCategoryAction, setStatusAction } from "../actions";
 import type { VehicleType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -170,7 +172,7 @@ export default async function RevisarNoticia({
             <Link href="/admin" className="admin-nav-link">
               Volver al panel
             </Link>
-            <form action="/api/auth/logout" method="post">
+            <form action={cerrarSesionAdminAction}>
               <button type="submit" className="btn btn-secondary">
                 Cerrar Sesion
               </button>
@@ -369,7 +371,7 @@ export default async function RevisarNoticia({
             aparece la noticia.
           </p>
 
-          <form action="/admin/categoria" method="post" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <form action={setCategoryAction} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <input type="hidden" name="id" value={a.id} />
             <select
               name="categoria"
@@ -403,7 +405,7 @@ export default async function RevisarNoticia({
           <h2 style={{ margin: "0 0 14px", fontSize: "1rem" }}>Decidir</h2>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <form action="/admin/aprobar" method="post">
+            <form action={setStatusAction}>
               <input type="hidden" name="id" value={a.id} />
               <input type="hidden" name="estado" value="PUBLISHED" />
               <input type="hidden" name="volver" value={`/admin/${a.id}`} />
@@ -412,7 +414,7 @@ export default async function RevisarNoticia({
               </button>
             </form>
 
-            <form action="/admin/aprobar" method="post">
+            <form action={setStatusAction}>
               <input type="hidden" name="id" value={a.id} />
               <input type="hidden" name="estado" value="REJECTED" />
               <input type="hidden" name="volver" value={`/admin/${a.id}`} />

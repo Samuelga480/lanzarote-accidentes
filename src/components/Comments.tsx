@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { createCommentAction, type CommentState } from "@/app/noticias/actions";
 import { formatDate } from "@/lib/format";
 
 export type CommentItem = {
@@ -14,82 +14,60 @@ export type CommentItem = {
   isOwn: boolean;
 };
 
+const ESTADO_INICIAL: CommentState = { ok: false, error: "" };
+
 /**
  * Seccion de comentarios de una noticia.
  *
  * Es la que tenia noticia.html: formulario para escribir y lista de lo ya
  * escrito, cada uno con su autor y su fecha.
+ *
+ * ---------------------------------------------------------------------------
+ *  SIN PETICIONES DESDE EL NAVEGADOR
+ * ---------------------------------------------------------------------------
+ *
+ * Antes era un `fetch` a `POST /api/comments` y despues un `router.refresh()` para
+ * que la lista se volviera a pintar. Ahora es un `<form action={...}>` que llama
+ * a la Server Action `createCommentAction`, y la accion hace el `revalidatePath`:
+ * el comentario aparece en la lista sin que el navegador pida nada a una API.
+ *
+ * El identificador de la noticia y su slug viajan como campos ocultos en vez de
+ * como props del closure, que es lo que hace que el formulario siga siendo un
+ * formulario de verdad y no una llamada a una API disfrazada.
  */
 export function Comments({
   accidentId,
+  slug,
   comments,
   loggedIn,
 }: {
   accidentId: string;
+  /** Slug de la noticia, para recargar la ruta correcta. */
+  slug: string;
   comments: CommentItem[];
   loggedIn: boolean;
 }) {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [state, formAction, pending] = useActionState<CommentState, FormData>(
+    createCommentAction,
+    ESTADO_INICIAL,
+  );
+  const formRef = useRef<HTMLFormElement>(null);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-
-    const data = new FormData(e.currentTarget);
-
-    /*
-      El formulario se guarda aqui y no se usa `e.currentTarget` despues del
-      await. React vacia esa propiedad en cuanto el manejador termina su parte
-      sincrona, asi que tras un await es `null`: usarla ahi lanzaba un
-      TypeError que caia en el catch y decia "No se ha podido conectar con el
-      servidor" cuando el servidor si habia contestado. El comentario quedaba
-      guardado y el usuario creia que no se habia publicado.
-    */
-    const form = e.currentTarget;
-
-    try {
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ accidentId, body: String(data.get("body") ?? "") }),
-      });
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "No se ha podido publicar el comentario.");
-        setBusy(false);
-        return;
-      }
-
-      form.reset();
-      setBusy(false);
-      // Los comentarios se releen en el servidor: se recargan la pagina para no
-      // duplicar a mano la lista que acaba de pintar la base de datos.
-      router.refresh();
-    } catch (err) {
-      /*
-        Solo el fallo de red llega aqui: el fetch es lo unico que puede cortar
-        la ejecucion de verdad. Cualquier otro error (un fallo de base de datos,
-        por ejemplo) devuelve una respuesta con status 500 y lo trata el `if
-        (!res.ok)` de arriba. Este texto no se muestra cuando el servidor si ha
-        contestado, para no culpar a la conexion de un fallo que no es suyo.
-      */
-      console.error("No se pudo enviar el comentario", err);
-      setError("No se ha podido enviar el comentario. Intentalo de nuevo.");
-      setBusy(false);
-    }
-  }
+  // Al guardarse bien, el textarea se vacia: si se deja lo escrito, volver a
+  // pulsar "Publicar" repetiria el mismo comentario.
+  useEffect(() => {
+    if (state.ok) formRef.current?.reset();
+  }, [state]);
 
   return (
     <section className="comentarios-section" aria-labelledby="titulo-comentarios">
       <h2 id="titulo-comentarios">Comentarios</h2>
 
       {loggedIn ? (
-        <form className="comentario-form" onSubmit={onSubmit}>
+        <form className="comentario-form" action={formAction} ref={formRef}>
+          <input type="hidden" name="accidentId" value={accidentId} />
+          <input type="hidden" name="slug" value={slug} />
+
           <label htmlFor="comentario" className="sr-only">
             Escribe tu comentario
           </label>
@@ -101,11 +79,13 @@ export function Comments({
             maxLength={2000}
             required
           />
+
           <div className="login-error" role="alert">
-            {error}
+            {state.error}
           </div>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? "Publicando..." : "Publicar comentario"}
+
+          <button type="submit" className="btn btn-primary" disabled={pending}>
+            {pending ? "Publicando..." : "Publicar comentario"}
           </button>
         </form>
       ) : (

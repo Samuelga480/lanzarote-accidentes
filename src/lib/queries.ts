@@ -10,7 +10,7 @@ import {
   type Origin,
   type VehicleType,
 } from "@/lib/types";
-import { CATEGORY_LABEL, ZONES } from "@/lib/constants";
+import { CATEGORY_LABEL, MUNICIPALITIES, ZONES } from "@/lib/constants";
 import { CATEGORIAS_SUCESO } from "@/lib/categorias";
 import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } from "@/lib/calendar-year";
 
@@ -133,6 +133,18 @@ function buildWhere(filters: AccidentFilters): Prisma.AccidentWhereInput {
 
   if (filters.municipality) {
     and.push({ municipality: { slug: filters.municipality } });
+
+    // Y el texto tiene que nombrarlo. La columna sola no sirve: cuando la
+    // ingesta no reconoce el municipio guarda Arrecife como referencia
+    // cartografica, y un filtro por esa columna mete en "noticias de Arrecife"
+    // noticias de las que no se sabe donde han pasado.
+    const nombre = MUNICIPALITIES.find((m) => m.slug === filters.municipality)?.name;
+    if (nombre) {
+      const menciona: Prisma.StringFilter = { contains: nombre, mode: "insensitive" };
+      and.push({
+        OR: [{ title: menciona }, { summary: menciona }, { body: menciona }],
+      });
+    }
   }
   if (filters.vehicle) {
     and.push({ vehicleType: filters.vehicle });

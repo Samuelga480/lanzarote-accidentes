@@ -153,7 +153,7 @@ export default async function HomePage({ searchParams }: Props) {
           */}
           <p className="text-xs text-ink-mute mt-4 max-w-prose">
             {conMunicipio} de {totalPublicadas} noticias publicadas dicen en qué municipio
-            pasan. Las demas no lo mencionan, así que no se cuentan en ninguno.
+            pasan. Las demás no lo mencionan, así que no se cuentan en ninguno.
           </p>
         </section>
       </main>

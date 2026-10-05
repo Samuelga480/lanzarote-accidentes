@@ -28,6 +28,13 @@ import { extractFacts, relevanceScore, type ExtractedFacts } from "@/lib/facts";
 import { evaluaAccidenteTrafico, evaluaIsla } from "@/lib/traffic-gate";
 import { parseSourceDate, resolveOccurredAt, validateDate, localDayKey } from "@/lib/dates";
 import { verifyArticle, type VerificationResult } from "@/lib/verify";
+import {
+  detectaErrores,
+  erroresEnTexto,
+  erroresParaElPrompt,
+  resumenDeErrores,
+  type EditorialError,
+} from "@/lib/errores";
 import { checkDuplicate, urlHashOf, mergeIntoCanonical } from "@/lib/dedupe";
 import { rewriteArticle, embedArticle } from "@/lib/ai/rewrite";
 import { rewriteByRules } from "@/lib/ai/rewrite-rules";
@@ -300,6 +307,37 @@ export async function ingestArticle(params: {
   // Primero la IA, si hay llave. Sin ella, o si falla, se redacta por reglas:
   // un texto propio construido con los datos extraidos es siempre mejor que
   // copiar el del medio, y no depende de ninguna cuenta ni de ser mayor de edad.
+  /*
+   * La categoria ya resuelta y los errores que se han detectado en el texto.
+   *
+   * Van aqui, antes de redactar, por dos razones. La primera es que el redactor
+   * tiene que recibirlos: si no, solo ve un titulo que dice ACCIDENTE_TRAFICO y da
+   * forma a un texto que no habla de ningun accidente. La segunda es que se
+   * calculan sobre el texto ORIGINAL y no sobre el ya limpiado. Los fallos que se
+   * buscan estan en lo que publico el medio; si se mirase despues, retocar el texto
+   * los taparia y el aviso se perderia.
+   *
+   * municipalityUncertain todavia no existe aqui, asi que se comprueba el slug: si
+   * es null, el municipio es el valor por defecto que se pone para el mapa.
+   */
+  const category = resolveCategory(facts.category, title, summary, fullText);
+
+  const erroresEditoriales: EditorialError[] = detectaErrores({
+    title,
+    summary,
+    body: fullText,
+    category,
+    categoryDetectada: facts.category,
+    municipalitySlug,
+    municipalityDelTexto: municipalitySlug !== null,
+    occurredAt,
+    sourceScore: verification.sourceScore,
+  });
+
+  // Al redactor solo le llegan los graves y los avisos: las notas no son nada que
+  // el pueda arreglar y solo cargan el prompt.
+  const erroresParaRedactor = erroresParaElPrompt(erroresEditoriales);
+
   const peticion = {
     title,
     body: fullText,
@@ -309,6 +347,7 @@ export async function ingestArticle(params: {
     occurredAtIso: occurredAt.toISOString(),
     outlet: source.name,
     sourceUrl: url,
+    errores: erroresParaRedactor,
   };
 
   const rewrite = aiConfig.enabled()
@@ -398,6 +437,7 @@ export async function ingestArticle(params: {
     la base de datos se guardaba Arrecife, en el sur. El marcador acababa a 60 km
     del nombre que llevaba al lado. Si no se sabe donde, no se pinta nada.
   */
+
   const approx = puntoAproximado(municipalitySlug, zone);
 
   // --- 8. Guardar como PENDING_REVIEW ---
@@ -415,6 +455,10 @@ export async function ingestArticle(params: {
 
   const notesToEditor = [
     ...verification.notes,
+    erroresEditoriales.length > 0
+      ? `Errores detectados al redactar (${resumenDeErrores(erroresEditoriales)}):`
+      : null,
+    ...erroresEnTexto(erroresEditoriales).split("\n"),
     rewritten ? null : "La IA no pudo reescribirla: el texto es el original.",
     rewrite.ok ? `Solapamiento con el original: ${Math.round((rewrite.overlap ?? 0) * 100)} %.` : null,
     municipalityUncertain
@@ -438,7 +482,7 @@ export async function ingestArticle(params: {
       zone,
       vehicleType: facts.vehicleType ?? "OTROS",
       severity: facts.severity ?? "MODERADO",
-      category: resolveCategory(facts.category, clean.title, clean.summary, clean.body),
+      category,
       road: facts.road,
 
       status: "PENDING_REVIEW",

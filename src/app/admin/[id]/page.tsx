@@ -20,6 +20,50 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+
+/**
+ * Separa las lineas de error del campo reviewNotes.
+ *
+ * Los errores se guardan con el formato "[nivel] CODIGO: titulo. detalle", uno
+ * por linea. Aqui solo se separan y se les quita el prefijo: el formato lo
+ * escribe lib/errores.ts con erroresEnTexto, y las dos piezas tienen que estar
+ * de acuerdo. Si el formato cambia, se cambia ahi y aqui.
+ */
+function leerErrores(reviewNotes: string | null): Array<{
+  nivel: string;
+  codigo: string;
+  titulo: string;
+  detalle: string;
+}> {
+  if (!reviewNotes) return [];
+
+  const salida: Array<{ nivel: string; codigo: string; titulo: string; detalle: string }> = [];
+  for (const linea of reviewNotes.split("\n")) {
+    const m = /^\[(grave|aviso|nota)\]\s+([A-Z_]+):\s*(.+)$/.exec(linea.trim());
+    if (!m) continue;
+
+    // El titulo y el detalle van juntos despues del codigo. El detalle es lo que
+    // viene despues del primer ". " del resto, que es donde lo escribe
+    // erroresEnTexto.
+    const resto = m[3];
+    const corte = resto.indexOf(". ");
+    salida.push({
+      nivel: m[1],
+      codigo: m[2],
+      titulo: corte > 0 ? resto.slice(0, corte) : resto,
+      detalle: corte > 0 ? resto.slice(corte + 2) : "",
+    });
+  }
+  return salida;
+}
+
+/** El color de cada nivel. El grave tiene que saltar a la vista. */
+const COLOR_ERROR: Record<string, string> = {
+  grave: "var(--alert)",
+  aviso: "var(--warning)",
+  nota: "var(--ink-mute)",
+};
+
 /**
  * Ficha de UNA noticia pendiente, para revisarla desde el correo.
  *
@@ -75,6 +119,10 @@ export default async function RevisarNoticia({
   const sp5 = sp.categoria === "igual" ? "El tipo ya era ese, no se ha cambiado nada." : null;
   const sp6 = sp.categoria === "error" ? "Ese tipo no existe." : null;
   const avisos = [sp1, sp2, sp3, sp4, sp5, sp6].filter(Boolean) as string[];
+
+  // Los errores que se detectaron al entrar la noticia. Se leen de reviewNotes,
+  // que es donde los guarda la ingesta.
+  const errores = leerErrores(a.reviewNotes);
 
   // Comprobaciones de coherencia entre lo detectado y lo escrito.
   const resumenCuerpo = `${a.title} ${a.summary ?? ""} ${a.body ?? ""}`;
@@ -142,6 +190,52 @@ export default async function RevisarNoticia({
             {m}
           </p>
         ))}
+
+        {/* ---------------- Errores al entrar ---------------- */}
+        {errores.length > 0 ? (
+          <div
+            className="admin-stat-card"
+            style={{ padding: "14px 20px", marginBottom: 24, borderColor: "var(--alert)" }}
+          >
+            <strong>
+              {errores.length === 1
+                ? "Un error se detecto al entrar esta noticia:"
+                : `${errores.length} errores se detectaron al entrar esta noticia:`}
+            </strong>
+            <ul style={{ margin: "10px 0 0", paddingLeft: "0", listStyle: "none", fontSize: "0.9rem" }}>
+              {errores.map((e) => (
+                <li
+                  key={e.codigo + e.titulo}
+                  style={{
+                    marginBottom: 12,
+                    paddingLeft: 12,
+                    borderLeft: `3px solid ${COLOR_ERROR[e.nivel] ?? "var(--ink-mute)"}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: COLOR_ERROR[e.nivel] ?? "var(--ink-mute)",
+                      marginRight: 8,
+                    }}
+                  >
+                    {e.nivel}
+                  </span>
+                  <strong>{e.titulo}.</strong>{" "}
+                  {e.detalle}
+                  <br />
+                  <span style={{ fontSize: "0.75rem", color: "var(--ink-mute)" }}>
+                    {e.codigo}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {/* ---------------- Avisos de coherencia ---------------- */}
         {avisosCoherencia.length > 0 ? (

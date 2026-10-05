@@ -40,6 +40,16 @@ export type RewriteRequest = {
   occurredAtIso: string;
   outlet: string;
   sourceUrl: string;
+  /**
+   * Los errores detectados en esta noticia antes de redactarla.
+   *
+   * Van al prompt para que el redactor no repita el fallo. El caso que mas se ha
+   * dado: la noticia esta marcada como accidente pero el texto no habla de
+   * ningun accidente, y el redactor solo tiene que dar forma a un texto que no
+   * es de un accidente. Sin esta lista no puede saberlo, porque el titulo que
+   * recibe ya dice ACCIDENTE_TRAFICO.
+   */
+  errores?: string[];
 };
 
 /**
@@ -273,6 +283,14 @@ REGLAS ADICIONALES PARA ESTE CASO:
 - Titular SEO que incluya el municipio, con menos de 60 caracteres.
 - metaDescription con menos de 155 caracteres.
 
+${
+  request.errores && request.errores.length > 0
+    ? `PROBLEMAS DETECTADOS EN ESTA NOTICIA, NO LOS REPITAS:
+${request.errores.map((e) => `- ${e}`).join("\n")}
+
+Redacta como lo que el texto dice, no como lo que el sistema espera que diga. Si el texto no cuenta un accidente, no escribas como si contara uno: describe lo que cuenta de verdad.`
+    : ""
+}
 Devuelve solo el objeto JSON.`;
 
   // Se recuerda que modelo contesto, porque con la cadena de suplentes puede no

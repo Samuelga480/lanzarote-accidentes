@@ -171,7 +171,12 @@ section("El municipio puesto por defecto");
 section("La gravedad no significa nada en una noticia de informacion");
 
 {
-  const e = detectaErrores(
+  /*
+    Que una noticia de informacion no tenga gravedad es lo normal y no es un
+    error. Lo que si lo es es que alguien la haya puesto a mano: gravedad grave
+    afirma que hay heridos o fallecidos, y eso no se ve en el texto.
+  */
+  const normal = detectaErrores(
     buena({
       title: "El Cabildo de Lanzarote aprueba el presupuesto",
       summary: "El pleno aprobo las cuentas.",
@@ -181,13 +186,50 @@ section("La gravedad no significa nada en una noticia de informacion");
     }),
   );
   check(
-    "lo deja como nota",
-    e.find((x) => x.codigo === "GRAVEDAD_SIN_SENTIDO")?.nivel === "nota",
+    "una nota politica no da error de gravedad",
+    !codigos(normal).includes("GRAVEDAD_SIN_SENTIDO"),
+  );
+
+  const conGravedad = detectaErrores(
+    buena({
+      title: "El Cabildo de Lanzarote aprueba el presupuesto",
+      summary: "El pleno aprobo las cuentas.",
+      body: "El presupuesto de la isla para el ano que viene.",
+      category: "POLITICA",
+      categoryDetectada: "POLITICA",
+      gravedad: "GRAVE",
+    }),
+  );
+  check("con gravedad puesta si avisa", codigos(conGravedad).includes("GRAVEDAD_SIN_SENTIDO"));
+  check(
+    "y lo sube a aviso, no a nota",
+    conGravedad.find((x) => x.codigo === "GRAVEDAD_SIN_SENTIDO")?.nivel === "aviso",
   );
   check(
-    "y la nota no va al prompt",
-    !erroresParaElPrompt(e).some((x) => x.includes("gravedad")),
+    "un aviso si llega al prompt",
+    erroresParaElPrompt(conGravedad).some((x) => x.includes("gravedad")),
   );
+
+  const conCoche = detectaErrores(
+    buena({
+      title: "El Cabildo de Lanzarote aprueba el presupuesto",
+      summary: "El pleno aprobo las cuentas.",
+      body: "El presupuesto de la isla para el ano que viene.",
+      category: "POLITICA",
+      categoryDetectada: "POLITICA",
+      vehicleType: "COCHE",
+    }),
+  );
+  check("con vehiculo puesto avisa", codigos(conCoche).includes("GRAVEDAD_SIN_SENTIDO"));
+  check(
+    "pero como nota, que es menor",
+    conCoche.find((x) => x.codigo === "GRAVEDAD_SIN_SENTIDO")?.nivel === "nota",
+  );
+  check(
+    "y una nota no llega al prompt",
+    !erroresParaElPrompt(conCoche).some((x) => x.includes("vehiculo")),
+  );
+
   check(
     "un suceso no genera ese error",
     !codigos(detectaErrores(buena())).includes("GRAVEDAD_SIN_SENTIDO"),
@@ -303,6 +345,19 @@ section("Cada codigo declarado se puede devolver");
       title: "Victoria en el polideportivo de la isla",
       summary: "Resumen sin vocabulario reconocible.",
       body: "La nota cuenta otra cosa distinta y no usa ninguna palabra del tema.",
+      municipalityDelTexto: false,
+    },
+    {
+      /*
+        GRAVEDAD_SIN_SENTIDO: una nota de informacion con gravedad puesta a mano.
+        Eso si afirma algo, y lo que afirma no se ve en el texto.
+      */
+      category: "CULTURA",
+      categoryDetectada: "CULTURA",
+      title: "El Cabildo de Lanzarote aprueba el presupuesto",
+      summary: "El pleno aprobo las cuentas.",
+      body: "El presupuesto de la isla para el ano que viene.",
+      gravedad: "GRAVE",
       municipalityDelTexto: false,
     },
   ];

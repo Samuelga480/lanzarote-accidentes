@@ -332,6 +332,8 @@ export async function ingestArticle(params: {
     municipalityDelTexto: municipalitySlug !== null,
     occurredAt,
     sourceScore: verification.sourceScore,
+    gravedad: facts.severity,
+    vehicleType: facts.vehicleType,
   });
 
   // Al redactor solo le llegan los graves y los avisos: las notas no son nada que

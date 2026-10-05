@@ -112,6 +112,13 @@ export type EntradaError = {
   occurredAt: Date | null;
   /** Fiabilidad de la fuente, 0..1. */
   sourceScore: number;
+  /**
+   * Gravedad ya guardada. Solo se mira para avisar de que alguien la ha puesto a
+   * mano en algo que no es un suceso.
+   */
+  gravedad?: string | null;
+  /** Vehiculo ya guardado. Ver la comprobacion de arriba. */
+  vehicleType?: string | null;
 };
 
 /**
@@ -228,14 +235,30 @@ export function detectaErrores(entrada: EntradaError): EditorialError[] {
 
   /* --- 5. La gravedad no significa nada para el tipo ---------------------- */
 
-  if (!tipoSuceso) {
+  /*
+    Solo cuando la gravedad es distinta del valor por defecto. Que una noticia de
+    informacion no tenga gravedad es lo normal y no es un error; lo que no puede
+    pasar es que alguien la haya puesto.
+  */
+  const gravedadPuesta = entrada.gravedad && entrada.gravedad !== "MODERADO";
+  if (!tipoSuceso && gravedadPuesta) {
+    errores.push({
+      codigo: "GRAVEDAD_SIN_SENTIDO",
+      nivel: "aviso",
+      titulo: `Un tipo de informacion con gravedad "${entrada.gravedad}"`,
+      detalle:
+        "El tipo no es un suceso, asi que la gravedad no se muestra. Si alguien la ha puesto " +
+        "a mano, conviene revisarla: gravedad grave afirma que hay heridos o fallecidos, y " +
+        "eso no se ve en el texto.",
+    });
+  } else if (!tipoSuceso && entrada.vehicleType && entrada.vehicleType !== "OTROS") {
     errores.push({
       codigo: "GRAVEDAD_SIN_SENTIDO",
       nivel: "nota",
-      titulo: "El tipo no tiene gravedad",
+      titulo: `Un tipo de informacion con vehiculo "${entrada.vehicleType}"`,
       detalle:
-        "Es una noticia de informacion, no un suceso, asi que la gravedad y el vehiculo no " +
-        "se muestran. Si en realidad es un accidente, el tipo esta equivocado.",
+        "El tipo no es un suceso, asi que el vehiculo no se muestra. No es un error, pero " +
+        "si el articulo es en realidad de trafico, el tipo esta equivocado.",
     });
   }
 

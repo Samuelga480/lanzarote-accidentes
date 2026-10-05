@@ -1,13 +1,24 @@
 /**
  * Ingesta de un articulo concreto: de una URL a un borrador en revision.
  *
- * Invariante de este modulo y de todo lo que llama: el resultado SIEMPRE se
- * guarda con status PENDING_REVIEW y origin AI. No hay ninguna ruta por la que
- * este fichero produzca una noticia publicada. La unica forma de publicar es
- * `changeStatus()` en src/lib/admin.ts, que solo llama el panel y exige sesion
- * de administrador.
+ * ---------------------------------------------------------------------------
+ *  INVARIANTE: LO QUE SE CREA ES SIEMPRE UN BORRADOR
+ * ---------------------------------------------------------------------------
  *
- * El orden de los pasos importa y no es arbitrario:
+ * Lo que este modulo CREA va siempre con status PENDING_REVIEW y origin AI, y hay
+ * una comprobacion en tiempo de ejecucion que rompe en voz alta si alguna vez no
+ * (`created.status !== "PENDING_REVIEW"`). El unico sitio por el que se publica
+ * es `changeStatus()` en `src/lib/admin.ts`.
+ *
+ * La excepcion es deliberada y esta al final del flujo: si `AUTO_PUBLISH` esta
+ * encendido, un borrador recien creado puede pasarse a PUBLISHED en el paso 9. No
+ * es una puerta trasera: tambien pasa por `changeStatus()`, asi que sus bloqueos
+ * (duplicadas, archivadas) siguen valiendo, y queda en el historial como una
+ * operacion mas. Apagado, ese paso no hace nada.
+ *
+ * ---------------------------------------------------------------------------
+ *  EL ORDEN DE LOS PASOS IMPORTA Y NO ES ARBITRARIO
+ * ---------------------------------------------------------------------------
  *
  *   1. Descargar la pagina. Antes de gastar nada, ver si ya se vio esa URL.
  *   2. Extraer el articulo (titulo, cuerpo, imagen, fecha).
@@ -18,7 +29,9 @@
  *   6. Reescribir con IA (si hay clave configurada).
  *   7. Procesar la imagen.
  *   8. Guardar como PENDING_REVIEW.
- *   9. Notificar al administrador.
+ *   9. Publicar sin revision, SOLO si AUTO_PUBLISH esta encendido y el borrador
+ *      pasa el liston de `lib/auto-publicar.ts`.
+ *  10. Notificar al administrador.
  */
 
 import { prisma } from "@/lib/prisma";
@@ -46,6 +59,12 @@ import { slugify, uniqueSlug } from "@/lib/slug";
 import { puntoAproximado } from "@/lib/map-point";
 import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
 import { notifyNewArticle } from "@/lib/notify";
+import { changeStatus } from "@/lib/admin";
+import {
+  decidirAutoPublicacion,
+  puedeIntentarAutoPublicar,
+  palabras,
+} from "@/lib/auto-publicar";
 import { resolveCategory } from "@/lib/resolve-category";
 import { contentHashOf, simHash, tidy, truncate } from "@/lib/text";
 import { log, serializeError, redact, timer, audit } from "@/lib/logger";
@@ -63,7 +82,7 @@ export type IngestSource = {
 };
 
 export type IngestOutcome =
-  | { kind: "draft"; accidentId: string; slug: string; title: string; confidenceScore: number; verificationStatus: string; rewritten: boolean; notified: boolean }
+  | { kind: "draft"; accidentId: string; slug: string; title: string; confidenceScore: number; verificationStatus: string; rewritten: boolean; publicadaAutomaticamente?: boolean; notified: boolean }
   | { kind: "duplicate"; canonicalId: string; sourcesAdded: number; reason: string }
   | { kind: "rejected"; reason: string }
   | { kind: "skipped"; reason: string };
@@ -657,7 +676,75 @@ export async function ingestArticle(params: {
     },
   });
 
-  // --- 9. Notificar ---
+  // --- 9. Publicar sin revision, solo si la puerta lo permite ---
+  /*
+    Este bloque es el UNICO camino del sistema por el que una noticia nace
+    publicada sin que una persona la haya aprobado, y solo existe si `AUTO_PUBLISH`
+    esta encendido. Apagado, el `if` no se cumple y no se ejecuta nada.
+
+    La publicacion se pide a `changeStatus()`, que es la misma funcion que usa el
+    panel y la unica via de publicacion del sistema. Asi los bloqueos que viven
+    dentro de ella (una duplicada no se publica, una archivada tampoco) siguen
+    valiendo tambien aqui: no hay una puerta trasera.
+
+    Va DESPUES de crear la noticia y DESPUES de comprobar el invariante de
+    PENDING_REVIEW, para que ese invariante siga significando lo que dice: lo que
+    crea la ingesta es siempre un borrador. Publicar despues es otra operacion, y
+    queda en el historial como tal.
+  */
+  let publicadaAutomaticamente = false;
+
+  if (puedeIntentarAutoPublicar()) {
+    const decision = decidirAutoPublicacion({
+      verificationStatus: verification.verificationStatus,
+      confidenceScore: verification.confidenceScore,
+      sourceScore: verification.sourceScore,
+      rewritten,
+      palabrasCuerpo: palabras(clean.body),
+      // `municipalityUncertain` ya se calculo mas arriba para las notas.
+      municipioConocido: !municipalityUncertain,
+      esDuplicada: false,
+      horasAntiguedad: (Date.now() - occurredAt.getTime()) / 3_600_000,
+      erroresGraves: erroresEditoriales.filter((e) => e.nivel === "grave").length,
+      erroresAvisos: erroresEditoriales.filter((e) => e.nivel === "aviso").length,
+      findingsPrivacidad: findings.length,
+    });
+
+    if (decision.publicar) {
+      try {
+        await changeStatus(
+          created.id,
+          "PUBLISHED",
+          "scraper",
+          `Publicada automaticamente. ${decision.motivo}`,
+        );
+        publicadaAutomaticamente = true;
+        log.info("Noticia publicada automaticamente", {
+          accidentId: created.id,
+          slug: created.slug,
+          confidence: verification.confidenceScore,
+        });
+      } catch (e) {
+        /*
+          Un fallo aqui NO puede dejar la noticia a medias ni romper el ciclo. Se
+          queda como borrador, que es el estado en el que puede quedarse una
+          noticia, y se avisa. Perder una publicacion automatica es un fallo
+          visible; que el resto del ciclo se caiga por ella no lo seria.
+        */
+        log.error("No se pudo publicar automaticamente; queda como borrador", {
+          accidentId: created.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    } else {
+      log.info("No pasa el liston de publicacion automatica", {
+        accidentId: created.id,
+        motivo: decision.motivo,
+      });
+    }
+  }
+
+  // --- 10. Notificar ---
   await notifyNewArticle({
     accidentId: created.id,
     title: clean.title,
@@ -673,6 +760,13 @@ export async function ingestArticle(params: {
     sourceOutlet: source.name,
     reviewUrl: `${siteUrl()}/admin/${created.id}`,
     imageUrl: finalImageUrl,
+    /*
+      El aviso dice "pendiente de revision" o "ya publicada" segun lo que haya
+      pasado. Sin esto, con la publicacion automatica encendida, el editor recibiria
+      un correo que le dice que tiene algo pendiente que en realidad ya esta en la
+      web.
+    */
+    yaPublicada: publicadaAutomaticamente,
   });
 
   log.info("Borrador creado", {
@@ -693,6 +787,7 @@ export async function ingestArticle(params: {
     confidenceScore: verification.confidenceScore,
     verificationStatus: verification.verificationStatus,
     rewritten,
+    publicadaAutomaticamente,
     notified: true,
   };
 }

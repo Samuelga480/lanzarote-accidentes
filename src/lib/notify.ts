@@ -38,6 +38,15 @@ export type NotifyPayload = {
   /** Panel de revision. */
   reviewUrl: string;
   imageUrl?: string | null;
+  /**
+   * La noticia se publico sola al pasar el liston de `AUTO_PUBLISH`.
+   *
+   * Sin esto, el aviso diria "pendiente de revision" y "nada se publica sin tu
+   * aprobacion" de algo que ya esta en la web. Con la publicacion automatica
+   * encendida, ese texto pasaria a ser falso y el editor dejaria de fiarse de los
+   * avisos, que es justo lo que un aviso debe evitar.
+   */
+  yaPublicada?: boolean;
 };
 
 export type DeliveryResult = {
@@ -120,9 +129,10 @@ export async function alreadyNotified(
 function buildMessage(payload: NotifyPayload): string {
   const confidence = `${Math.round(payload.confidenceScore * 100)} %`;
   const source = `${Math.round(payload.sourceScore * 100)} %`;
+  const publicada = payload.yaPublicada === true;
 
   return [
-    `*Nueva noticia pendiente de revision*`,
+    publicada ? `*Nueva noticia publicada automaticamente*` : `*Nueva noticia pendiente de revision*`,
     ``,
     `*${payload.title}*`,
     ``,
@@ -136,17 +146,21 @@ function buildMessage(payload: NotifyPayload): string {
     `Fuente original: ${payload.sourceOutlet}`,
     `${payload.sourceUrl}`,
     ``,
-    `Revisar y aprobar: ${payload.reviewUrl}`,
+    publicada ? `Ya esta en la web. Corregir o retirar: ${payload.reviewUrl}` : `Revisar y aprobar: ${payload.reviewUrl}`,
     ``,
-    `_Nada se publica sin tu aprobacion._`,
+    publicada
+      ? `_Ha pasado el liston de publicacion automatica (${confidence} de confianza). Se puede corregir o retirar._`
+      : `_Nada se publica sin tu aprobacion._`,
   ]
     .filter((line) => line !== "")
     .join("\n");
 }
 
 function buildPlainText(payload: NotifyPayload): string {
+  const publicada = payload.yaPublicada === true;
+
   return [
-    "Nueva noticia pendiente de revision",
+    publicada ? "Nueva noticia publicada automaticamente" : "Nueva noticia pendiente de revision",
     "",
     payload.title,
     "",
@@ -158,9 +172,11 @@ function buildPlainText(payload: NotifyPayload): string {
     `Confianza: ${Math.round(payload.confidenceScore * 100)} % | Fuente: ${Math.round(payload.sourceScore * 100)} % | Estado: ${payload.verificationStatus}`,
     "",
     `Fuente original: ${payload.sourceOutlet} - ${payload.sourceUrl}`,
-    `Revisar y aprobar: ${payload.reviewUrl}`,
+    publicada ? `Ya esta en la web. Corregir o retirar: ${payload.reviewUrl}` : `Revisar y aprobar: ${payload.reviewUrl}`,
     "",
-    "Nada se publica sin tu aprobacion.",
+    publicada
+      ? "Ha pasado el liston de publicacion automatica. Se puede corregir o retirar."
+      : "Nada se publica sin tu aprobacion.",
   ]
     .filter((line) => line !== "")
     .join("\n");
@@ -197,7 +213,7 @@ async function sendEmail(payload: NotifyPayload): Promise<DeliveryResult> {
     await transport.sendMail({
       from: `"Accidentes Lanzarote" <${from}>`,
       to,
-      subject: `[Revisión] ${payload.title}`.slice(0, 150),
+      subject: `[${payload.yaPublicada ? "Publicada" : "Revisión"}] ${payload.title}`.slice(0, 150),
       text: buildPlainText(payload),
       html: renderHtml(payload),
     });
@@ -218,11 +234,18 @@ function renderHtml(payload: NotifyPayload): string {
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+  const publicada = payload.yaPublicada === true;
+  const cabecera = publicada ? "Nueva noticia publicada automáticamente" : "Nueva noticia pendiente de revisión";
+  const boton = publicada ? "Corregir o retirar" : "Revisar y aprobar";
+  const pie = publicada
+    ? "Ha pasado el listón de publicación automática. Se puede corregir o retirar."
+    : "Nada se publica sin tu aprobación.";
+
   return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><title>Noticia pendiente</title></head>
+<html lang="es"><head><meta charset="utf-8"><title>${cabecera}</title></head>
 <body style="margin:0;padding:20px;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.6;color:#18181b">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e4e4e7">
-  <div style="background:#d3232f;padding:14px 20px;color:#fff;font-weight:700">Nueva noticia pendiente de revisión</div>
+  <div style="background:#d3232f;padding:14px 20px;color:#fff;font-weight:700">${cabecera}</div>
   <div style="padding:20px">
     <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3">${escape(payload.title)}</h1>
     <p style="margin:0 0 16px;color:#52525b">${escape(payload.summary)}</p>
@@ -238,9 +261,9 @@ function renderHtml(payload: NotifyPayload): string {
       <a href="${escape(payload.sourceUrl)}" style="color:#d3232f">Ver artículo original ↗</a>
     </p>
     <p style="margin:0 0 20px">
-      <a href="${escape(payload.reviewUrl)}" style="display:inline-block;background:#d3232f;color:#fff;text-decoration:none;padding:11px 20px;border-radius:6px;font-weight:600;font-size:14px">Revisar y aprobar</a>
+      <a href="${escape(payload.reviewUrl)}" style="display:inline-block;background:#d3232f;color:#fff;text-decoration:none;padding:11px 20px;border-radius:6px;font-weight:600;font-size:14px">${boton}</a>
     </p>
-    <p style="margin:0;font-size:12px;color:#a1a1aa">Nada se publica sin tu aprobación.</p>
+    <p style="margin:0;font-size:12px;color:#a1a1aa">${pie}</p>
   </div>
 </div>
 </body></html>`;
@@ -329,7 +352,11 @@ async function sendDiscord(payload: NotifyPayload): Promise<DeliveryResult> {
               { name: "Estado", value: payload.verificationStatus, inline: true },
               { name: "Fuente", value: `[${payload.sourceOutlet}](${payload.sourceUrl})`, inline: false },
             ],
-            footer: { text: "Nada se publica sin aprobación" },
+            footer: {
+              text: payload.yaPublicada
+                ? "Publicada automaticamente. Se puede corregir o retirar."
+                : "Nada se publica sin aprobación",
+            },
             timestamp: new Date().toISOString(),
             ...(payload.imageUrl ? { image: { url: payload.imageUrl } } : {}),
           },

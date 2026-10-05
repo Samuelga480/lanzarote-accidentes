@@ -188,6 +188,67 @@ export const monitorConfig = {
   maxArticlesPerFeed(): number {
     return int("MONITOR_MAX_ARTICLES_PER_FEED", 25);
   },
+  /**
+   * Cada cuanto se admite una pasada cuando el ciclo lo dispara el trafico.
+   *
+   * Una hora por defecto. En Vercel Hobby esto es lo que marca el ritmo, porque
+   * los cron de Vercel solo pasan una vez al dia; el cron de `vercel.json` queda
+   * como suelo para los dias sin visitas.
+   *
+   * Bajarlo tiene un coste que conviene tener en cuenta: cada pasada gasta tiempo
+   * de funcion de Vercel (el presupuesto son 8 s, en `monitor.ts`) y peticiones a
+   * las fuentes. Subirlo no da noticias mas frescas: los feeds no cambian tan a
+   * menudo.
+   */
+  cycleMs(): number {
+    return int("MONITOR_CYCLE_MS", 60 * 60_000);
+  },
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Publicacion automatica                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Publicar sin que nadie pulse nada.
+ *
+ * Apagada por defecto. El resto del sistema esta escrito asumiendo que las
+ * noticias las aprueba una persona, asi que esto es una decision editorial y no
+ * un ajuste: se enciende poniendo `AUTO_PUBLISH=true` y cada umbral se puede
+ * subir o bajar por separado.
+ *
+ * Que este apagada no es lo mismo que no existir la puerta: el codigo que decide
+ * esta siempre ahi, y lo unico que hace la variable es permitir que se use.
+ * Ver `lib/auto-publicar.ts` para los diez criterios.
+ */
+export const autoPublishConfig = {
+  enabled(): boolean {
+    return bool("AUTO_PUBLISH", false);
+  },
+  /** Confianza minima. Mas alto que `verifyConfig.goodConfidence()` a proposito. */
+  minConfidence(): number {
+    return Number(optional("AUTO_PUBLISH_MIN_CONFIDENCE") ?? "0.85");
+  },
+  /** Fiabilidad minima de la fuente. */
+  minSourceScore(): number {
+    return Number(optional("AUTO_PUBLISH_MIN_SOURCE_SCORE") ?? "0.6");
+  },
+  /** Palabras minimas del cuerpo. Un fragmento de feed no es una noticia. */
+  minWords(): number {
+    return int("AUTO_PUBLISH_MIN_WORDS", 120);
+  },
+  /** Horas maximas desde el suceso. Publicar hoy lo de hace una semana no vale. */
+  maxAgeHours(): number {
+    return int("AUTO_PUBLISH_MAX_AGE_HOURS", 24);
+  },
+  /** Avisos editoriales tolerados. Los graves no se toleran nunca. */
+  maxWarnings(): number {
+    return int("AUTO_PUBLISH_MAX_WARNINGS", 0);
+  },
+  /** Exigir que el original no trajera matriculas, telefonos ni documentos. */
+  requirePrivacyClean(): boolean {
+    return bool("AUTO_PUBLISH_REQUIRE_PRIVACY_CLEAN", true);
+  },
 };
 
 /* -------------------------------------------------------------------------- */

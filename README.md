@@ -548,6 +548,61 @@ insegura.
 **Verificado no es publicado.** Cualquier vía que publique sin intervención
 humana es un error de diseño, no una funcionalidad.
 
+**Salvedad: eso cambió, y a propósito.** Ahora existe `AUTO_PUBLISH`, que publica
+sin que nadie pulse nada. Está **apagada por defecto** y no se enciende sola: es
+una decisión editorial, no un ajuste. Ver abajo.
+
+---
+
+## Publicación automática
+
+`AUTO_PUBLISH=true` publica sola lo que pasa los diez criterios de
+`src/lib/auto-publicar.ts` a la vez. Todo lo demás sigue yendo a `/admin`.
+
+| # | Criterio | Por qué |
+|---|---|---|
+| 1 | No es duplicada | Lo bloquea `changeStatus` igualmente; se comprueba para no gastar la llamada |
+| 2 | `verificationStatus === "VERIFIED"` | El verificador es generoso: 0.8 de confianza y 0.5 de fuente ya bastan |
+| 3 | Confianza ≥ 0.85 | Más alto que el de `VERIFIED`: aquí no hay nadie mirando después |
+| 4 | Fuente ≥ 0.6 | Un medio que falla a menudo no llega |
+| 5 | El texto se ha reescrito | Sin IA y si no es suceso, `ingest` conserva el texto **original** del medio |
+| 6 | ≥ 120 palabras de cuerpo | Un fragmento de feed no es una noticia |
+| 7 | Municipio identificado | Sin él se conecta Arrecife solo para el mapa, y el código avisa de corregirlo |
+| 8 | 0 errores graves y 0 avisos | Un «grave» es, por definición, motivo para no publicar |
+| 9 | 0 datos personales en el original | El texto sale saneado igual, pero hay algo que mirar |
+| 10 | Suceso de las últimas 24 h | Publicar hoy lo de hace una semana es el fallo clásico |
+
+Son condiciones con «y», no una suma de puntos: un cuerpo larguísimo no compensa
+una fuente dudosa. Cada umbral se ajusta por separado con `AUTO_PUBLISH_*` (ver
+`.env.example`).
+
+**Cómo ponerla sin surprises.** Déjala apagada y mira el log: cada borrador deja
+escrito por qué no pasa. Es la forma de saber cuántos irían a publicarse y si el
+listón que quieres es el listón que hay. `npm run test:auto-publicar` prueba la
+puerta entera (44 comprobaciones, sin base de datos).
+
+Publicar sigue pasando por `changeStatus()`, la única vía del sistema, así que
+sus bloqueos (duplicadas, archivadas) siguen valiendo también aquí.
+
+---
+
+## Ritmo de detección en Vercel
+
+| Disparador | Frecuencia |
+|---|---|
+| Tráfico de la web (`disparaCiclo`) | 1 cada `MONITOR_CYCLE_MS` (1 h por defecto) |
+| `vercel.json` | 2 al día (07:00 y 17:00) |
+| Cron externo → `/api/cron/monitor` | No configurado (README, paso 7) |
+
+**No hay temporizador embebido, y en Vercel no lo habrá.** Las funciones
+serverless se congelan entre peticiones: un `setInterval` no llega a dispararse.
+`ENABLE_EMBEDDED_SCHEDULER` sigue declarada en `env.ts` pero **no la lee nadie**;
+ponla en `true` y no pasa nada. Para minutos reales hace falta un cron externo
+de pago.
+
+Bajar `MONITOR_CYCLE_MS` no da noticias más frescas —los feeds no cambian tan a
+menudo— y lo que se gasta es tiempo de función (8 s por pasada en Vercel).
+
 **Sin peticiones desde el navegador.** Todo lo que hace el visitante va por
 Server Actions, nunca por un `fetch` a `/api/...`. La regla se comprueba sola:
 `npm run test:sin-peticiones` falla si aparece un `fetch`, un `XMLHttpRequest`,

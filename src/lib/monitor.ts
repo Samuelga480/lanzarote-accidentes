@@ -97,9 +97,9 @@ async function acquireLock(trigger: "CRON" | "MANUAL" | "STARTUP"): Promise<bool
 /**
  * Cada cuanto se admite una pasada, en ms.
  *
- * Una hora. El plan Hobby de Vercel deja dos cron al dia, asi que el ritmo se
- * consigue con `runCycleIfDue`, que dispara un ciclo desde el propio trafico del
- * sitio. El cron de Vercel queda como suelo para cuando no entra nadie.
+ * Por defecto, una hora. El plan Hobby de Vercel deja dos cron al dia, asi que el
+ * ritmo se consigue con `runCycleIfDue`, que dispara un ciclo desde el propio
+ * trafico del sitio. El cron de Vercel queda como suelo para cuando no entra nadie.
  *
  * ---------------------------------------------------------------------------
  *  POR QUE UNA HORA Y NO MENOS
@@ -111,12 +111,16 @@ async function acquireLock(trigger: "CRON" | "MANUAL" | "STARTUP"): Promise<bool
  * pagarlo. Una hora por visita es lo que aguanta el plan gratis sin castigar la
  * latencia.
  *
+ * Se puede cambiar con `MONITOR_CYCLE_MS`, pero bajar el valor no da noticias mas
+ * frescas: los feeds no cambian tan a menudo, y lo que se gasta es tiempo de
+ * funcion en Vercel (8 s de presupuesto por pasada) y peticiones a las fuentes.
+ *
  * La ventana de 90 minutos que se mira en `monitorConfig.lookbackMinutes()` es
  * MAYOR que la cadencia a proposito: si una pasada se salta o se retrasa, la
  * siguiente sigue cubriendo lo que se le habia escapado. Con una ventana igual
  * que la cadencia, el retraso de una pasada equivaldria a perder noticias.
  */
-export const CADENCIA_MS = 60 * 60_000;
+export const CADENCIA_MS = monitorConfig.cycleMs();
 
 /**
  * Ultima vez que este proceso comprobó que tocaba. Solo en memoria.

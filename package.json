@@ -20,8 +20,9 @@
                     "db:reset":  "prisma migrate reset --force",
                     "setup":  "prisma migrate deploy \u0026\u0026 prisma db seed",
                     "monitor:once":  "tsx src/worker/run-cycle.ts",
-                    "test":  "tsx tests/logic.ts && tsx tests/endpoints.ts && tsx tests/sin-peticiones.ts && tsx tests/ads.ts && tsx tests/rewrite-rules.ts && tsx tests/consent-manager.ts && tsx tests/calendar-year.ts && tsx tests/traffic-gate.ts && tsx tests/dedupe.ts && tsx tests/cadencia.ts && tsx tests/map-point.ts && tsx tests/verificacion-correo.ts && tsx tests/categorias.ts && tsx tests/errores.ts",
+                    "test":  "tsx tests/logic.ts && tsx tests/endpoints.ts && tsx tests/sin-peticiones.ts && tsx tests/ads.ts && tsx tests/rewrite-rules.ts && tsx tests/consent-manager.ts && tsx tests/calendar-year.ts && tsx tests/traffic-gate.ts && tsx tests/dedupe.ts && tsx tests/cadencia.ts && tsx tests/map-point.ts && tsx tests/verificacion-correo.ts && tsx tests/categorias.ts && tsx tests/errores.ts && tsx tests/auto-publicar.ts",
                     "test:logic":  "tsx tests/logic.ts",
+                    "test:auto-publicar":  "tsx tests/auto-publicar.ts",
                     "test:endpoints":  "tsx tests/endpoints.ts",
                     "test:sin-peticiones":  "tsx tests/sin-peticiones.ts"
                 },

@@ -56,3 +56,5 @@ desktop.ini
 legacy-site/
 scripts/.cache/
 scripts/.cache-costa.json
+# Copia de seguridad del clasificador antes de la reclasificacion
+categorias-antes.json

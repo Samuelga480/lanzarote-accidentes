@@ -230,6 +230,42 @@ export const CATEGORY_LABEL: Record<string, string> = {
   EMERGENCIA_SANITARIA: "Emergencia sanitaria",
   ACTUACION_SERVICIOS: "Servicios de emergencia",
   DESAPARICION: "Desaparición",
+
+  POLITICA: "Política",
+  INSTITUCIONES: "Instituciones",
+  ECONOMIA: "Economía",
+  EMPLEO: "Empleo",
+  EMPRESAS: "Empresas",
+  SERVICIOS: "Servicios públicos",
+  TRANSPORTE: "Transporte",
+  URBANISMO: "Urbanismo",
+  AGUA: "Agua",
+  ENERGIA: "Energía",
+  RESIDUOS: "Residuos",
+  SANIDAD: "Sanidad",
+  EDUCACION: "Educación",
+  SOCIEDAD: "Sociedad",
+  VIVIENDA: "Vivienda",
+  BIENESTAR_SOCIAL: "Bienestar social",
+  MEDIO_AMBIENTE: "Medio ambiente",
+  AGRICULTURA_GANADERIA: "Agricultura y ganadería",
+  PESCA_MAR: "Pesca y mar",
+  TURISMO: "Turismo",
+  CULTURA: "Cultura",
+  FIESTAS_Y_TRADICIONES: "Fiestas y tradiciones",
+  GASTRONOMIA: "Gastronomía",
+  DEPORTES: "Deportes",
+  TELEVISION_Y_ESPECTACULOS: "Televisión y espectáculos",
+  CIENCIA_TECNOLOGIA: "Ciencia y tecnología",
+  METEOROLOGIA: "Meteorología",
+  MAR: "Mar",
+  SEGURIDAD_CIUDADANA: "Seguridad ciudadana",
+  JURIDICO: "Judicial y legal",
+  TRAMITES_Y_SERVICIOS_CIUDADANO: "Trámites",
+  RELIGION: "Religión",
+  ACTOS_PROTOCOLARIOS: "Actos protocolarios",
+  SUERTES_Y_OCIO: "Suerte y ocio",
+
   OTRO: "Otro",
 };
 
@@ -241,16 +277,28 @@ export const CATEGORY_LABEL: Record<string, string> = {
  * los filtros del sitio: en un diario que recoge cualquier actualidad, "tipo de
  * vehiculo" no significa nada y "tipo de noticia" si.
  *
- * Se mantienen los valores que ya tenia la columna `category` de la base de
- * datos. Anadir tipos nuevos (deportes, politica, cultura) exige cambiar el
- * enum, y eso es una migracion que hay que aplicar a mano: no se hace aqui para
- * no dejar el sitio sin desplegar. Todo lo que no encaje en ninguno de estos
- * tipos cae en OTRO.
+ * OJO: esto son TODOS los tipos,페인/ip sin agrupar. Para los dos listados del
+ * sitio (sucesos e informacion) usa CATEGORIAS_SUCESO y CATEGORIAS_INFORMACION
+ * de lib/categorias.ts, que si declaran el reparto.
+ *
+ * Antes esta lista solo tenia los tipos de accidente, y por eso todo lo demas
+ * acababa marcado como ACCIDENTE_TRAFICO. Ver la nota de CATEGORIAS_SUCESO.
  */
 export const CATEGORY_LIST: Array<{ value: string; label: string }> = Object.entries(CATEGORY_LABEL)
   .filter(([value]) => value !== "OTRO")
   .map(([value, label]) => ({ value, label }));
 
+/**
+ * El color de la pastilla de cada tipo.
+ *
+ * Los sucesos usan los colores que tenia el diseno original, porque son los que
+ * el lector ya reconoce. Los temas de informacion comparten una paleta neutra:
+ * no son noticias de emergencia y no deben destacar tanto en una portada donde
+ * conviven con un atropello.
+ *
+ * Los que no aparecen aqui salen con "neutral", por eso es un Record parcial en
+ * la practica aunque el tipo lo declare completo.
+ */
 export const CATEGORY_PILL: Record<string, string> = {
   ACCIDENTE_TRAFICO: "colision",
   ATROPELLO: "atropello",
@@ -259,6 +307,12 @@ export const CATEGORY_PILL: Record<string, string> = {
   EMERGENCIA_SANITARIA: "sanitario",
   ACTUACION_SERVICIOS: "servicios",
   DESAPARICION: "servicios",
+
+  // Sucesos con tono de actualidad: el hecho sigue siendo grave pero se cuenta
+  // como noticia de la isla mas que como emergencia.
+  SEGURIDAD_CIUDADANA: "servicios",
+  JURIDICO: "servicios",
+
   OTRO: "neutral",
 };
 

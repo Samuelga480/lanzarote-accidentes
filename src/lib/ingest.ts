@@ -39,6 +39,7 @@ import { slugify, uniqueSlug } from "@/lib/slug";
 import { puntoAproximado } from "@/lib/map-point";
 import { MUNICIPALITY_BY_SLUG } from "@/lib/constants";
 import { notifyNewArticle } from "@/lib/notify";
+import { resolveCategory } from "@/lib/resolve-category";
 import { contentHashOf, simHash, tidy, truncate } from "@/lib/text";
 import { log, serializeError, redact, timer, audit } from "@/lib/logger";
 
@@ -437,7 +438,7 @@ export async function ingestArticle(params: {
       zone,
       vehicleType: facts.vehicleType ?? "OTROS",
       severity: facts.severity ?? "MODERADO",
-      category: facts.category ?? "ACCIDENTE_TRAFICO",
+      category: resolveCategory(facts.category, clean.title, clean.summary, clean.body),
       road: facts.road,
 
       status: "PENDING_REVIEW",
@@ -654,7 +655,12 @@ async function ensureDuplicateDraft(params: {
       municipality: { connect: { slug: params.facts.municipalitySlug ?? "arrecife" } },
       vehicleType: params.facts.vehicleType ?? "OTROS",
       severity: params.facts.severity ?? "MODERADO",
-      category: params.facts.category ?? "ACCIDENTE_TRAFICO",
+      category: resolveCategory(
+        params.facts.category,
+        params.title,
+        params.summary ?? "",
+        params.body ?? "",
+      ),
       status: "PENDING_REVIEW",
       origin: "AI",
       fatalities: params.facts.fatalities ?? 0,

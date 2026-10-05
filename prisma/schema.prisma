@@ -56,7 +56,17 @@ enum AccidentSeverity {
 
 /// El alcance del proyecto no es solo el trafico: tambien emergencias, rescates,
 /// incendios y actuaciones de los servicios de emergencia de la isla.
+/// Tipo de noticia. Dos familias dentro del mismo campo: los SUCESOS (lo que
+/// pasa en la carretera, con su vehiculo y su via) y la INFORMACION (la
+/// actualidad de la isla). El reparto entre familias NO esta aqui, porque
+/// Postgres solo permite anadir valores a un enum y nunca quitarlos: mover un
+/// tipo de una familia a otra debe ser una linea de codigo, no una migracion.
+///
+/// El reparto vive en src/lib/categorias.ts.
+///
+/// Este enum tiene que coincidir con INCIDENT_CATEGORIES de src/lib/facts.ts.
 enum IncidentCategory {
+  // --- Sucesos ---
   ACCIDENTE_TRAFICO
   ATROPELLO
   INCENDIO
@@ -64,6 +74,56 @@ enum IncidentCategory {
   EMERGENCIA_SANITARIA
   ACTUACION_SERVICIOS
   DESAPARICION
+
+  // --- Informacion: politica e instituciones ---
+  POLITICA
+  INSTITUCIONES
+
+  // --- Informacion: economia, trabajo y empresas ---
+  ECONOMIA
+  EMPLEO
+  EMPRESAS
+
+  // --- Informacion: servicios publicos ---
+  SERVICIOS
+  TRANSPORTE
+  URBANISMO
+  AGUA
+  ENERGIA
+  RESIDUOS
+
+  // --- Informacion: salud, educacion y sociedad ---
+  SANIDAD
+  EDUCACION
+  SOCIEDAD
+  VIVIENDA
+  BIENESTAR_SOCIAL
+
+  // --- Informacion: cultura, ocio y deporte ---
+  CULTURA
+  DEPORTES
+  TURISMO
+  TELEVISION_Y_ESPECTACULOS
+  SUERTES_Y_OCIO
+
+  // --- Informacion: territorio, tiempo y ciudadania ---
+  MEDIO_AMBIENTE
+  AGRICULTURA_GANADERIA
+  PESCA_MAR
+  CIENCIA_TECNOLOGIA
+  METEOROLOGIA
+  MAR
+  SEGURIDAD_CIUDADANA
+  JURIDICO
+  TRAMITES_Y_SERVICIOS_CIUDADANO
+  RELIGION
+  ACTOS_PROTOCOLARIOS
+  FIESTAS_Y_TRADICIONES
+  GASTRONOMIA
+
+  /// Lo que no se ha podido clasificar. Es de la familia de informacion, y esa
+  /// es la decision importante: una noticia sin clasificar no alimenta el mapa
+  /// ni los resumenes de accidentes, y el editor la ve en el panel para corregirla.
   OTRO
 }
 

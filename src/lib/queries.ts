@@ -11,6 +11,7 @@ import {
   type VehicleType,
 } from "@/lib/types";
 import { CATEGORY_LABEL, ZONES } from "@/lib/constants";
+import { CATEGORIAS_SUCESO } from "@/lib/categorias";
 import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } from "@/lib/calendar-year";
 
 /* -------------------------------------------------------------------------- */
@@ -23,6 +24,36 @@ import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } fr
 /* -------------------------------------------------------------------------- */
 
 const ONLY_PUBLISHED: Prisma.AccidentWhereInput = { status: "PUBLISHED" };
+
+/**
+ * Las mismas noticias, pero solo las que son SUCESOS.
+ *
+ * ---------------------------------------------------------------------------
+ *  PARA QUE EXISTE
+ * ---------------------------------------------------------------------------
+ *
+ * El mapa, los resumenes y los contadores de la portada cuentan cuantos
+ * accidentes ha habido. Cuando el sitio paso a recoger cualquier noticia de la
+ * isla, un partido de balonmano o una nota del Cabildo contaban como mas
+ * accidentes que un atropello, y el mapa plantaba un marcador en una nota de
+ * prensa sin lugar.
+ *
+ * Aqui se cortan de raiz: lo que no es suceso no llega a estas consultas. No es
+ * una decision de maquetacion, es que estos numeros significa "accidentes" y si
+ * meten informacion dejan de significar nada.
+ *
+ * Lo que NO se filtra asi: el listado general (/noticias), el buscador y la
+ * ficha de la noticia, que si deben enseñar todo. Alli la separacion se hace
+ * por la URL y por el filtro, no por la consulta.
+ */
+const SOLO_SUCESOS: Prisma.AccidentWhereInput = {
+  AND: [ONLY_PUBLISHED, { category: { in: [...CATEGORIAS_SUCESO] } }],
+};
+
+/** Idem, pero sumando un rango de fechas. Para los resumenes. */
+function sucesosEntre(desde: Date, hasta: Date): Prisma.AccidentWhereInput {
+  return { AND: [SOLO_SUCESOS, { occurredAt: { gte: desde, lt: hasta } }] };
+}
 
 /**
  * Fila de la base de datos con los cuatro campos de dominio ya estrechados.
@@ -156,14 +187,14 @@ export async function listAccidents(
  */
 export async function getFeaturedAccident(): Promise<AccidentWithMunicipality | null> {
   const flagged = await prisma.accident.findFirst({
-    where: { AND: [ONLY_PUBLISHED, { isFeatured: true }] },
+    where: { AND: [SOLO_SUCESOS, { isFeatured: true }] },
     include: { municipality: true },
     orderBy: { occurredAt: "desc" },
   });
   if (flagged) return narrow(flagged);
 
   const latest = await prisma.accident.findFirst({
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     include: { municipality: true },
     orderBy: { occurredAt: "desc" },
   });
@@ -178,7 +209,7 @@ export async function getRelatedAccidents(
   const rows = await prisma.accident.findMany({
     where: {
       AND: [
-        ONLY_PUBLISHED,
+        SOLO_SUCESOS,
         { id: { not: accident.id } },
         {
           OR: [
@@ -222,12 +253,12 @@ export async function countByMunicipality(): Promise<
 > {
   const grouped = await prisma.accident.groupBy({
     by: ["municipalityId"],
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     _count: { _all: true },
   });
 
   const municipalities = await prisma.municipality.findMany({
-    include: { _count: { select: { accidents: { where: ONLY_PUBLISHED } } } },
+    include: { _count: { select: { accidents: { where: SOLO_SUCESOS } } } },
   });
 
   const counts = new Map(grouped.map((g) => [g.municipalityId, g._count._all]));
@@ -259,7 +290,7 @@ export async function countByZone(municipalitySlug?: string): Promise<
     by: ["zone"],
     where: {
       AND: [
-        ONLY_PUBLISHED,
+        SOLO_SUCESOS,
         { zone: { not: null } },
         ...(municipalitySlug ? [{ municipality: { slug: municipalitySlug } }] : []),
       ],
@@ -309,7 +340,7 @@ export async function getAccidentsForMap(limit = 200): Promise<
   }>
 > {
   const rows = await prisma.accident.findMany({
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     orderBy: { occurredAt: "desc" },
     take: limit,
     include: { municipality: { select: { slug: true, name: true } } },
@@ -336,9 +367,9 @@ export async function getPublicStats(): Promise<{ total: number; last24h: number
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   const [total, last24h, municipalities] = await Promise.all([
-    prisma.accident.count({ where: ONLY_PUBLISHED }),
-    prisma.accident.count({ where: { AND: [ONLY_PUBLISHED, { occurredAt: { gte: since } }] } }),
-    prisma.municipality.count({ where: { accidents: { some: ONLY_PUBLISHED } } }),
+    prisma.accident.count({ where: SOLO_SUCESOS }),
+    prisma.accident.count({ where: { AND: [SOLO_SUCESOS, { occurredAt: { gte: since } }] } }),
+    prisma.municipality.count({ where: { accidents: { some: SOLO_SUCESOS } } }),
   ]);
 
   return { total, last24h, municipalities };
@@ -389,7 +420,7 @@ export async function getWeeklySummary(weekStart?: Date): Promise<WeeklySummary>
   end.setUTCDate(end.getUTCDate() + 7); // intervalo [start, end)
 
   const rows = await prisma.accident.findMany({
-    where: { AND: [ONLY_PUBLISHED, { occurredAt: { gte: start, lt: end } }] },
+    where: sucesosEntre(start, end),
     include: { municipality: true },
     orderBy: { occurredAt: "desc" },
   });
@@ -470,7 +501,7 @@ export async function getAnnualSummary(
   const { start, end } = yearWindow(target);
 
   const rows = await prisma.accident.findMany({
-    where: { AND: [ONLY_PUBLISHED, { occurredAt: { gte: start, lt: end } }] },
+    where: sucesosEntre(start, end),
     include: { municipality: true },
     orderBy: { occurredAt: "desc" },
   });
@@ -532,7 +563,7 @@ export async function getAnnualSummary(
  */
 export async function listYearsWithAccidents(limit = 6): Promise<number[]> {
   const rows = await prisma.accident.findMany({
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     select: { occurredAt: true },
     orderBy: { occurredAt: "desc" },
   });
@@ -557,7 +588,7 @@ export async function listYearsWithAccidents(limit = 6): Promise<number[]> {
  */
 export async function listWeeksWithAccidents(limit = 12): Promise<Date[]> {
   const rows = await prisma.accident.findMany({
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     select: { occurredAt: true },
     orderBy: { occurredAt: "desc" },
   });
@@ -581,7 +612,7 @@ export async function getPublishedSlugs(): Promise<
   Array<{ slug: string; updatedAt: Date; occurredAt: Date }>
 > {
   return prisma.accident.findMany({
-    where: ONLY_PUBLISHED,
+    where: SOLO_SUCESOS,
     select: { slug: true, updatedAt: true, occurredAt: true },
     orderBy: { occurredAt: "desc" },
   });

@@ -36,8 +36,19 @@ import { formatDate, formatTime } from "@/lib/format";
 /*  Diccionarios                                                               */
 /* -------------------------------------------------------------------------- */
 
-/** Como se nombra cada tipo de incidente. */
-const TITULO_CATEGORIA: Record<IncidentCategory, string> = {
+/**
+ * Como se nombra cada tipo de incidente.
+ *
+ * Solo se usan los tipos de SUCESO. El reescritor solo redacta titulares de
+ * accidentes: una noticia de política no pasa por aquí, se queda con el titular
+ * que le da el medio. Que el Record sea `Partial` es a proposito: si alguien
+ * anade un tipo de información y se le olvida esta tabla, el reescritor sigue
+ * compilando en vez de romperse, porque no puede usar un tipo de información
+ * aquí.
+ *
+ * Para las etiquetas que ve el lector están CATEGORY_LABEL (constants.ts).
+ */
+const TITULO_CATEGORIA: Partial<Record<IncidentCategory, string>> = {
   ACCIDENTE_TRAFICO: "Accidente de tráfico",
   ATROPELLO: "Atropello",
   INCENDIO: "Incendio",

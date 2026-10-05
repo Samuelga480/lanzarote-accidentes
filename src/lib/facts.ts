@@ -31,9 +31,44 @@ export type VehicleType = (typeof VEHICLE_TYPES)[number];
 export const ACCIDENT_SEVERITIES = ["LEVE", "MODERADO", "GRAVE"] as const;
 export type AccidentSeverity = (typeof ACCIDENT_SEVERITIES)[number];
 
+/**
+ * Los tipos de noticia. Deben coincidir con el enum `IncidentCategory` de
+ * prisma/schema.prisma, o Prisma no dejara escribir la fila.
+ *
+ * Ojo con el reparto en dos familias: los sucesos van en CATEGORY_RULES, y en
+ * lib/categorias.ts esta la lista completa de tipos de informacion. Anadir un
+ * valor aqui sin anadirlo a la migracion rompe el guardado con un error de
+ * Postgres.
+ */
 export const INCIDENT_CATEGORIES = [
+  // --- Sucesos ---
   "ACCIDENTE_TRAFICO", "ATROPELLO", "INCENDIO", "RESCATE",
-  "EMERGENCIA_SANITARIA", "ACTUACION_SERVICIOS", "DESAPARICION", "OTRO",
+  "EMERGENCIA_SANITARIA", "ACTUACION_SERVICIOS", "DESAPARICION",
+
+  // --- Informacion: politica e instituciones ---
+  "POLITICA", "INSTITUCIONES",
+
+  // --- Informacion: economia, trabajo y empresas ---
+  "ECONOMIA", "EMPLEO", "EMPRESAS",
+
+  // --- Informacion: servicios publicos ---
+  "SERVICIOS", "TRANSPORTE", "URBANISMO", "AGUA", "ENERGIA", "RESIDUOS",
+
+  // --- Informacion: salud, educacion y sociedad ---
+  "SANIDAD", "EDUCACION", "SOCIEDAD", "VIVIENDA", "BIENESTAR_SOCIAL",
+
+  // --- Informacion: territorio y economia primaria ---
+  "MEDIO_AMBIENTE", "AGRICULTURA_GANADERIA", "PESCA_MAR",
+
+  // --- Informacion: cultura, ocio y deporte ---
+  "CULTURA", "FIESTAS_Y_TRADICIONES", "GASTRONOMIA", "DEPORTES",
+  "TURISMO", "TELEVISION_Y_ESPECTACULOS", "SUERTES_Y_OCIO",
+
+  // --- Informacion: ciencia, tiempo y ciudadania ---
+  "CIENCIA_TECNOLOGIA", "METEOROLOGIA", "MAR", "TRAMITES_Y_SERVICIOS_CIUDADANO",
+  "SEGURIDAD_CIUDADANA", "JURIDICO", "RELIGION", "ACTOS_PROTOCOLARIOS",
+
+  "OTRO",
 ] as const;
 export type IncidentCategory = (typeof INCIDENT_CATEGORIES)[number];
 
@@ -321,12 +356,296 @@ const CATEGORY_RULES: Array<{ category: IncidentCategory; pattern: string }> = [
   },
 ];
 
+/**
+ * Las reglas de SUCESOS. Van las primeras, antes que las de informacion, por un
+ * motivo concreto: un articulo de un accidente casi siempre menciona a alguien
+ * de un servicio de emergencia y a veces toca un tema, asi que si las reglas de
+ * informacion se comprobaran primero, un atropello acabaria clasificado como
+ * "seguridad ciudadana".
+ */
 function extractCategory(text: string): IncidentCategory | null {
-  for (const rule of CATEGORY_RULES) {
+  /* --- 1. Sucesos, pero solo con senal fuerte ---------------------------- */
+  if (SENAL_FUERTE_DE_SUCESO.test(text)) {
+    for (const rule of CATEGORY_RULES) {
+      if (new RegExp(rule.pattern).test(text)) return rule.category;
+    }
+  }
+
+  /* --- 2. Deportes y cultura, por delante de la informacion general ----- */
+  for (const regla of RESPUESTAS_TEMPRANAS) {
+    if (new RegExp(regla.pattern).test(text)) return regla.category;
+  }
+
+  /* --- 3. Sucesos con senal debil: atropellar a un ciclista, etc. ------- */
+  if (!SENAL_FUERTE_DE_SUCESO.test(text)) {
+    for (const rule of CATEGORY_RULES) {
+      if (new RegExp(rule.pattern).test(text)) return rule.category;
+    }
+  }
+
+  /* --- 4. El resto de temas de informacion ----------------------------- */
+  for (const rule of INFO_RULES) {
     if (new RegExp(rule.pattern).test(text)) return rule.category;
   }
   return null;
 }
+
+/**
+ * Palabras que delatan un suceso, sin mirar el contexto.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE ESTA SEPARACION EXISTE
+ * ---------------------------------------------------------------------------
+ *
+ * La regla de atropello busca "ciclista" y "pedon", y por si sola no dice nada
+ * sobre el-sufficiency: un titular de la Vuelta Ciclista a Lanzarote es el caso
+ * real que lo destapo. "Sara Reimondo y David Suarez, ganadores de la Vuelta
+ * Ciclista a Lanzarote" salia clasificado como ATROPELLO, y un articulo de
+ * ciclismo no es un atropello por la palabra "ciclista".
+ *
+ * Por eso las reglas de suceso se aplican en dos pasos: si el texto tiene una
+ * de estas palabras, es un suceso y mandan ellas. Si no, "ciclista" o "pedon"
+ * solo no bastan, y decide primero el tema (deportes, cultura) y despues, si
+ * tampoco, las reglas de suceso.
+ *
+ * "Atropello a un peaton en Arrecife" sigue siendo atropello: "atropell" esta en
+ * esta lista.
+ */
+const SENAL_FUERTE_DE_SUCESO =
+  /\b(accidente|accidentad|accidentó|colision|choc|chocad|atropell|herid|herida|herido|fallec|muer|rescat|emergencia|bomberos|guardia civil|ambulancia|urgencias|incendio|incendi|explosion|desaparecid)/;
+
+/**
+ * Las que ganan a cualquier otra regla de informacion.
+ *
+ * El problema concreto: la palabra "partido" estaba en POLITICA, y sale en el
+ * cuerpo de cualquier nota de deportes ("despues del partido de ayer"). Con la
+ * tabla en orden, POLITICA se llevaba el titular entero y un partido de
+ * balonmano acababa clasificado como noticia politica.
+ *
+ * Lo mismo con CULTURA: "festival de musica" y las "vuelta a Lanzarote" van
+ * junto a carreras de ciclismo, y "carrera" se llevaba el titular.
+ *
+ * Aqui no hace falta un bloque entero: basta con adelantar la decision de
+ * "esto es deporte" o "esto es cultura" al principio. Si ninguna de las dos
+ * palabras aparece, la tabla sigue igual y no cambia nada.
+ */
+const RESPUESTAS_TEMPRANAS: Array<{ category: IncidentCategory; pattern: string }> = [
+  {
+    category: "DEPORTES",
+    pattern:
+      "\\b(futbol|balonmano|balon|ciclismo|ciclista|atletismo|baloncesto|voleibol|voleybol|tenis|natacion|motociclismo|maraton|deporte|deportes|deportista|club|equipo|cicar|corbelo|portero|entrenador|jugador|descenso|campeonato|torneo)\\b",
+  },
+  {
+    category: "CULTURA",
+    pattern:
+      "\\b(museo|museos|festival|concierto|conciertos|teatro|exposicion|exposiciones|microrrelato|certamen|novela|escritor|escritora|literario|concurso)\\b",
+  },
+];
+
+/**
+ * Las reglas de INFORMACION, en el mismo orden que CATEGORIAS_INFORMACION.
+ *
+ * ---------------------------------------------------------------------------
+ *  POR QUE NO SE DEVUELVE NADA CUANDO NO HAY COINCIDENCIA
+ * ---------------------------------------------------------------------------
+ *
+ * extractCategory devuelve null cuando no reconoce el texto, y el pipeline usa
+ * ese null como "no se sabe". Antes, el pipeline lo traducía a
+ * ACCIDENTE_TRAFICO, y por eso un horoscopo o una nota de prensa de Madrid salian
+ * publicados como "Accidente". El fallo no estaba aqui sino en quien consumia el
+ * null: marcar como accidente lo que no se ha podido clasificar es la peor
+ * respuesta posible, porque asserts algo que nadie ha comprobado.
+ *
+ * Cuando no hay coincidencia la categoria se decide mas arriba, en la ingesta,
+ * donde ya se sabe si la noticia es de la isla (ver evaluaIsla). Aqui solo se
+ * decide el TEMA, no si entra o no.
+ *
+ * ---------------------------------------------------------------------------
+ *  EL ORDEN IMPORTA
+ * ---------------------------------------------------------------------------
+ *
+ * Va de mas especifico a mas general, y dentro de cada bloque manda el primero
+ * que coincide. CULTURA va antes que DEPORTES porque los "festival de musica"
+ * y las "vuelta a Lanzarote" aparecen junto a carreras de ciclismo, y si no, el
+ * primero en encontrar la palabra seria deporte.
+ */
+const INFO_RULES: Array<{ category: IncidentCategory; pattern: string }> = [
+  {
+    category: "SUERTES_Y_OCIO",
+    // Horoscopos, sorteos, quiromancia. Va el primero porque la prensa los mete
+    // en la portada de la seccion general y si no, se cuelan en DEPORTES o en
+    // SOCIEDAD por palabras sueltas del texto.
+    pattern: "\\b(horoscopo|zodiaco|zodiacal|quiro|quiromancia|tarot|suerte|mayor[ez])\\b",
+  },
+  {
+    category: "FIESTAS_Y_TRADICIONES",
+    pattern: "\\b(fiestas|festejos|procesion|romeria|feria|carnaval|festejo|patronal|romeria)\\b",
+  },
+  {
+    // Va la primera de las informacion porque casi cualquier articulo de la
+    // isla toca el campo, y un articulo de vid es de agricultura aunque tambien
+    // hable de musica o de fiestas. Los animales de granja se incluem aqui
+    // porque en un contexto rural es lo mismo.
+    category: "AGRICULTURA_GANADERIA",
+    pattern:
+      "\\b(agricultura|agricola|ganaderia|ganadero|viticola|vid|vinedo|uva|platanera|olivar|oliva|cosecha|siembra|riego|agricultor|cubo|malvasia|vaca|vacuno|caprino|oveja|cordero|granja|ganado|apicultura)\\b",
+  },
+  {
+    category: "PESCA_MAR",
+    pattern:
+      "\\b(pesca|pescador|pesquera|cofradia|atun|atunero|marisqu|almunia|puerto pesquero|jábega|cebada)\\b",
+  },
+  {
+    category: "POLITICA",
+    // Muy por delante de lo demas: casi cualquier nota municipal toca algo de
+    // esto, y es el tipo que mas se lee de un periodico local.
+    pattern:
+      "\\b(ayuntamiento|alcalde|alcaldesa|corregidor|concejal|concejala|partido|partidos|politica|electoral|elecciones|elecciones municipales|pleno|mojon|alcaldia)\\b",
+  },
+  {
+    category: "INSTITUCIONES",
+    pattern:
+      "\\b(cabildo|parlamento|diputacion|consejo insular|consejo de|lastribuna|presidencia|generalitat)\\b",
+  },
+  {
+    category: "EMPLEO",
+    pattern: "\\b(empleo|trabajadores|trabajadoras|sindicato|sindical|paro|desempleo|sueldos|convenio colectivo|nómina|nomina)\\b",
+  },
+  {
+    category: "ECONOMIA",
+    pattern:
+      "\\b(economia|economico|inflacion|ipc|vivienda|hipoteca|alquiler|mercantil|banco|pib|impuestos|iva)\\b",
+  },
+  {
+    category: "EMPRESAS",
+    pattern:
+      "\\b(empresa|empresas|empresarial|industria|industrial|fabrica|planta|sociedad|mercantil|comercio)\\b",
+  },
+  {
+    category: "SANIDAD",
+    pattern: "\\b(sanidad|sanitario|salud|hospital|centenario|clínica|clinica|residencia|urgencias)\\b",
+  },
+  {
+    category: "EDUCACION",
+    pattern:
+      "\\b(educacion|colegio|colegios|instituto|escuela|universidad|profesorado|profesor|alumno|alumnos|academia|matrícula)\\b",
+  },
+  {
+    category: "AGUA",
+    pattern: "\\b(agua|aguas|hidraulica|riego|embalse|pozo|desalinadora|pluviales|alcantarillado)\\b",
+  },
+  {
+    category: "ENERGIA",
+    pattern: "\\b(energia|electrica|eletrica|luz|placas solares|fotovoltaic|gas natural)\\b",
+  },
+  {
+    category: "TRANSPORTE",
+    pattern: "\\b(guaguas|bus|transport|transporte|aeropuerto|vueling|ryanair|linea Lanzarote|linea 30|linea 40|taxi)\\b",
+  },
+  {
+    category: "URBANISMO",
+    pattern: "\\b(urbanismo|urbanistica|obra|obras|licitacion|licitacion|planeamiento|edificacion|viviendas|constructor)\\b",
+  },
+  {
+    category: "RESIDUOS",
+    pattern: "\\b(residuo|residuos|basura|vertedero|punto limpio|reciclaje|reciclar)\\b",
+  },
+  {
+    category: "SERVICIOS",
+    // Reogisto general de servicios publicos que no encajen en los anteriores:
+    // limpieza, mantenimiento,ahi servicios municipales en general.
+    pattern: "\\b(servicio|recogida|limpieza|limpieza viaria|alcantarillado|servicios municipales|adjudicacion|concesion)\\b",
+  },
+  {
+    category: "VIVIENDA",
+    pattern: "\\b(vivienda|viviendas|vivienda vdh|promocion|promocion de viviendas|vivienda pública)\\b",
+  },
+  {
+    category: "BIENESTAR_SOCIAL",
+    pattern:
+      "\\b(ayuda social|inclusion social|residencia|centro de mayores|personas mayores|familia|menores|infancia)\\b",
+  },
+  {
+    category: "CULTURA",
+    // Culture va antes que deportes: "festival de jazz" y las "vuelta a
+    // Lanzarote" aparecen junto a carreras de ciclismo, y sin esta regla el
+    // primero en encontrar la palabra seria deporte.
+    //
+    // Incluye "concurso", "certamen" y "microrrelato" porque son la palabra que
+    // de verdad anuncia un concurso de Microrrelatos o un Certamen de Poetry, y
+    // sin ellas titulos como "Conoce a los ganadores del concurso de
+    // microrrelatos" se quedaban sin clasificar.
+    pattern:
+      "\\b(cultura|cultural|arte|artistico|museo|museos|exposicion|festival|concierto|conciertos|teatro|danza|musica|musical|libro|libros|novela|escritor|escritora|premio|premios|patrimonio|concurso|certamen|microrrelato|poesia|pintura|escultura|cine|cinema)\\b",
+  },
+  {
+    category: "TELEVISION_Y_ESPECTACULOS",
+    pattern: "\\b(television|serie|series|reality|telenovela|hbo|netflix|canal|prime time)\\b",
+  },
+  {
+    category: "DEPORTES",
+    // Los nombres de los clubs de la isla estan escritos porque son la unica
+    // pista en un titular: "El CICAR Lanzarote suma su primera victoria" no
+    // mencionaenticate deporte de ningun tipo, y es claramente deporte.
+    pattern:
+      "\\b(futbol|balonmano|balon|ciclismo|ciclista|atletismo|baloncesto|voleibol|tenis|natacion|motociclismo|maraton|deporte|deportes|deportista|club|equipo|cicar|corbelo|portada|las palmas de canarias cicar|playas de cartaya)\\b",
+  },
+  {
+    category: "SOCIEDAD",
+    /*
+      Los animales domesticos no son un tema de sociedad en si mismo, pero los
+      articulos de consulta sobre ellos ("El error de alimentar a los loros solo
+      con semillas") no tienen otra palabra que los sitúe. Va despues de
+      agricultura, donde un artículo de ganaderia tiene mas sentido.
+    */
+    pattern:
+      "\\b(sociedad|veterinari|perro|gato|loros|mascota|mascotas|ave|aves|pajaro|pajaros|animal|animales|domestico|protector)\\b",
+  },
+  {
+    category: "TURISMO",
+    pattern: "\\b(turismo|turistico|turistas|hotel|hoteles|resort|playas|playa|vacaciones|aloja)\\b",
+  },
+  {
+    category: "GASTRONOMIA",
+    pattern: "\\b(restaurante|restaurantes|gastronom|gastronomia|restauracion|cocina|menu|delicatessen|catrufia)\\b",
+  },
+  {
+    category: "MEDIO_AMBIENTE",
+    pattern: "\\b(medioambiente|ecolog|ecologica|sostenib|contaminacion|biodiversidad|especie|reserva|carbonero|basura plastic)\\b",
+  },
+  {
+    category: "METEOROLOGIA",
+    pattern: "\\b(meteo|meteorolog|aemet|alerta naranja|lluvia|viento|calima|tormancha|oleaje)\\b",
+  },
+  {
+    category: "MAR",
+    pattern: "\\b(oleaje|maritimo|marea|bahia|puerto)\\b",
+  },
+  {
+    category: "CIENCIA_TECNOLOGIA",
+    pattern: "\\b(ciencia|cientifico|tecnolog|telecomunic|telefonia|internet|digital|innovacion|investiga)\\b",
+  },
+  {
+    category: "SEGURIDAD_CIUDADANA",
+    pattern: "\\b(policia|policia local|policia nacional|guardia civil|detenido|detencion|detencion|atentado|atraco|delito)\\b",
+  },
+  {
+    category: "JURIDICO",
+    pattern: "\\b(juzgado|juez|tribunal|sentencia|condena|condenado|demanda|juicio|audiencia penal|investigacion judicial)\\b",
+  },
+  {
+    category: "TRAMITES_Y_SERVICIOS_CIUDADANO",
+    pattern: "\\b(tramite|tramites|cita previa|padron|padrón|carne deApplying|documentacion|dni|nie)\\b",
+  },
+  {
+    category: "RELIGION",
+    pattern: "\\b(iglesia|iglesias|romeria|dioces|parroquia|obispo|papa|beatificacion|procesion)\\b",
+  },
+  {
+    category: "ACTOS_PROTOCOLARIOS",
+    pattern: "\\b(presidente|ministra|monarca|visita oficial|inauguracion|homenaje|conmemoracion|aniversario)\\b",
+  },
+];
 
 function extractVehicleType(text: string): VehicleType | null {
   if (/\b(furgoneta|camion|camioneta|bus|cisterna|trailer|vehiculos pesados|grua)\b/.test(text)) return "CAMION";
@@ -441,7 +760,28 @@ export function extractFacts(title: string, body: string): ExtractedFacts {
     }
   }
 
-  if (weight === 0) {
+  /*
+    ---------------------------------------------------------------------------
+    * POR QUE weight === 0 NO ABORTA NADA
+    * ---------------------------------------------------------------------------
+    *
+    * Antes, un articulo sin terminos de relevancia devolvia todo en null y ya
+    * estaba. Con solo los siete tipos de accidente, eso era correcto: si no
+    * hablaba de accidentes, no era del sitio.
+    *
+    * Al abrir el sitio a la actualidad de la isla ese criterio se quedo corto:
+    * un partido de balonmano o una nota del Cabildo no mencionan "accidente" ni
+    * "carretera", asi que salian con todo en null. La ingesta traducía ese
+    * por ACCIDENTE_TRAFICO y acababan publicados como accidentes.
+    *
+    * Ahora se sigue calculando igual, pero weight === 0 solo detiene el analisis
+    * de accidente. Si el texto reconoce un tema de informacion, se sigue
+    * adelante y se clasifica: el articulo no tiene por que ser un accidente para
+    * que el sistema sepa de que va.
+    */
+  const tieneTemaDeInformacion = extractCategory(combined) !== null;
+
+  if (weight === 0 && !tieneTemaDeInformacion) {
     return {
       municipalitySlug: null, zoneSlug: null, areaLabel: null, road: null, vehicleType: null,
       category: null, severity: null, injuries: null, fatalities: null,

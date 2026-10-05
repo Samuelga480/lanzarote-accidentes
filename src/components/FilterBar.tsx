@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { MUNICIPALITIES, CATEGORY_LIST, DATE_RANGE_OPTIONS } from "@/lib/constants";
+import { MUNICIPALITIES, DATE_RANGE_OPTIONS } from "@/lib/constants";
+import { CATEGORIAS_SUCESO as CATEGORIAS_SUCESO_LISTA, CATEGORIAS_INFORMACION_MENU, etiquetaDe } from "@/lib/categorias";
 
 /**
  * Buscador y filtros.
@@ -109,11 +110,20 @@ export function FilterBar({ showSearch = true }: { showSearch?: boolean }) {
               onChange={(e) => update("categoria", e.target.value)}
             >
               <option value="">Todos los tipos</option>
-              {CATEGORY_LIST.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
+<optgroup label="Sucesos">
+              {CATEGORIAS_SUCESO_LISTA.map((c) => (
+                <option key={c} value={c}>
+                  {etiquetaDe(c)}
                 </option>
               ))}
+</optgroup>
+<optgroup label="Informacion">
+              {CATEGORIAS_INFORMACION_MENU.map((c) => (
+                <option key={c} value={c}>
+                  {etiquetaDe(c)}
+                </option>
+              ))}
+</optgroup>
             </select>
 
             <label htmlFor="f-date" className="sr-only">

@@ -22,6 +22,13 @@ import { UserMenu } from "@/components/auth/UserMenu";
 const NAV = [
   { href: "/", label: "Inicio" },
   { href: "/mapa", label: "Mapa" },
+  /*
+    Informacion va en la barra, no en el desplegable de Resumen. Son cosas
+    distintas: ahi se elige un periodo de un mismo tipo de resumen, y aqui se
+    cambia de tipo de noticia. Mezclarlas haria que al abrir "Resumen" apareciera
+    Politica al lado de "Resumen semanal", que no significan nada juntos.
+  */
+  { href: "/informacion", label: "Información" },
 ];
 
 /** Los dos periodos de resumen, que en escritorio viven dentro del desplegable. */

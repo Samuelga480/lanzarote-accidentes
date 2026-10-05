@@ -256,14 +256,47 @@ export async function ingestArticle(params: {
   });
 
   if (duplicate.isDuplicate && duplicate.canonicalId) {
+    const draftId = await ensureDuplicateDraft({
+      url: page.url, urlHash, title, body: fullText, summary, facts,
+      occurredAt, verification, source, occurredAtIso: occurredAt.toISOString(),
+      municipalityName: facts.municipalitySlug ?? "sin municipio",
+    });
+
     const merge = await mergeIntoCanonical({
-      duplicateId: await ensureDuplicateDraft({
-        url: page.url, urlHash, title, body: fullText, summary, facts,
-        occurredAt, verification, source, occurredAtIso: occurredAt.toISOString(),
-        municipalityName: facts.municipalitySlug ?? "sin municipio",
-      }),
+      duplicateId: draftId,
       canonicalId: duplicate.canonicalId,
     });
+
+    /*
+      Si la fusion falla, el borrador que se acaba de crear se queda
+      PENDING_REVIEW y SIN marcar como duplicado: en el panel es indistinguible
+      de una noticia nueva y el editor puede aprobarlo, con lo que el mismo
+      suceso acaba publicado dos veces. Antes este `merge` no se comprobaba.
+
+      Marcarlo aqui es la compensacion: aunque no se hayan traspasado las
+      fuentes, la noticia queda descartada y enlazada a la canonica, que es
+      justamente lo que impide que se publique. La fuente se reintentara en la
+      siguiente pasada, cuando `checkDuplicate` vuelva a encontrarla.
+    */
+    if (!merge.merged && draftId !== duplicate.canonicalId) {
+      await prisma.accident.updateMany({
+        where: { id: draftId, duplicateOfId: null },
+        data: {
+          duplicateOfId: duplicate.canonicalId,
+          status: "REJECTED",
+          reviewedAt: new Date(),
+          reviewedBy: "dedupe",
+          isFeatured: false,
+          reviewNotes: `Fusion fallida (${merge.error ?? "motivo desconocido"}): descartada para no duplicar la noticia canonica.`,
+        },
+      });
+
+      log.warn("La fusion de la duplicada fallo; el borrador queda descartado", {
+        duplicateId: draftId,
+        canonicalId: duplicate.canonicalId,
+        error: merge.error,
+      });
+    }
 
     await recordSeen({
       url: page.url, urlHash, title, contentHash: contentHashOf(title, fullText),
@@ -274,6 +307,7 @@ export async function ingestArticle(params: {
     log.info("Noticia duplicada, fuente fusionada", {
       canonicalId: duplicate.canonicalId,
       sourcesAdded: merge.sourcesAdded,
+      merged: merge.merged,
       reason: duplicate.reason,
     });
 

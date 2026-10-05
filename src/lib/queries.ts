@@ -21,9 +21,18 @@ import { MONTH_LABELS, canaryMonthOf, canaryYearOf, isValidYear, yearWindow } fr
 /*  SIEMPRE por status = PUBLISHED. Los borradores (PENDING_REVIEW), los       */
 /*  descartados y los archivados no son accesibles desde ninguna pagina        */
 /*  publica, ni por slug, ni por la API publica.                              */
+/*                                                                             */
+/*  Ademas se excluye `duplicateOfId != null`. Una noticia fusionada en otra   */
+/*  puede haber quedado en PUBLISHED (una fusion antigua, o un fallo de merge  */
+/*  que dejo el borrador sin marcar) y entonces aparecia en el sitio junto a    */
+/*  su canonica: el mismo suceso, dos veces. Filtrar aqui y no en cada consulta */
+/*  es lo que garantiza que no se cuele por un `findFirst` olvidado.          */
 /* -------------------------------------------------------------------------- */
 
-const ONLY_PUBLISHED: Prisma.AccidentWhereInput = { status: "PUBLISHED" };
+const ONLY_PUBLISHED: Prisma.AccidentWhereInput = {
+  status: "PUBLISHED",
+  duplicateOfId: null,
+};
 
 /**
  * Las mismas noticias, pero solo las que son SUCESOS.

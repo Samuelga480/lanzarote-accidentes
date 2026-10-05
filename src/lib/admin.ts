@@ -330,11 +330,39 @@ export async function changeStatus(
 ) {
   const existing = await prisma.accident.findUnique({
     where: { id },
-    select: { status: true, origin: true, publishedAt: true },
+    select: { status: true, origin: true, publishedAt: true, duplicateOfId: true },
   });
   if (!existing) throw new Error("La noticia no existe");
 
   const published = status === "PUBLISHED";
+
+  /*
+    Publicar una noticia ya fusionada en otra republica el mismo suceso por
+    segunda vez. El panel las muestra a proposito (para que el editor pueda
+    archivarlas), asi que el bloqueo tiene que ir AQUI y no en el listado: esta
+    funcion es la unica via de publicacion del sistema, y tanto
+    `setStatusAction` como `approveAiDraftAction` pasan por ella.
+
+    No es un rechazo silencioso: el editor recibe un error que dice que hacer, en
+    lugar de un fallo generico de validacion.
+  */
+  if (published && existing.duplicateOfId) {
+    throw new Error(
+      "Esta noticia ya esta fusionada en otra: publicarla repetiria el mismo suceso. " +
+      "Archivala, o edita la noticia canonica.",
+    );
+  }
+
+  /*
+    Una noticia archivada tampoco se vuelve a publicar sin querer. El script de
+    limpieza deja las repetidas en ARCHIVED precisamente para que sigan
+    recuperables; esto impide que vuelvan al sitio por un clic.
+  */
+  if (published && existing.status === "ARCHIVED") {
+    throw new Error(
+      "Esta noticia esta archivada. Si vuelve a ser noticia, crea una entrada nueva.",
+    );
+  }
 
   /*
     `publishedAt` es OBLIGATORIO al publicar, y no es una opinion: hay una

@@ -1,0 +1,27 @@
+Los subtitulos de la portada dicen lo que muestran
+
+En la portada, encima del bloque por municipio, ponia "Accidentes registrados en
+cada municipio de la isla". El contador de ahi viene de countByMunicipality, que
+en el commit anterior dejo en SOLO_SUCESOS. Con la etiqueta puesta asi el sitio
+afirmaba que un partido de balonmano era un accidente. Ahora pone "Noticias
+registradas en cada municipio de la isla", que es lo que cuenta.
+
+El mismo desajuste estaba al lado, sobre el listado de noticias recientes, que
+pone "Lo ultimo publicado en Lanzarote".
+
+Tres consultas mas se habían quedado en SOLO_SUCESOS sin que su pagina lo
+pidiera, y una de ellas era grave:
+
+- getPublishedSlugs alimenta el sitemap. Con el filtro, las noticias de
+  informacion no aparecian en el sitemap: existian, se podian leer y el buscador
+  las encontraba, pero Google no tenia forma de enterarse. Un apartado nuevo
+  cuyas URLs no estan en el sitemap no se indexa.
+- countByZone lo usa /zonas, que se titula "Noticias por zona".
+- getRelatedAccidents: leer una nota de politica y que las relacionadas fuesen
+  solo accidentes rompia el criterio de la ficha.
+
+Queda SOLO_SUCESOS donde la pagina es de accidentes y no de otra cosa: la
+portada, el mapa, los contadores de la portada y los selectores de los resumenes
+semanal y anual.
+
+Suite y build en verde.

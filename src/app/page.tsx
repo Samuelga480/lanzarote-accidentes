@@ -87,7 +87,7 @@ export default async function HomePage({ searchParams }: Props) {
         <section className="site-section" aria-labelledby="titulo-noticias">
           <div className="section-header">
             <h2 id="titulo-noticias">Noticias recientes</h2>
-            <p>Últimos accidentes reportados en Lanzarote</p>
+            <p>Lo último publicado en Lanzarote</p>
           </div>
 
           {/* Un solo hueco en la portada, como pidio el editor. */}
@@ -118,7 +118,7 @@ export default async function HomePage({ searchParams }: Props) {
         <section className="site-section stats-section" aria-labelledby="titulo-municipios">
           <div className="section-header">
             <h2 id="titulo-municipios">Por municipio</h2>
-            <p>Accidentes registrados en cada municipio de la isla</p>
+            <p>Noticias registradas en cada municipio de la isla</p>
           </div>
 
           <div className="stats-grid">

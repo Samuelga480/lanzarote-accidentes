@@ -225,7 +225,7 @@ export async function getRelatedAccidents(
   const rows = await prisma.accident.findMany({
     where: {
       AND: [
-        SOLO_SUCESOS,
+        ONLY_PUBLISHED,
         { id: { not: accident.id } },
         {
           OR: [
@@ -269,12 +269,12 @@ export async function countByMunicipality(): Promise<
 > {
   const grouped = await prisma.accident.groupBy({
     by: ["municipalityId"],
-    where: SOLO_SUCESOS,
+    where: ONLY_PUBLISHED,
     _count: { _all: true },
   });
 
   const municipalities = await prisma.municipality.findMany({
-    include: { _count: { select: { accidents: { where: SOLO_SUCESOS } } } },
+    include: { _count: { select: { accidents: { where: ONLY_PUBLISHED } } } },
   });
 
   const counts = new Map(grouped.map((g) => [g.municipalityId, g._count._all]));
@@ -306,7 +306,7 @@ export async function countByZone(municipalitySlug?: string): Promise<
     by: ["zone"],
     where: {
       AND: [
-        SOLO_SUCESOS,
+        ONLY_PUBLISHED,
         { zone: { not: null } },
         ...(municipalitySlug ? [{ municipality: { slug: municipalitySlug } }] : []),
       ],
@@ -628,7 +628,7 @@ export async function getPublishedSlugs(): Promise<
   Array<{ slug: string; updatedAt: Date; occurredAt: Date }>
 > {
   return prisma.accident.findMany({
-    where: SOLO_SUCESOS,
+    where: ONLY_PUBLISHED,
     select: { slug: true, updatedAt: true, occurredAt: true },
     orderBy: { occurredAt: "desc" },
   });

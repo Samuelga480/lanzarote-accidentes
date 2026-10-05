@@ -11,6 +11,7 @@ import {
   countByMunicipality,
 } from "@/lib/queries";
 import { parseFilters, type RawSearchParams } from "@/lib/filters";
+import { prisma } from "@/lib/prisma";
 import { MUNICIPALITIES, SITE } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -36,6 +37,11 @@ export default async function HomePage({ searchParams }: Props) {
   ]);
 
   const mapPoints = mapAccidents.map((a) => ({ ...a, occurredAt: a.occurredAt.toISOString() }));
+
+  // Para la linea que explica el bloque de municipios: cuantas noticias se han
+  // quedado sin municipio. Sin esto el reparto parece completo y no lo es.
+  const totalPublicadas = await prisma.accident.count({ where: { status: "PUBLISHED" } });
+  const conMunicipio = byMunicipality.reduce((s, m) => s + m.count, 0);
 
   return (
     <>
@@ -137,6 +143,18 @@ export default async function HomePage({ searchParams }: Props) {
               );
             })}
           </div>
+
+          {/*
+            El contador solo suma las noticias cuyo texto nombra el municipio.
+            Las demas no van a ningun sitio porque no se sabe donde pasan, asi
+            que se dice en voz alta. Un 19 en Arrecife sin esta linea se lee
+            como "en Arrecife hay 19 noticias" y no como "19 noticias dicen que
+            pasan en Arrecife".
+          */}
+          <p className="text-xs text-ink-mute mt-4 max-w-prose">
+            {conMunicipio} de {totalPublicadas} noticias publicadas dicen en qué municipio
+            pasan. Las demas no lo mencionan, así que no se cuentan en ninguno.
+          </p>
         </section>
       </main>
     </>

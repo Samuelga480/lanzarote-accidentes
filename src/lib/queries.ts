@@ -263,30 +263,53 @@ export async function getPublishedAccidentBySlug(
   return row ? narrow(row) : null;
 }
 
-/** Numero de accidentes publicados por municipio. */
+/**
+ * Noticias publicadas por municipio, contando solo las que lo nombran.
+ *
+ * Ver el comentario largo de mas abajo: la columna `municipalityId` lleva un
+ * valor por defecto (Arrecife) cuando el texto no dice donde ha pasado nada, y
+ * contar por esa columna dava un reparto falso.
+ */
 export async function countByMunicipality(): Promise<
   Array<{ slug: string; name: string; island: string; count: number; lat: number; lon: number }>
 > {
-  const grouped = await prisma.accident.groupBy({
-    by: ["municipalityId"],
-    where: ONLY_PUBLISHED,
-    _count: { _all: true },
-  });
+  const municipios = await prisma.municipality.findMany();
 
-  const municipalities = await prisma.municipality.findMany({
-    include: { _count: { select: { accidents: { where: ONLY_PUBLISHED } } } },
-  });
+  // Una condicion por municipio, unidas con OR. La lista sale de la base de
+  // datos, asi que anadir un municipio nuevo no obliga a tocar esta consulta.
+  const cond = municipios
+    .map(
+      (m) =>
+        "(a.title ILIKE '%' || m.name || '%' OR a.summary ILIKE '%' || m.name || '%'" +
+        " OR a.body ILIKE '%' || m.name || '%')",
+    )
+    .join(" OR ");
 
-  const counts = new Map(grouped.map((g) => [g.municipalityId, g._count._all]));
+  // Las siete condiciones son OR: una noticia cuenta para un municipio si lo
+  // nombra. La que no nombra ninguno no cuenta en ninguno, y asi se ve en
+  // pantalla: es preferible un cero a un numero inventado.
 
-  return municipalities
+  const filas = await prisma.$queryRawUnsafe<
+    Array<{ slug: string; count: bigint }>
+  >(
+    "SELECT m.slug AS slug, COUNT(a.id) AS count" +
+    ' FROM "Municipality" m' +
+    ' LEFT JOIN "Accident" a ON a."municipalityId" = m.id' +
+    " AND a.status = 'PUBLISHED'" +
+    " AND (" + cond + ")" +
+    " GROUP BY m.slug",
+  );
+
+  const counts = new Map(filas.map((f) => [f.slug, Number(f.count)]));
+
+  return municipios
     .map((m) => ({
       slug: m.slug,
       name: m.name,
       island: m.island,
       lat: m.lat,
       lon: m.lon,
-      count: counts.get(m.id) ?? m._count.accidents,
+      count: counts.get(m.slug) ?? 0,
     }))
     .sort((a, b) => b.count - a.count);
 }
@@ -394,7 +417,7 @@ export async function getPublicStats(): Promise<{ total: number; last24h: number
 /* ==========================================================================
  *  Resumen semanal
  *
- *  Cubre la pagina /resumen del sitio original: los总数 de una semana,
+ *  Cubre la pagina /resumen del sitio original: el resumen de una semana,
  *  el reparto por tipo de incidente y por municipio, y la lista de
  *  accidentes de esa semana.
  * ======================================================================== */
